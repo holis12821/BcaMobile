@@ -1,0 +1,172 @@
+<resources>
+    <string name="app_name">Bca Mobile</string>
+    <string name="nav_beranda">Beranda</string>
+    <string name="nav_transfer">Transfer</string>
+    <string name="nav_mutasi">Mutasi</string>
+    <string name="nav_riwayat">Riwayat</string>
+    <string name="nav_akun">Akun</string>
+    <string name="nav_scan">Scan</string>
+    <string name="cd_scan_qr">Scan QR</string>
+
+    <!-- Navigation -->
+    <string name="navigation_open_account">Buka Rekening</string>
+    <string name="navigation_change_access_code">Ganti Kode Akses</string>
+    <string name="navigation_input_transaction_pin">Input PIN Transaksi</string>
+    <string name="navigation_transaction_receipt">Bukti Transaksi</string>
+    <string name="navigation_history">Riwayat</string>
+    <string name="navigation_account">Akun</string>
+    <string name="navigation_date_range">Rentang Waktu</string>
+
+    <!-- E-Wallet -->
+    <string name="error_something_went_wrong">Terjadi kesalahan. Silakan coba lagi.</string>
+
+    <!-- Mutation / Transaction -->
+    <string name="transaction_tokopedia">Tokopedia</string>
+    <string name="transaction_transfer_to_budi">Transfer ke Budi</string>
+    <string name="transaction_october_salary">Gaji Bulan Oktober</string>
+    <string name="transaction_pln_postpaid">PLN Pascabayar</string>
+    <string name="transaction_ecommerce_payment">Pembayaran E-Commerce</string>
+    <string name="transaction_bca_account">BCA - 0987654321</string>
+    <string name="transaction_maju_mundur">PT Maju Mundur</string>
+    <string name="transaction_electricity_bill">Tagihan Listrik</string>
+
+    <!-- Error Messages -->
+    <string name="error_general_retry">Terjadi kesalahan. Silakan coba lagi.</string>
+    <string name="error_connection_failed">Koneksi gagal. Periksa jaringan Anda.</string>
+
+
+
+    <string name="rekening_sumber">REKENING SUMBER</string>
+    <string name="periode_mutasi">PERIODE MUTASI</string>
+    <string name="period_7_hari_terakhir">7 Hari Terakhir</string>
+    <string name="period_bulan_ini">Bulan Ini</string>
+    <string name="period_bulan_lalu">Bulan Lalu</string>
+    <string name="period_pilih_tanggal">Pilih Tanggal</string>
+    <string name="daftar_transaksi">Daftar Transaksi</string>
+    <string name="tampilkan_lebih_banyak">Tampilkan Lebih Banyak</string>
+    <string name="cd_notifikasi">Notifikasi</string>
+    <string name="cd_pilih_rekening">Pilih rekening</string>
+    <string name="mutasi_empty_title">Tidak Ada Transaksi</string>
+    <string name="mutasi_empty_description">Tidak ditemukan transaksi untuk periode yang dipilih.</string>
+    <string name="mutasi_ubah_periode">Ubah Periode</string>
+    <string name="mutasi_coba_lagi">Coba Lagi</string>
+
+    <!-- Login Screen -->
+    <string name="login_bca_mobile">BCA mobile</string>
+    <string name="login_welcome_back">Welcome back,</string>
+    <string name="login_mbca_login">m-BCA Login</string>
+    <string name="login_or_login_with">or login with</string>
+    <string name="login_info_bca">Info BCA</string>
+    <string name="login_flazz">Flazz</string>
+    <string name="login_klikbca">KlikBCA</string>
+    <string name="cd_login_face_id">Login dengan Face ID</string>
+    <string name="cd_login_fingerprint">Login dengan sidik jari</string>
+    <string name="cd_login_arrow">Lanjut</string>
+    <string name="cd_bca_logo">Logo BCA</string>
+    <string name="login_buka_rekening">Buka Rekening Baru</string>
+    <string name="login_ganti_kode_akses">Ganti Kode Akses</string>
+    <string name="login_selamat_datang">Selamat datang di,</string>
+    <string name="login_bca_title">BCA</string>
+    <string name="login_mobile_subtitle">mobile</string>
+
+    <!-- Beranda Screen -->
+    <string name="beranda_selamat_datang">Selamat datang,</string>
+    <string name="beranda_total_saldo">Total Saldo</string>
+    <string name="beranda_balance_hidden">Rp ••••••••</string>
+    <string name="beranda_isi_saldo">Isi Saldo</string>
+    <string name="beranda_mutasi">Mutasi</string>
+    <string name="beranda_promo_title">Promo Menarik</string>
+    <string name="beranda_lihat_semua">Lihat Semua</string>
+    <string name="beranda_no_promo">Belum ada promo</string>
+    <string name="beranda_coba_lagi">Coba Lagi</string>
+    <string name="cd_toggle_balance">Toggle visibilitas saldo</string>
+    <string name="cd_profile">Profil</string>
+    <string name="menu_m_info">m-Info</string>
+    <string name="menu_transfer">Transfer</string>
+    <string name="menu_e_wallet">e-Wallet</string>
+    <string name="menu_pulsa">Pulsa</string>
+    <string name="menu_cardless">Cardless</string>
+    <string name="menu_m_admin">m-Admin</string>
+    <string name="menu_m_commerce">m-Commerce</string>
+    <string name="menu_lainnya">Lainnya</string>
+
+    <!-- Splash Screen -->
+    <string name="splash_tagline">Senantiasa di Sisi Anda</string>
+    <string name="splash_copyright">Bank BCA © 2024</string>
+
+    <!-- Top Up E-Wallet Screen -->
+    <string name="ewallet_topup_title">E Wallet Top Up</string>
+    <string name="ewallet_sumber_rekening">SUMBER REKENING</string>
+    <string name="ewallet_pilih_ewallet">PILIH E-WALLET</string>
+    <string name="ewallet_nominal_topup">NOMINAL TOP UP</string>
+    <string name="ewallet_nomor_handphone">Nomor Handphone</string>
+    <string name="ewallet_phone_prefix">+62</string>
+    <string name="ewallet_manual_amount_label">Atau masukkan nominal</string>
+    <string name="ewallet_min_topup_info">Minimal top up Rp 10.000. Biaya admin Rp 1.000.</string>
+    <string name="ewallet_lanjut">Lanjut</string>
+    <string name="ewallet_saldo">Saldo</string>
+    <string name="ewallet_rp_prefix">Rp</string>
+    <string name="ewallet_coba_lagi">Coba Lagi</string>
+    <string name="ewallet_saldo_tidak_cukup">Saldo rekening tidak mencukupi untuk nominal ini.</string>
+    <string name="cd_ewallet_back">Kembali</string>
+    <string name="cd_ewallet_pilih_kontak">Pilih kontak</string>
+    <string name="cd_ewallet_pilih_rekening">Pilih rekening sumber</string>
+
+    <!-- Konfirmasi E-Wallet Screen -->
+    <string name="ewallet_confirm_title">E Wallet Confirmation</string>
+    <string name="ewallet_konfirmasi_topup">Konfirmasi Top Up</string>
+    <string name="ewallet_pastikan_detail">Pastikan detail transaksi sudah benar</string>
+    <string name="ewallet_tujuan_ewallet">TUJUAN E-WALLET</string>
+    <string name="ewallet_destination_format">%1$s - %2$s</string>
+    <string name="ewallet_sumber_rekening_label">Sumber Rekening</string>
+    <string name="ewallet_nominal_topup_label">Nominal Top Up</string>
+    <string name="ewallet_biaya_admin">Biaya Admin</string>
+    <string name="ewallet_total">Total</string>
+    <string name="ewallet_warning_irreversible">Transaksi ini tidak dapat dibatalkan setelah Anda menekan tombol konfirmasi.</string>
+    <string name="ewallet_konfirmasi">Konfirmasi</string>
+
+    <!-- Face ID Authentication Screen -->
+    <string name="faceid_title">Face ID</string>
+    <string name="faceid_instruction">Posisikan wajah Anda di dalam bingkai</string>
+    <string name="faceid_verifying">Memverifikasi…</string>
+    <string name="faceid_success">Verifikasi berhasil</string>
+    <string name="faceid_logging_in">Sedang masuk…</string>
+    <string name="faceid_failed">Verifikasi gagal</string>
+    <string name="faceid_retry">Coba Lagi</string>
+    <string name="faceid_cancel">Batalkan</string>
+    <string name="cd_faceid_back">Kembali</string>
+
+    <!-- Touch ID Authentication Screen -->
+    <string name="finger_print_title">Finger Print</string>
+    <string name="finger_print_subtitle">Verifikasi identitas Anda untuk melanjutkan</string>
+    <string name="finger_print_instruction">Sentuhkan jari Anda pada sensor</string>
+    <string name="finger_print_alt_method">Atau gunakan sandi Anda</string>
+    <string name="finger_print_scanning">Membaca sidik jari…</string>
+    <string name="finger_print_success">Berhasil</string>
+    <string name="finger_print_failed">Verifikasi gagal</string>
+    <string name="finger_print_retry">Coba Lagi</string>
+    <string name="finger_print_use_access_code">Gunakan Kode Akses</string>
+    <string name="cd_finger_print_scan">Pindai sidik jari</string>
+
+    <!-- Transfer Screen -->
+    <string name="transfer_title">Transfer</string>
+    <string name="transfer_saldo_efektif">Saldo Efektif</string>
+    <string name="transfer_no_rekening">No. Rekening:</string>
+    <string name="transfer_search_hint">Cari kontak atau rekening…</string>
+    <string name="transfer_antar_rekening">Antar Rekening</string>
+    <string name="transfer_antar_bank">Antar Bank</string>
+    <string name="transfer_virtual_account">Virtual Account</string>
+    <string name="transfer_sakuku">Sakuku</string>
+    <string name="transfer_terakhir">Terakhir Transfer</string>
+    <string name="transfer_lihat_semua">Lihat Semua</string>
+    <string name="cd_copy_rekening">Salin nomor rekening</string>
+    <string name="cd_transfer_back">Kembali</string>
+
+    <!-- Kode Akses Screen -->
+    <string name="kode_akses_title">Masukkan Kode Akses</string>
+    <string name="kode_akses_lupa">Lupa Kode Akses?</string>
+    <string name="kode_akses_batal">Batal</string>
+    <string name="kode_akses_lanjut">Lanjut</string>
+    <string name="kode_akses_error">Kode akses salah. Silakan coba lagi.</string>
+    <string name="cd_kode_akses_hapus">Hapus</string>
+</resources>
