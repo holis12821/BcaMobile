@@ -187,4 +187,25 @@
     <string name="kode_akses_lanjut">Lanjut</string>
     <string name="kode_akses_error">Kode akses salah. Silakan coba lagi.</string>
     <string name="cd_kode_akses_hapus">Hapus</string>
+
+    <!-- Shared Components -->
+    <string name="cd_back">Kembali</string>
+
+    <!-- Bukti Transaksi Screen -->
+    <string name="bukti_transaksi_berhasil">Transaksi Berhasil</string>
+    <string name="bukti_transaksi_subtitle">Transfer telah diproses</string>
+    <string name="bukti_transaksi_tanggal_waktu">TANGGAL &amp; WAKTU</string>
+    <string name="bukti_transaksi_no_referensi">NO REFERENSI</string>
+    <string name="bukti_transaksi_dari">Dari</string>
+    <string name="bukti_transaksi_ke">Ke</string>
+    <string name="bukti_transaksi_jenis_layanan">Jenis Layanan</string>
+    <string name="bukti_transaksi_nominal">Nominal</string>
+    <string name="bukti_transaksi_biaya_admin">Biaya Admin</string>
+    <string name="bukti_transaksi_total">Total</string>
+    <string name="bukti_transaksi_simpan">Simpan</string>
+    <string name="bukti_transaksi_watermark">BCA</string>
+    <string name="bukti_transaksi_bagikan">Bagikan</string>
+    <string name="bukti_transaksi_simpan_info">Simpan bukti transaksi untuk keperluan administrasi.</string>
+    <string name="cd_bukti_transaksi_simpan">Simpan bukti transaksi</string>
+    <string name="cd_bukti_transaksi_sukses">Transaksi berhasil</string>
 </resources>
