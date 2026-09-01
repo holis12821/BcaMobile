@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object RentangWaktu
 
 @Serializable data object Transfer
+@Serializable data object TransferAntarRekening
 
 // ── EWallet ─────────────────────────────────────────────────────────────
 

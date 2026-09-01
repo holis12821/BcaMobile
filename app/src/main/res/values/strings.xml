@@ -7,6 +7,7 @@
     <string name="nav_akun">Akun</string>
     <string name="nav_scan">Scan</string>
     <string name="cd_scan_qr">Scan QR</string>
+    <string name="nav_qris">QRIS</string>
 
     <!-- Navigation -->
     <string name="navigation_open_account">Buka Rekening</string>
@@ -161,6 +162,23 @@
     <string name="transfer_lihat_semua">Lihat Semua</string>
     <string name="cd_copy_rekening">Salin nomor rekening</string>
     <string name="cd_transfer_back">Kembali</string>
+
+    <!-- Transfer Antar Rekening -->
+    <string name="transfer_detail_title">Transfer Detail</string>
+    <string name="transfer_step_input">Input</string>
+    <string name="transfer_step_konfirmasi">Konfirmasi</string>
+    <string name="transfer_dari_rekening">Dari Rekening</string>
+    <string name="transfer_ke_rekening">Ke Rekening</string>
+    <string name="transfer_nomor_tujuan_hint">Nomor Rekening Tujuan</string>
+    <string name="transfer_jumlah">Jumlah</string>
+    <string name="transfer_catatan_label">Catatan (Opsional)</string>
+    <string name="transfer_catatan_hint">Contoh: Bayar Makan Siang</string>
+    <string name="transfer_lanjut">Lanjut</string>
+    <string name="transfer_rp_prefix">Rp</string>
+    <string name="transfer_saldo_label">Saldo:</string>
+    <string name="transfer_amount_placeholder">0</string>
+    <string name="cd_transfer_kontak">Pilih kontak</string>
+    <string name="cd_transfer_pilih_rekening">Pilih rekening sumber</string>
 
     <!-- Kode Akses Screen -->
     <string name="kode_akses_title">Masukkan Kode Akses</string>

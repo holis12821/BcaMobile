@@ -3,17 +3,21 @@ package id.bca.bcamobile.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import id.bca.bcamobile.R
-import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesScreen
-import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesUiState
+import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesScreen  // composable
+import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesViewModel  // state holder
 import id.bca.bcamobile.ui.screen.login.LoginScreen
 import id.bca.bcamobile.ui.screen.login.LoginUiState
 
@@ -38,13 +42,24 @@ fun NavGraphBuilder.authGraph(
             )
         }
 
-        dialog<KodeAkses> {
+        dialog<KodeAkses>(
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            val viewModel: KodeAksesViewModel = viewModel()
+            val state by viewModel.uiState.collectAsState()
+
             KodeAksesScreen(
-                state = KodeAksesUiState(),
-                onDigitClick = {},
-                onDeleteClick = {},
+                state = state,
+                onDigitClick = viewModel::onDigitClick,
+                onDeleteClick = viewModel::onDeleteClick,
                 onCancelClick = { navController.popBackStack() },
-                onSubmitClick = { onAuthenticated() },
+                onSubmitClick = {
+                    if (viewModel.submit()) {
+                        onAuthenticated()
+                    } else {
+                        viewModel.showError()
+                    }
+                },
                 onForgotClick = {},
             )
         }

@@ -378,7 +378,7 @@ Keputusan saya: splash pakai core-splashscreen, route type-safe
 Screen composable boleh placeholder. Jangan sentuh Scaffold dulu.
 Build harus hijau.
 ```
-- Sesi 2 -> state sesi dan back stack (ini perbaikan keamanannya).
+- Sesi 2 -> state 1sesi dan back stack (ini perbaikan keamanannya).
 
 ```
 Perbaiki audit #6 dan #7 sesuai navigation.md §2, §4, §8.

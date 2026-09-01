@@ -2,8 +2,10 @@ package id.bca.bcamobile.ui.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -42,7 +44,10 @@ import id.bca.bcamobile.ui.screen.home.QuickAction
 import id.bca.bcamobile.ui.screen.mutasi.MutasiScreen
 import id.bca.bcamobile.ui.screen.mutasi.MutasiUiState
 import id.bca.bcamobile.ui.screen.transfer.RecentTransferItem
+import id.bca.bcamobile.ui.screen.transfer.TransferAntarRekeningScreen
+import id.bca.bcamobile.ui.screen.transfer.TransferAntarRekeningUiState
 import id.bca.bcamobile.ui.screen.transfer.TransferScreen
+import id.bca.bcamobile.ui.screen.transfer.TransferType
 import id.bca.bcamobile.ui.screen.transfer.TransferUiState
 import id.bca.bcamobile.ui.theme.AppColor
 import id.bca.bcamobile.ui.theme.AppShape
@@ -51,7 +56,7 @@ import id.bca.bcamobile.ui.theme.Spacing
 // ── Tab Definition ──────────────────────────────────────────────────────
 
 enum class MainTab(
-    @StringRes val labelRes: Int,
+    @param:StringRes val labelRes: Int,
     val icon: ImageVector,
 ) {
     BERANDA(R.string.nav_beranda, Icons.Default.Home),
@@ -146,11 +151,34 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
                 onToggleBalance = {},
                 onCopyAccount = {},
                 onSearchChange = {},
-                onTransferTypeClick = {},
+                onTransferTypeClick = { type ->
+                    when (type) {
+                        TransferType.ANTAR_REKENING -> navController.navigate(TransferAntarRekening)
+                        else -> {}
+                    }
+                },
                 onRecentTransferClick = {},
                 onLihatSemua = {},
                 onNotificationClick = {},
                 onProfileClick = {},
+            )
+        }
+
+        composable<TransferAntarRekening> {
+            TransferAntarRekeningScreen(
+                state = TransferAntarRekeningUiState(
+                    currentStep = 1,
+                    sourceAccountType = "Tahapan BCA",
+                    sourceAccountNumber = "1234567890",
+                    sourceBalance = "Rp 12.500.000",
+                ),
+                onBackClick = { navController.popBackStack() },
+                onSourceAccountClick = {},
+                onDestinationAccountChange = {},
+                onContactsClick = {},
+                onAmountChange = {},
+                onNotesChange = {},
+                onLanjutClick = {},
             )
         }
 
@@ -177,6 +205,7 @@ private fun MainScaffold(
     val currentDestination = navBackStackEntry?.destination
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             AppBottomBar(
                 currentDestination = currentDestination,
@@ -259,16 +288,26 @@ private fun AppBottomBar(
             }
         }
 
-        FloatingActionButton(
-            onClick = onScanClick,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = AppColor.Neutral100,
-            shape = AppShape.Full,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.TopCenter),
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_qr_scan),
-                contentDescription = stringResource(R.string.cd_scan_qr),
+            FloatingActionButton(
+                onClick = onScanClick,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = AppColor.Neutral100,
+                shape = AppShape.Full,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_qr_scan),
+                    contentDescription = stringResource(R.string.cd_scan_qr),
+                )
+            }
+            Text(
+                text = stringResource(R.string.nav_qris),
+                modifier = Modifier.padding(top = Spacing.s1),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

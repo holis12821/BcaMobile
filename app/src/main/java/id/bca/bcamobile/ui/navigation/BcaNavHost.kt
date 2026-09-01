@@ -1,5 +1,7 @@
 package id.bca.bcamobile.ui.navigation
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -10,11 +12,41 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import id.bca.bcamobile.session.SessionState
+import id.bca.bcamobile.ui.screen.splash.SplashScreen
 
 // ── Root Composable ─────────────────────────────────────────────────────
 
 @Composable
 fun BcaApp(
+    sessionState: SessionState,
+    onAuthenticated: () -> Unit,
+    onSaveRouteForReturn: (Any?) -> Unit,
+    onConsumeReturnRoute: () -> Any?,
+    modifier: Modifier = Modifier,
+) {
+    Crossfade(
+        targetState = sessionState is SessionState.Loading,
+        animationSpec = tween(durationMillis = 500),
+        label = "splash",
+    ) { isLoading ->
+        if (isLoading) {
+            SplashScreen(modifier = modifier)
+        } else {
+            AppNavHost(
+                sessionState = sessionState,
+                onAuthenticated = onAuthenticated,
+                onSaveRouteForReturn = onSaveRouteForReturn,
+                onConsumeReturnRoute = onConsumeReturnRoute,
+                modifier = modifier,
+            )
+        }
+    }
+}
+
+// ── Nav Host (mounted after splash) ────────────────────────────────────
+
+@Composable
+private fun AppNavHost(
     sessionState: SessionState,
     onAuthenticated: () -> Unit,
     onSaveRouteForReturn: (Any?) -> Unit,
@@ -67,7 +99,7 @@ fun BcaApp(
                 }
             }
 
-            SessionState.Loading -> Unit
+            else -> Unit
         }
     }
 

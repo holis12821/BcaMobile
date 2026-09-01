@@ -79,6 +79,7 @@ NavHost
     ├── Main.Riwayat            ← tab
     ├── Main.Akun               ← tab
     ├── Main.Transfer           ← dibuka dari Beranda quick action
+    ├── Main.TransferAntarRekening ← dibuka dari Transfer > Antar Rekening
     ├── Main.RentangWaktu       ← dibuka dari Mutasi
     └── navigation(route = Graph.EWallet)   ← flow transaksi
         ├── EWallet.Pilih

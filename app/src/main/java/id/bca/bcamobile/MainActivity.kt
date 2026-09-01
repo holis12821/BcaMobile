@@ -6,8 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import id.bca.bcamobile.session.SessionState
 import id.bca.bcamobile.session.SessionViewModel
 import id.bca.bcamobile.ui.navigation.BcaApp
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
@@ -22,6 +24,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val sessionState by sessionViewModel.repository.sessionState.collectAsState()
+            val showSplash = sessionState is SessionState.Loading
+            LaunchedEffect(showSplash) {
+                if (!showSplash) {
+                    window.setBackgroundDrawableResource(R.color.white)
+                }
+            }
             BcaMobileTheme {
                 BcaApp(
                     sessionState = sessionState,

@@ -78,6 +78,10 @@ Delapan aturan ini tidak bisa dinegosiasi dalam satu sesi implementasi.
    `contentDescription`, ikon dekoratif eksplisit `contentDescription = null`.
 8. **Reuse sebelum bikin.** Cek komponen yang sudah ada di project dulu. Bikin komponen baru
    hanya kalau tidak ada padanannya, dan letakkan di layer komponen — bukan di dalam file screen.
+9. **Implementasi** - Sebelum anda memulai tolong jelaskan metode pengerjaan anda secara mendetail sebelum
+   saya minta untuk mengerjakannya, audit terlebih dahulu, karna agent ai terkadang suka semaunya implementasi ini sangat berbahaya karna perubahan apapun
+   susah untuk di tracking dan di cek meskipun ada version control. dan saya sebagai human juga harus tau perubahan apa
+   yang ai ubah sebelum saya mengerjakannya.
 
 ## 3. Alur kerja per screen
 

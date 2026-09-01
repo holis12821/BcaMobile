@@ -3,5 +3,7 @@
 
     <style name="Theme.BcaMobile" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/bca_logo_white</item>
     </style>
 </resources>

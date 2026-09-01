@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
@@ -77,16 +75,17 @@ fun KodeAksesScreen(
 ) {
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .clip(AppShape.R7)
             .background(MaterialTheme.colorScheme.background),
     ) {
         // Top content
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.s8),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s6),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = Spacing.s8, start = Spacing.s4, end = Spacing.s4),
+                .padding(top = Spacing.s6, start = Spacing.s4, end = Spacing.s4),
         ) {
             Text(
                 text = stringResource(R.string.kode_akses_title),
@@ -101,9 +100,10 @@ fun KodeAksesScreen(
                 isError = state.isError,
             )
 
-            if (state.isError && state.errorMessage != null) {
+            if (state.isError) {
                 Text(
-                    text = state.errorMessage,
+                    text = state.errorMessage
+                        ?: stringResource(R.string.kode_akses_error),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
@@ -118,8 +118,6 @@ fun KodeAksesScreen(
                 )
             }
         }
-
-        Spacer(Modifier.weight(1f))
 
         // Keypad section
         KeypadSection(
@@ -185,13 +183,11 @@ private fun KeypadSection(
     onSubmitClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val keypadShape = RoundedCornerShape(topStart = Spacing.s6, topEnd = Spacing.s6)
-
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, keypadShape)
-            .padding(Spacing.s6),
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(Spacing.s5),
     ) {
         // Number grid
         Column(
