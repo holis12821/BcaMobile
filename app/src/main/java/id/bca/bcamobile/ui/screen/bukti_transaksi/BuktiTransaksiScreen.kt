@@ -159,12 +159,12 @@ private fun SuccessHeader(modifier: Modifier = Modifier) {
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(Spacing.s10)
-                .background(AppColor.Success100, AppShape.Full),
+                .background(AppColor.Success400, AppShape.Full),
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = stringResource(R.string.cd_bukti_transaksi_sukses),
-                tint = AppColor.Success700,
+                tint = AppColor.Success1000,
                 modifier = Modifier.size(Spacing.s7),
             )
         }
@@ -228,7 +228,7 @@ private fun DateReferenceRow(
         verticalAlignment = Alignment.Top,
         modifier = modifier
             .fillMaxWidth()
-            .background(AppColor.Secondary100)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(Spacing.s4),
     ) {
         Column(
@@ -340,14 +340,14 @@ private fun TransferDetailSection(
                 modifier = Modifier
                     .size(Spacing.s8)
                     .background(
-                        MaterialTheme.colorScheme.secondaryContainer,
+                        MaterialTheme.colorScheme.primaryContainer,
                         AppShape.Full,
                     ),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_account_balance),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(Spacing.s5),
                 )
             }

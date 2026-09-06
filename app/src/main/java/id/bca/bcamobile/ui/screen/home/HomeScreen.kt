@@ -92,7 +92,7 @@ enum class QuickAction(@param:StringRes val labelRes: Int) {
 // ── Main Screen ──────────────────────────────────────────────────────────
 
 @Composable
-fun BerandaScreen(
+fun HomeScreen(
     state: BerandaUiState,
     onToggleBalance: () -> Unit,
     onIsiSaldo: () -> Unit,
@@ -718,9 +718,9 @@ private val samplePromos = listOf(
 
 @Preview(showBackground = true, name = "Beranda - Default")
 @Composable
-private fun BerandaScreenPreview() {
+private fun HomeScreenPreview() {
     BcaMobileTheme {
-        BerandaScreen(
+        HomeScreen(
             state = BerandaUiState(
                 userName = "Muhamad Ardan Prayogi",
                 promoItems = samplePromos,
@@ -741,9 +741,9 @@ private fun BerandaScreenPreview() {
 
 @Preview(showBackground = true, name = "Beranda - Balance Visible")
 @Composable
-private fun BerandaBalanceVisiblePreview() {
+private fun HomeBalanceVisiblePreview() {
     BcaMobileTheme {
-        BerandaScreen(
+        HomeScreen(
             state = BerandaUiState(
                 userName = "Muhamad Ardan Prayogi",
                 isBalanceVisible = true,
@@ -765,9 +765,9 @@ private fun BerandaBalanceVisiblePreview() {
 
 @Preview(showBackground = true, name = "Beranda - Dark")
 @Composable
-private fun BerandaScreenDarkPreview() {
+private fun HomeScreenDarkPreview() {
     BcaMobileTheme(darkTheme = true) {
-        BerandaScreen(
+        HomeScreen(
             state = BerandaUiState(
                 userName = "Muhamad Ardan Prayogi",
                 promoItems = samplePromos,
@@ -788,9 +788,9 @@ private fun BerandaScreenDarkPreview() {
 
 @Preview(showBackground = true, name = "Beranda - Error")
 @Composable
-private fun BerandaScreenErrorPreview() {
+private fun HomeScreenErrorPreview() {
     BcaMobileTheme {
-        BerandaScreen(
+        HomeScreen(
             state = BerandaUiState(
                 userName = "Muhamad Ardan Prayogi",
                 errorMessage = "Koneksi gagal. Periksa jaringan Anda.",
@@ -812,9 +812,9 @@ private fun BerandaScreenErrorPreview() {
 
 @Preview(showBackground = true, name = "Beranda - Empty Promo")
 @Composable
-private fun BerandaEmptyPromoPreview() {
+private fun HomeEmptyPromoPreview() {
     BcaMobileTheme {
-        BerandaScreen(
+        HomeScreen(
             state = BerandaUiState(
                 userName = "Muhamad Ardan Prayogi",
             ),
@@ -834,9 +834,9 @@ private fun BerandaEmptyPromoPreview() {
 
 @Preview(showBackground = true, name = "Beranda - Narrow", widthDp = 360)
 @Composable
-private fun BerandaScreenNarrowPreview() {
+private fun HomeScreenNarrowPreview() {
     BcaMobileTheme {
-        BerandaScreen(
+        HomeScreen(
             state = BerandaUiState(
                 userName = "Muhammad Alexander Jonathan Doe bin Abdullah",
                 promoItems = samplePromos,

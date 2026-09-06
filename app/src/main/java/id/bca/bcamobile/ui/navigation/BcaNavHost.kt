@@ -26,7 +26,7 @@ fun BcaApp(
 ) {
     Crossfade(
         targetState = sessionState is SessionState.Loading,
-        animationSpec = tween(durationMillis = 500),
+        animationSpec = tween(durationMillis = 200),
         label = "splash",
     ) { isLoading ->
         if (isLoading) {
@@ -119,7 +119,7 @@ private fun saveCurrentRouteForReturn(
 ) {
     val dest = navController.currentDestination ?: return
     val route: Any? = when {
-        dest.hasRoute<Beranda>() -> Beranda
+        dest.hasRoute<Home>() -> Home
         dest.hasRoute<Mutasi>() -> Mutasi
         dest.hasRoute<Riwayat>() -> Riwayat
         dest.hasRoute<Akun>() -> Akun

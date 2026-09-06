@@ -6,12 +6,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object Login
 @Serializable data object KodeAkses
+@Serializable data object FaceId
+@Serializable data object TouchId
 @Serializable data object BukaRekening
 @Serializable data object GantiKodeAkses
 
 // ── Main ────────────────────────────────────────────────────────────────
 
-@Serializable data object Beranda
+@Serializable data object Home
 @Serializable data object Mutasi
 @Serializable data object Riwayat
 @Serializable data object Akun

@@ -208,4 +208,20 @@
     <string name="bukti_transaksi_simpan_info">Simpan bukti transaksi untuk keperluan administrasi.</string>
     <string name="cd_bukti_transaksi_simpan">Simpan bukti transaksi</string>
     <string name="cd_bukti_transaksi_sukses">Transaksi berhasil</string>
+
+    <!-- Akun/Profil Screen -->
+    <string name="akun_lihat_profil">Lihat Profil Lengkap</string>
+    <string name="akun_section_akun">AKUN</string>
+    <string name="akun_ubah_pin">Ubah PIN</string>
+    <string name="akun_atur_limit">Atur Limit Transaksi</string>
+    <string name="akun_login_biometrik">Login Biometrik</string>
+    <string name="akun_section_notifikasi">NOTIFIKASI</string>
+    <string name="akun_notifikasi_push">Notifikasi Push</string>
+    <string name="akun_notifikasi_subtitle">Transaksi &amp; Info Promo</string>
+    <string name="akun_email_estatement">Email e-Statement</string>
+    <string name="akun_section_bantuan">BANTUAN &amp; INFO</string>
+    <string name="akun_pusat_bantuan">Pusat Bantuan</string>
+    <string name="akun_hubungi_cs">Hubungi CS</string>
+    <string name="akun_tentang_aplikasi">Tentang Aplikasi</string>
+    <string name="akun_keluar">Keluar Aplikasi</string>
 </resources>

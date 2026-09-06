@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -85,7 +86,7 @@ fun TransferAntarRekeningScreen(
                 title = {
                     Text(
                         text = stringResource(R.string.transfer_detail_title),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.headlineMedium,
                     )
                 },
                 navigationIcon = {
@@ -104,9 +105,19 @@ fun TransferAntarRekeningScreen(
             )
         },
         bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxWidth(),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0f),
+                                MaterialTheme.colorScheme.surfaceBright.copy(alpha = AppAlpha.A90),
+                                MaterialTheme.colorScheme.surfaceBright,
+                            ),
+                        )
+                    )
+                    .padding(top = Spacing.s8),
             ) {
                 Button(
                     onClick = onLanjutClick,
@@ -118,7 +129,8 @@ fun TransferAntarRekeningScreen(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(Spacing.s4),
+                        .padding(horizontal = Spacing.s4)
+                        .padding(bottom = Spacing.s4),
                 ) {
                     Text(
                         text = stringResource(R.string.transfer_lanjut),
@@ -183,8 +195,8 @@ fun TransferAntarRekeningScreen(
                     singleLine = true,
                     shape = AppShape.R6,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                     ),
@@ -202,26 +214,26 @@ fun TransferAntarRekeningScreen(
                     placeholder = {
                         Text(
                             text = stringResource(R.string.transfer_amount_placeholder),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = AppAlpha.A50),
                         )
                     },
                     prefix = {
                         Text(
                             text = stringResource(R.string.transfer_rp_prefix),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
                     singleLine = true,
                     shape = AppShape.R6,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                     ),
-                    textStyle = MaterialTheme.typography.titleMedium,
+                    textStyle = MaterialTheme.typography.headlineMedium,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -243,8 +255,8 @@ fun TransferAntarRekeningScreen(
                     singleLine = true,
                     shape = AppShape.R6,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                     ),
@@ -279,7 +291,7 @@ private fun StepIndicator(
         // Connecting line
         HorizontalDivider(
             color = if (currentStep > 1) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outlineVariant,
+            else MaterialTheme.colorScheme.surfaceContainerHigh,
             thickness = StrokeWidth.w0,
             modifier = Modifier.weight(1f),
         )

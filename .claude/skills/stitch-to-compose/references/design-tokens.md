@@ -125,23 +125,25 @@ Penamaan Kotlin sengaja 1:1 dengan desain (`s0`…`s10`) supaya tidak ada ruang 
 - Font family: **Inter**
 - Weight: Light 300, Regular 400, Medium 500, Bold 700
 
-**Yang TIDAK didefinisikan desain:** ukuran font, line height, letter spacing, dan pemetaan
-gaya teks per peran (title / body / label / caption).
+**Dikonfirmasi oleh Stitch design system "Modern Financial Interface".**
 
-Karena itu **setiap ukuran font adalah kondisi STOP** sampai type scale disepakati.
-Usulan di bawah berstatus `PROPOSED` — jangan dipakai sebelum dikonfirmasi manusia.
+Type scale berikut sudah **CONFIRMED**. SemiBold (600) di-map ke `inter_medium.ttf`
+karena file font `inter_semibold.ttf` belum tersedia.
 
-| Peran (PROPOSED) | Size | Line height | Weight |
+| Peran | Size | Line height | Weight |
 |---|---|---|---|
+| displayLarge | 32sp | 40sp | Bold |
 | displaySmall | 28sp | 36sp | Bold |
+| headlineMedium | 20sp | 28sp | SemiBold |
 | titleLarge | 22sp | 28sp | Bold |
 | titleMedium | 18sp | 24sp | Medium |
 | titleSmall | 16sp | 22sp | Medium |
 | bodyLarge | 16sp | 24sp | Regular |
 | bodyMedium | 14sp | 20sp | Regular |
 | bodySmall | 12sp | 16sp | Regular |
-| labelLarge | 14sp | 20sp | Medium |
-| labelSmall | 11sp | 16sp | Medium |
+| labelLarge | 14sp | 20sp | SemiBold |
+| labelMedium | 12sp | 16sp | Medium |
+| labelSmall | 10sp | 14sp | Medium |
 
 ---
 
@@ -224,8 +226,18 @@ object AppColor {
 // Varian alpha — turunan, bukan warna baru.
 object AppAlpha {
     const val A10 = 0.10f
+    const val A20 = 0.20f
+    const val A30 = 0.30f
     const val A50 = 0.50f
+    const val A60 = 0.60f
+    const val A70 = 0.70f
+    const val A80 = 0.80f
+    const val A90 = 0.90f
 }
+
+// M3 Semantic Colors — lihat §7 untuk tabel lengkap.
+// Didefinisikan di Color.kt sebagai object M3Color.
+// Dipakai oleh LightColorScheme di Theme.kt.
 ```
 
 ### `Dimens.kt`
@@ -287,7 +299,7 @@ object AppShape {
 }
 ```
 
-### `Type.kt` — PROPOSED, perlu konfirmasi
+### `Type.kt` — CONFIRMED (Stitch design system)
 
 ```kotlin
 package id.bca.bcamobile.ui.theme
@@ -304,20 +316,24 @@ val Inter = FontFamily(
     Font(R.font.inter_light, FontWeight.Light),
     Font(R.font.inter_regular, FontWeight.Normal),
     Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_medium, FontWeight.SemiBold),
     Font(R.font.inter_bold, FontWeight.Bold),
 )
 
-// PROPOSED — ukuran belum ditetapkan oleh dokumen desain.
+// Dikonfirmasi oleh Stitch design system "Modern Financial Interface".
 val AppTypography = Typography(
+    displayLarge = TextStyle(fontFamily = Inter, fontSize = 32.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.64).sp),
     displaySmall = TextStyle(fontFamily = Inter, fontSize = 28.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold),
+    headlineMedium = TextStyle(fontFamily = Inter, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold),
     titleLarge   = TextStyle(fontFamily = Inter, fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
     titleMedium  = TextStyle(fontFamily = Inter, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Medium),
     titleSmall   = TextStyle(fontFamily = Inter, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium),
     bodyLarge    = TextStyle(fontFamily = Inter, fontSize = 16.sp, lineHeight = 24.sp, fontWeight = FontWeight.Normal),
     bodyMedium   = TextStyle(fontFamily = Inter, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Normal),
     bodySmall    = TextStyle(fontFamily = Inter, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Normal),
-    labelLarge   = TextStyle(fontFamily = Inter, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium),
-    labelSmall   = TextStyle(fontFamily = Inter, fontSize = 11.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
+    labelLarge   = TextStyle(fontFamily = Inter, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
+    labelMedium  = TextStyle(fontFamily = Inter, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
+    labelSmall   = TextStyle(fontFamily = Inter, fontSize = 10.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium),
 )
 ```
 
@@ -329,32 +345,50 @@ val AppTypography = Typography(
 
 ## 7. Pemetaan semantik ke Material3
 
-Project memakai Material3 polos, jadi `MaterialTheme.colorScheme` perlu diisi dari ramp di atas.
-Pemetaan berikut **PROPOSED** untuk skema terang; skema gelap belum didefinisikan desain
-dan merupakan kondisi STOP tersendiri.
+Project memakai Material3 polos. Pemetaan berikut **CONFIRMED** — dikonfirmasi oleh
+Stitch design system "Modern Financial Interface" (seed `#0077C8`, variant FIDELITY).
+Skema gelap belum didefinisikan desain dan merupakan kondisi STOP tersendiri.
 
-| Slot M3 | Token |
-|---|---|
-| `primary` | `Primary700` |
-| `onPrimary` | `Neutral100` |
-| `primaryContainer` | `Primary100` |
-| `onPrimaryContainer` | `Primary1000` |
-| `secondary` | `Secondary700` |
-| `onSecondary` | `Neutral100` |
-| `secondaryContainer` | `Secondary100` |
-| `onSecondaryContainer` | `Secondary1000` |
-| `error` | `Danger600` |
-| `onError` | `Neutral100` |
-| `errorContainer` | `Danger100` |
-| `onErrorContainer` | `Danger1000` |
-| `background` | `Neutral100` |
-| `onBackground` | `Neutral1000` |
-| `surface` | `Neutral100` |
-| `onSurface` | `Neutral1000` |
-| `surfaceVariant` | `Neutral200` |
-| `onSurfaceVariant` | `Neutral800` |
-| `outline` | `Neutral400` |
-| `outlineVariant` | `Neutral300` |
+Warna M3 didefinisikan di `M3Color` object dalam `Color.kt`. Numbered palette (`AppColor.*`)
+tetap tersedia untuk referensi langsung di composable (e.g. teks di atas primary background).
+
+| Slot M3 | Token (`M3Color.*`) | Hex |
+|---|---|---|
+| `primary` | `Primary` | `#005E9F` |
+| `onPrimary` | `OnPrimary` | `#FFFFFF` |
+| `primaryContainer` | `PrimaryContainer` | `#0077C8` |
+| `onPrimaryContainer` | `OnPrimaryContainer` | `#FBFBFF` |
+| `inversePrimary` | `InversePrimary` | `#9FCAFF` |
+| `secondary` | `Secondary` | `#2F628C` |
+| `onSecondary` | `OnSecondary` | `#FFFFFF` |
+| `secondaryContainer` | `SecondaryContainer` | `#9ECEFD` |
+| `onSecondaryContainer` | `OnSecondaryContainer` | `#235881` |
+| `tertiary` | `Tertiary` | `#006B1A` |
+| `onTertiary` | `OnTertiary` | `#FFFFFF` |
+| `tertiaryContainer` | `TertiaryContainer` | `#008723` |
+| `onTertiaryContainer` | `OnTertiaryContainer` | `#F5FFEE` |
+| `error` | `Error` | `#BA1A1A` |
+| `onError` | `OnError` | `#FFFFFF` |
+| `errorContainer` | `ErrorContainer` | `#FFDAD6` |
+| `onErrorContainer` | `OnErrorContainer` | `#93000A` |
+| `background` | `Background` | `#FAF9F9` |
+| `onBackground` | `OnBackground` | `#1B1C1C` |
+| `surface` | `Surface` | `#FAF9F9` |
+| `onSurface` | `OnSurface` | `#1B1C1C` |
+| `surfaceVariant` | `SurfaceVariant` | `#E3E2E2` |
+| `onSurfaceVariant` | `OnSurfaceVariant` | `#404751` |
+| `surfaceTint` | `SurfaceTint` | `#0061A5` |
+| `surfaceBright` | `SurfaceBright` | `#FAF9F9` |
+| `surfaceDim` | `SurfaceDim` | `#DBDAD9` |
+| `surfaceContainer` | `SurfaceContainer` | `#EFEDED` |
+| `surfaceContainerHigh` | `SurfaceContainerHigh` | `#E9E8E8` |
+| `surfaceContainerHighest` | `SurfaceContainerHighest` | `#E3E2E2` |
+| `surfaceContainerLow` | `SurfaceContainerLow` | `#F4F3F3` |
+| `surfaceContainerLowest` | `SurfaceContainerLowest` | `#FFFFFF` |
+| `inverseSurface` | `InverseSurface` | `#2F3031` |
+| `inverseOnSurface` | `InverseOnSurface` | `#F2F0F0` |
+| `outline` | `Outline` | `#717783` |
+| `outlineVariant` | `OutlineVariant` | `#C0C7D3` |
 
 Warna sukses tidak punya slot di Material3. Akses lewat `AppColor.Success*` langsung — itu
 tetap token, jadi tidak melanggar aturan hardcode.

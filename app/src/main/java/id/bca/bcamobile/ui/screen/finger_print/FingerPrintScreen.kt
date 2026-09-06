@@ -132,32 +132,31 @@ private fun FingerprintScanner(
     val isAnimating = status == TouchIdStatus.IDLE || status == TouchIdStatus.SCANNING
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val ringScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "ringScale",
-    )
-    val ringAlpha by infiniteTransition.animateFloat(
-        initialValue = AppAlpha.A30,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "ringAlpha",
-    )
-
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.size(AppSize.SplashLogo),
     ) {
-        // Animated ping ring
+        // Animated ping ring — only runs when status is IDLE or SCANNING
         if (isAnimating) {
+            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+            val ringScale by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.15f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 3000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+                label = "ringScale",
+            )
+            val ringAlpha by infiniteTransition.animateFloat(
+                initialValue = AppAlpha.A30,
+                targetValue = 0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 3000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+                label = "ringAlpha",
+            )
             Box(
                 modifier = Modifier
                     .matchParentSize()

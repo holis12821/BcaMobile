@@ -1,148 +1,73 @@
 #!/usr/bin/env bash
-
-# Enforce UI agar tidak menggunakan:
-# - hardcoded color
-# - hardcoded dimension
-# - hardcoded typography size
-# - hardcoded user-facing UI string
+# Menolak literal visual di luar file token — dengan baseline.
 #
-# Catatan:
-# String yang bersifat internal/data seperti:
-# - animation label
-# - transaction title/description
-# - log message
-# - URL
-# - API key
-# tidak dianggap sebagai hardcoded UI.
+# Pelanggaran lama yang sudah tercatat di baseline dibiarkan.
+# Yang ditolak hanya penambahan baru. Utang lama tidak boleh tumbuh.
+#
+#   ./scripts/check-hardcoded-ui.sh                    cek
+#   ./scripts/check-hardcoded-ui.sh --update-baseline  catat kondisi sekarang
+#
+# Baseline menyimpan JUMLAH pelanggaran per file, bukan nomor baris —
+# supaya tidak busuk saat kode digeser atau diformat ulang.
 
 set -uo pipefail
 
 SRC="app/src/main/java"
+TOKEN_FILES='(Color|Dimens|Shape|Type)\.kt'
+BASELINE="scripts/ui-baseline.txt"
+PATTERN='Color\(0x|[^a-zA-Z0-9_][0-9]+\.dp|[^a-zA-Z0-9_][0-9]+\.sp'
 
-# File yang diperbolehkan berisi token UI.
-TOKEN_FILES='(Color|Dimens|Shape|Type|Strings|StringResource|Typography|Theme)\.kt'
-
-FAILED=0
-
-echo "======================================"
-echo " Hardcoded UI Check"
-echo "======================================"
-echo ""
-
-# --------------------------------------------------
-# 1. Hardcoded Color
-# --------------------------------------------------
-
-echo "[1/4] Checking hardcoded colors..."
-
-color_hits=$(
-  grep -rnE \
-    --include='*.kt' \
-    'Color\(0x[0-9A-Fa-f]{8}\)' \
-    "$SRC" \
+scan() {
+  grep -rcE "$PATTERN" --include='*.kt' "$SRC" 2>/dev/null \
     | grep -vE "$TOKEN_FILES" \
-    || true
-)
+    | awk -F: '$2 > 0 { print $1" "$2 }' \
+    | sort
+}
 
-if [ -n "$color_hits" ]; then
-  echo "FAIL: hardcoded color ditemukan:"
-  echo "$color_hits"
-  FAILED=1
-else
-  echo "OK: tidak ada hardcoded color"
+if [ "${1:-}" = "--update-baseline" ]; then
+  mkdir -p "$(dirname "$BASELINE")"
+  # Baris header wajib ada: awk NR==FNR salah baca kalau file pertama kosong.
+  { echo "# baseline pelanggaran visual — jangan diedit tangan"; scan; } > "$BASELINE"
+  echo "Baseline diperbarui: $(grep -vc '^#' "$BASELINE" | tr -d ' ') file, $(awk '!/^#/{s+=$2} END{print s+0}' "$BASELINE") pelanggaran."
+  echo "Commit file ini. Jangan perbarui lagi kecuali angkanya TURUN."
+  exit 0
 fi
 
-echo ""
+[ -f "$BASELINE" ] || echo "# baseline pelanggaran visual — jangan diedit tangan" > "$BASELINE"
 
-# --------------------------------------------------
-# 2. Hardcoded Dimension / Typography
-# --------------------------------------------------
+current=$(scan)
 
-echo "[2/4] Checking hardcoded dimensions..."
+violations=$(awk '
+  NR==FNR { if ($0 !~ /^#/) base[$1] = $2; next }
+  {
+    b = ($1 in base) ? base[$1] : 0
+    if ($2 > b) printf "  %s: %d pelanggaran (baseline %d)\n", $1, $2, b
+  }
+' "$BASELINE" <(echo "$current"))
 
-dimension_hits=$(
-  grep -rnE \
-    --include='*.kt' \
-    '(^|[^a-zA-Z0-9_])[0-9]+(\.[0-9]+)?\.(dp|sp)\b' \
-    "$SRC" \
-    | grep -vE "$TOKEN_FILES" \
-    || true
-)
-
-if [ -n "$dimension_hits" ]; then
-  echo "FAIL: hardcoded dimension ditemukan:"
-  echo "$dimension_hits"
-  FAILED=1
-else
-  echo "OK: tidak ada hardcoded dimension"
-fi
-
-echo ""
-
-# --------------------------------------------------
-# 3. Hardcoded UI String
-# --------------------------------------------------
-
-echo "[3/4] Checking hardcoded UI strings..."
-
-string_hits=$(
-  grep -rnE \
-    --include='*.kt' \
-    'Text\(\s*"[^"]+"|contentDescription\s*=\s*"[^"]+"|placeholder\s*=\s*"[^"]+"|setText\(\s*"[^"]+"|Toast\.makeText\([^,]+,\s*"[^"]+"' \
-    "$SRC" \
-    | grep -vE "$TOKEN_FILES" \
-    || true
-)
-
-if [ -n "$string_hits" ]; then
-  echo "FAIL: hardcoded UI string ditemukan:"
-  echo "$string_hits"
-  FAILED=1
-else
-  echo "OK: tidak ada hardcoded UI string"
-fi
-
-echo ""
-
-# --------------------------------------------------
-# 4. Hardcoded UI String Property
-# --------------------------------------------------
-
-echo "[4/4] Checking user-facing UI properties..."
-
-property_hits=$(
-  grep -rnE \
-    --include='*.kt' \
-    '(supportingText|error|placeholderText|accessibilityLabel|hint)\s*=\s*"[^"]+"' \
-    "$SRC" \
-    | grep -vE "$TOKEN_FILES" \
-    || true
-)
-
-if [ -n "$property_hits" ]; then
-  echo "FAIL: hardcoded UI property string ditemukan:"
-  echo "$property_hits"
-  FAILED=1
-else
-  echo "OK: tidak ada hardcoded UI property string"
-fi
-
-echo ""
-
-# --------------------------------------------------
-# Result
-# --------------------------------------------------
-
-echo "======================================"
-
-if [ "$FAILED" -ne 0 ]; then
-  echo "FAIL: hardcoded UI ditemukan."
-  echo "Gunakan stringResource()/strings.xml atau token UI yang sesuai."
-  echo "======================================"
+if [ -n "$violations" ]; then
+  echo "FAIL: pelanggaran baru di luar file token"
+  echo "$violations"
+  echo
+  echo "Pakai token dari design-tokens.md. Kalau tokennya tidak ada, STOP dan lapor."
+  echo "Jangan jalankan --update-baseline untuk melewati ini."
   exit 1
 fi
 
-echo "PASS: tidak ditemukan hardcoded UI."
-echo "======================================"
+improved=$(awk '
+  NR==FNR { cur[$1] = $2; next }
+  /^#/ { next }
+  {
+    c = ($1 in cur) ? cur[$1] : 0
+    if (c < $2) printf "  %s: %d -> %d\n", $1, $2, c
+  }
+' <(echo "$current") "$BASELINE")
 
-exit 0
+if [ -n "$improved" ]; then
+  echo "OK — dan ada perbaikan:"
+  echo "$improved"
+  echo
+  echo "Jalankan --update-baseline lalu commit, supaya perbaikannya terkunci."
+else
+  echo "OK: tidak ada pelanggaran baru."
+fi

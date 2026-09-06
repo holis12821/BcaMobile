@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,7 +39,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navigation
 import id.bca.bcamobile.R
-import id.bca.bcamobile.ui.screen.home.BerandaScreen
+import id.bca.bcamobile.ui.screen.akun.AkunScreen
+import id.bca.bcamobile.ui.screen.akun.AkunUiState
+import id.bca.bcamobile.ui.screen.home.HomeScreen
 import id.bca.bcamobile.ui.screen.home.BerandaUiState
 import id.bca.bcamobile.ui.screen.home.QuickAction
 import id.bca.bcamobile.ui.screen.mutasi.MutasiScreen
@@ -70,12 +73,12 @@ private const val LEFT_TAB_COUNT = 2
 // ── Graph ───────────────────────────────────────────────────────────────
 
 fun NavGraphBuilder.mainGraph(navController: NavHostController) {
-    navigation<GraphMain>(startDestination = Beranda) {
+    navigation<GraphMain>(startDestination = Home) {
 
-        composable<Beranda> {
+        composable<Home> {
             MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
-                BerandaScreen(
-                    state = BerandaUiState(),
+                HomeScreen(
+                    state = remember { BerandaUiState() },
                     onToggleBalance = {},
                     onIsiSaldo = {},
                     onMutasi = { navController.navigate(Mutasi) },
@@ -99,7 +102,7 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
         composable<Mutasi> {
             MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
                 MutasiScreen(
-                    state = MutasiUiState(),
+                    state = remember { MutasiUiState() },
                     onAccountClick = {},
                     onPeriodSelected = {},
                     onCustomDateClick = { navController.navigate(RentangWaktu) },
@@ -126,27 +129,39 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
 
         composable<Akun> {
             MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(stringResource(R.string.navigation_account))
-                }
+                AkunScreen(
+                    state = remember {
+                        AkunUiState(
+                            userName = "Budi Santoso",
+                            phoneNumber = "0812 3456 7890",
+                            appVersion = "v2.4.1",
+                            isBiometricEnabled = true,
+                        )
+                    },
+                    onNotificationClick = {},
+                    onProfileClick = {},
+                    onLihatProfilClick = {},
+                    onMenuItemClick = {},
+                    onBiometricToggle = {},
+                    onKeluarClick = {},
+                    onRetry = {},
+                    modifier = Modifier.padding(innerPadding),
+                )
             }
         }
 
         composable<Transfer> {
             TransferScreen(
-                state = TransferUiState(
-                    recentTransfers = listOf(
-                        RecentTransferItem("1", "Budi Santoso", "BCA - 0987 6543 21", 'B'),
-                        RecentTransferItem("2", "PT. Aneka Tambang", "Mandiri - 123 456 789", 'A'),
-                        RecentTransferItem("3", "Siti Aminah", "BNI - 555 444 333", 'S'),
-                        RecentTransferItem("4", "Toko Buku Gramedia", "BCA - 111 222 333", 'T'),
-                    ),
-                ),
+                state = remember {
+                    TransferUiState(
+                        recentTransfers = listOf(
+                            RecentTransferItem("1", "Budi Santoso", "BCA - 0987 6543 21", 'B'),
+                            RecentTransferItem("2", "PT. Aneka Tambang", "Mandiri - 123 456 789", 'A'),
+                            RecentTransferItem("3", "Siti Aminah", "BNI - 555 444 333", 'S'),
+                            RecentTransferItem("4", "Toko Buku Gramedia", "BCA - 111 222 333", 'T'),
+                        ),
+                    )
+                },
                 onBackClick = { navController.popBackStack() },
                 onToggleBalance = {},
                 onCopyAccount = {},
@@ -166,12 +181,14 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
 
         composable<TransferAntarRekening> {
             TransferAntarRekeningScreen(
-                state = TransferAntarRekeningUiState(
-                    currentStep = 1,
-                    sourceAccountType = "Tahapan BCA",
-                    sourceAccountNumber = "1234567890",
-                    sourceBalance = "Rp 12.500.000",
-                ),
+                state = remember {
+                    TransferAntarRekeningUiState(
+                        currentStep = 1,
+                        sourceAccountType = "Tahapan BCA",
+                        sourceAccountNumber = "1234567890",
+                        sourceBalance = "Rp 12.500.000",
+                    )
+                },
                 onBackClick = { navController.popBackStack() },
                 onSourceAccountClick = {},
                 onDestinationAccountChange = {},
@@ -211,13 +228,13 @@ private fun MainScaffold(
                 currentDestination = currentDestination,
                 onTabSelected = { tab ->
                     val route: Any = when (tab) {
-                        MainTab.BERANDA -> Beranda
+                        MainTab.BERANDA -> Home
                         MainTab.MUTASI -> Mutasi
                         MainTab.RIWAYAT -> Riwayat
                         MainTab.AKUN -> Akun
                     }
                     navController.navigate(route) {
-                        popUpTo<Beranda> { saveState = true }
+                        popUpTo<Home> { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
@@ -255,7 +272,7 @@ private fun AppBottomBar(
 
                 val isSelected = currentDestination?.let { dest ->
                     when (tab) {
-                        MainTab.BERANDA -> dest.hasRoute<Beranda>()
+                        MainTab.BERANDA -> dest.hasRoute<Home>()
                         MainTab.MUTASI -> dest.hasRoute<Mutasi>()
                         MainTab.RIWAYAT -> dest.hasRoute<Riwayat>()
                         MainTab.AKUN -> dest.hasRoute<Akun>()

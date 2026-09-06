@@ -35,7 +35,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -199,7 +198,6 @@ private fun BalanceCard(
                 .offset(x = Spacing.s10, y = -Spacing.s10)
                 .clip(AppShape.Full)
                 .background(AppColor.Neutral100.copy(alpha = AppAlpha.A10))
-                .blur(Spacing.s5)
                 .align(Alignment.TopEnd),
         )
 

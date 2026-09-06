@@ -74,3 +74,58 @@ object AppAlpha {
     const val A80 = 0.80f
     const val A90 = 0.90f
 }
+
+// ── M3 Semantic Colors (Stitch Design System, seed #0077C8) ───────────
+// Dipakai oleh LightColorScheme di Theme.kt.
+// Composable mengakses lewat MaterialTheme.colorScheme.
+// Numbered palette (AppColor.*) tetap tersedia untuk referensi langsung.
+object M3Color {
+    // Primary
+    val Primary = Color(0xFF005E9F)
+    val OnPrimary = Color(0xFFFFFFFF)
+    val PrimaryContainer = Color(0xFF0077C8)
+    val OnPrimaryContainer = Color(0xFFFBFBFF)
+    val InversePrimary = Color(0xFF9FCAFF)
+
+    // Secondary
+    val Secondary = Color(0xFF2F628C)
+    val OnSecondary = Color(0xFFFFFFFF)
+    val SecondaryContainer = Color(0xFF9ECEFD)
+    val OnSecondaryContainer = Color(0xFF235881)
+
+    // Tertiary
+    val Tertiary = Color(0xFF006B1A)
+    val OnTertiary = Color(0xFFFFFFFF)
+    val TertiaryContainer = Color(0xFF008723)
+    val OnTertiaryContainer = Color(0xFFF5FFEE)
+
+    // Error
+    val Error = Color(0xFFBA1A1A)
+    val OnError = Color(0xFFFFFFFF)
+    val ErrorContainer = Color(0xFFFFDAD6)
+    val OnErrorContainer = Color(0xFF93000A)
+
+    // Background
+    val Background = Color(0xFFFAF9F9)
+    val OnBackground = Color(0xFF1B1C1C)
+
+    // Surface
+    val Surface = Color(0xFFFAF9F9)
+    val OnSurface = Color(0xFF1B1C1C)
+    val SurfaceVariant = Color(0xFFE3E2E2)
+    val OnSurfaceVariant = Color(0xFF404751)
+    val SurfaceTint = Color(0xFF0061A5)
+    val SurfaceBright = Color(0xFFFAF9F9)
+    val SurfaceDim = Color(0xFFDBDAD9)
+    val SurfaceContainer = Color(0xFFEFEDED)
+    val SurfaceContainerHigh = Color(0xFFE9E8E8)
+    val SurfaceContainerHighest = Color(0xFFE3E2E2)
+    val SurfaceContainerLow = Color(0xFFF4F3F3)
+    val SurfaceContainerLowest = Color(0xFFFFFFFF)
+    val InverseSurface = Color(0xFF2F3031)
+    val InverseOnSurface = Color(0xFFF2F0F0)
+
+    // Outline
+    val Outline = Color(0xFF717783)
+    val OutlineVariant = Color(0xFFC0C7D3)
+}

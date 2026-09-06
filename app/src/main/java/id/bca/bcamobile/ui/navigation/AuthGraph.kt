@@ -16,8 +16,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import id.bca.bcamobile.R
-import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesScreen  // composable
-import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesViewModel  // state holder
+import id.bca.bcamobile.ui.screen.faceid.FaceIdScreen
+import id.bca.bcamobile.ui.screen.faceid.FaceIdUiState
+import id.bca.bcamobile.ui.screen.finger_print.TouchIdScreen
+import id.bca.bcamobile.ui.screen.finger_print.TouchIdUiState
+import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesScreen
+import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesViewModel
 import id.bca.bcamobile.ui.screen.login.LoginScreen
 import id.bca.bcamobile.ui.screen.login.LoginUiState
 
@@ -31,8 +35,8 @@ fun NavGraphBuilder.authGraph(
             LoginScreen(
                 state = LoginUiState(),
                 onMbcaLoginClick = { navController.navigate(KodeAkses) },
-                onFaceIdClick = { /* BiometricPrompt — bukan route */ },
-                onFingerprintClick = { /* BiometricPrompt — bukan route */ },
+                onFaceIdClick = { navController.navigate(FaceId) },
+                onFingerprintClick = { navController.navigate(TouchId) },
                 onBukaRekeningClick = { navController.navigate(BukaRekening) },
                 onGantiKodeAksesClick = { navController.navigate(GantiKodeAkses) },
                 onInfoBcaClick = {},
@@ -61,6 +65,28 @@ fun NavGraphBuilder.authGraph(
                     }
                 },
                 onForgotClick = {},
+            )
+        }
+
+        composable<FaceId> {
+            FaceIdScreen(
+                state = FaceIdUiState(),
+                onBackClick = { navController.popBackStack() },
+                onRetryClick = {},
+                onCancelClick = { navController.popBackStack() },
+            )
+        }
+
+        composable<TouchId> {
+            TouchIdScreen(
+                state = TouchIdUiState(),
+                onFingerprintPress = {},
+                onUseAccessCode = {
+                    navController.navigate(KodeAkses) {
+                        popUpTo<Login> { inclusive = false }
+                    }
+                },
+                onRetryClick = {},
             )
         }
 
