@@ -9,6 +9,18 @@ import kotlinx.serialization.Serializable
 @Serializable data object FaceId
 @Serializable data object TouchId
 @Serializable data object BukaRekening
+@Serializable data object BukaRekeningSyaratKetentuan
+@Serializable data object BukaRekeningPanduanFoto
+@Serializable data object BukaRekeningKameraFoto
+@Serializable data object BukaRekeningHasilFoto
+@Serializable data object BukaRekeningDataPribadi
+@Serializable data object BukaRekeningEkyc
+@Serializable data object BukaRekeningVerifikasiBiometrik
+@Serializable data object BukaRekeningAntreanVideoCall
+@Serializable data object BukaRekeningVideoCall
+@Serializable data object BukaRekeningBuatKredensial
+@Serializable data object BukaRekeningRingkasan
+@Serializable data object BukaRekeningBerhasilDibuat
 @Serializable data object GantiKodeAkses
 
 // ── Main ────────────────────────────────────────────────────────────────

@@ -71,6 +71,18 @@ NavHost
 │   ├── Auth.Login              ← layar sambutan + tombol login
 │   │   └── dialog Auth.KodeAkses   ← modal di atas Login
 │   ├── Auth.BukaRekening
+│   ├── Auth.BukaRekeningSyaratKetentuan
+│   ├── Auth.BukaRekeningPanduanFoto
+│   ├── Auth.BukaRekeningKameraFoto
+│   ├── Auth.BukaRekeningHasilFoto
+│   ├── Auth.BukaRekeningDataPribadi
+│   ├── Auth.BukaRekeningEkyc
+│   ├── Auth.BukaRekeningVerifikasiBiometrik
+│   ├── Auth.BukaRekeningAntreanVideoCall
+│   ├── Auth.BukaRekeningVideoCall
+│   ├── Auth.BukaRekeningBuatKredensial
+│   ├── Auth.BukaRekeningRingkasan
+│   ├── Auth.BukaRekeningBerhasilDibuat
 │   └── Auth.GantiKodeAkses
 │
 └── navigation(route = Graph.Main)
