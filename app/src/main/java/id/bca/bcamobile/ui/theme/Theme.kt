@@ -15,6 +15,7 @@ private val LightColorScheme = lightColorScheme(
     onSecondary = M3Color.OnSecondary,
     secondaryContainer = M3Color.SecondaryContainer,
     onSecondaryContainer = M3Color.OnSecondaryContainer,
+    secondaryFixed = M3Color.SecondaryFixed,
     tertiary = M3Color.Tertiary,
     onTertiary = M3Color.OnTertiary,
     tertiaryContainer = M3Color.TertiaryContainer,

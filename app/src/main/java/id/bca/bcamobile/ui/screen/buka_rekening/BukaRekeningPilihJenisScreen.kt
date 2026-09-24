@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -430,39 +428,6 @@ private fun FeaturesGrid(
         if (fitur.size % 2 != 0) {
             FeatureItem(text = fitur.last())
         }
-    }
-}
-
-// -- Selection Indicator -------------------------------------------------------
-
-@Composable
-private fun SelectionIndicator(
-    isSelected: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val bgColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceContainer
-    }
-    val iconTint = if (isSelected) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        Color.Transparent
-    }
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(Spacing.s6)
-            .background(bgColor, AppShape.Full),
-    ) {
-        Icon(
-            imageVector = Icons.Default.Check,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(Spacing.s4),
-        )
     }
 }
 

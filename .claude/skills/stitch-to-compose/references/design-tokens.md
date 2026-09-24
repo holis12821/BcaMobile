@@ -273,8 +273,21 @@ object StrokeWidth {
 /** Ukuran minimum yang tidak boleh dilanggar. */
 object AppSize {
     val MinTouchTarget = 48.dp
+
+    // Ukuran ikon eksplisit dari design system Stitch.
+    val IconSmall = 18.dp
+    val Icon16 = 16.dp
+    val Icon20 = 20.dp
+    val Icon24 = 24.dp
+    val IconLarge = 28.dp
+    val Icon32 = 32.dp
 }
 ```
+
+> `AppSize` di `Dimens.kt` memuat lebih banyak entri daripada cuplikan di atas
+> (ukuran komponen seperti `DebitCardHeight`, `ScannerFrame`, `SplashLogo`).
+> Cuplikan ini hanya memuat ukuran yang berlaku lintas layar. Lihat berkas aslinya
+> untuk daftar lengkap.
 
 ### `Shape.kt`
 
@@ -363,6 +376,7 @@ tetap tersedia untuk referensi langsung di composable (e.g. teks di atas primary
 | `onSecondary` | `OnSecondary` | `#FFFFFF` |
 | `secondaryContainer` | `SecondaryContainer` | `#9ECEFD` |
 | `onSecondaryContainer` | `OnSecondaryContainer` | `#235881` |
+| `secondaryFixed` | `SecondaryFixed` | `#CEE5FF` |
 | `tertiary` | `Tertiary` | `#006B1A` |
 | `onTertiary` | `OnTertiary` | `#FFFFFF` |
 | `tertiaryContainer` | `TertiaryContainer` | `#008723` |

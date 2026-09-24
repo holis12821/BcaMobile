@@ -69,6 +69,8 @@ fun BukaRekeningVerifikasiBiometrikScreen(
     onTipsClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Preview kamera depan; kosong di @Preview dan saat izin kamera belum ada. */
+    cameraPreview: (@Composable () -> Unit)? = null,
 ) {
     Scaffold(
         topBar = {
@@ -115,6 +117,7 @@ fun BukaRekeningVerifikasiBiometrikScreen(
             // Biometric viewfinder
             BiometrikViewfinder(
                 state = state,
+                cameraPreview = cameraPreview,
                 modifier = Modifier.padding(horizontal = Spacing.s4),
             )
 
@@ -164,6 +167,7 @@ private fun BiometrikHeader(modifier: Modifier = Modifier) {
 private fun BiometrikViewfinder(
     state: VerifikasiBiometrikUiState,
     modifier: Modifier = Modifier,
+    cameraPreview: (@Composable () -> Unit)? = null,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -173,6 +177,9 @@ private fun BiometrikViewfinder(
             .clip(AppShape.R7)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
+        // Kamera jadi lapisan paling bawah; scrim, oval, dan pill tetap di atasnya.
+        cameraPreview?.invoke()
+
         // Gradient scrim overlay (top + bottom)
         Box(
             modifier = Modifier

@@ -18,7 +18,9 @@
 
 ```text
 Saya sedang membangun Android app (Kotlin, Jetpack Compose, Material 3) untuk BCA Mobile banking.
-Backend API sudah ready di http://localhost:8080/v1.
+Backend API sudah ready. Base URL diambil dari BuildConfig, bukan ditulis di kode:
+debug memakai staging (https://api-staging.bcamobile.id/v1), release memakai produksi
+(https://api.bcamobile.id/v1). Untuk backend lokal, ganti nilai debug di app/build.gradle.kts.
 Referensi lengkap API ada di skill file.
 
 ARSITEKTUR WAJIB:
@@ -31,7 +33,7 @@ Tech Stack:
 - Jetpack Compose (Material 3) untuk UI
 - Dagger Hilt untuk dependency injection
 - Retrofit + OkHttp untuk networking
-- Moshi (dengan codegen, @JsonClass) untuk JSON serialization
+- kotlinx-serialization (@Serializable, @SerialName) untuk JSON — project sudah memakai ini, jangan campur dengan Moshi
 - Jetpack Navigation Compose untuk routing
 - EncryptedSharedPreferences untuk secure storage
 - Kotlin Coroutines + Flow untuk async
@@ -358,7 +360,7 @@ ARSITEKTUR WAJIB:
 - Clean Architecture: data layer (Retrofit, DTO, Repository impl) → domain layer (model, repository interface, usecase) ← presentation layer (Compose, ViewModel, MVI state)
 - MVI Pattern dengan ViewModel: satu StateFlow<UiState> + Channel<SideEffect>, semua user action via sealed interface Event, satu method onEvent(Event)
 - Dagger Hilt: @HiltAndroidApp, @HiltViewModel, @Module @InstallIn, @Binds untuk repository, @Provides untuk network/security
-- Retrofit + OkHttp + Moshi: AuthInterceptor, TokenRefreshAuthenticator, ApiEnvelope<T> wrapper
+- Retrofit + OkHttp + kotlinx-serialization: AuthInterceptor, TokenRefreshAuthenticator, ApiEnvelope<T> wrapper
 - Kotlin Coroutines + Flow: async operations, StateFlow untuk state
 
 MVI Rules:

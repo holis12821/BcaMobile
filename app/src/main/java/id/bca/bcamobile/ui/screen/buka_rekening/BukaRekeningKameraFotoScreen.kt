@@ -62,6 +62,11 @@ fun BukaRekeningKameraFotoScreen(
     onAutoCaptureToggle: (Boolean) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Preview kamera langsung. Dibiarkan kosong di @Preview dan di perangkat
+     * tanpa izin kamera — bingkai wireframe yang tampil sebagai gantinya.
+     */
+    cameraPreview: (@Composable () -> Unit)? = null,
 ) {
     Scaffold(
         topBar = {
@@ -86,6 +91,7 @@ fun BukaRekeningKameraFotoScreen(
             // Camera viewfinder
             CameraViewfinder(
                 isDetecting = state.isDetecting,
+                cameraPreview = cameraPreview,
                 modifier = Modifier.weight(1f),
             )
 
@@ -250,6 +256,7 @@ private fun InstructionPill(modifier: Modifier = Modifier) {
 private fun CameraViewfinder(
     isDetecting: Boolean,
     modifier: Modifier = Modifier,
+    cameraPreview: (@Composable () -> Unit)? = null,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -262,6 +269,7 @@ private fun CameraViewfinder(
         ) {
             // KTP frame
             KtpViewfinderFrame(
+                cameraPreview = cameraPreview,
                 modifier = Modifier
                     .fillMaxWidth(0.88f)
                     .aspectRatio(1.586f),
@@ -278,7 +286,10 @@ private fun CameraViewfinder(
 }
 
 @Composable
-private fun KtpViewfinderFrame(modifier: Modifier = Modifier) {
+private fun KtpViewfinderFrame(
+    modifier: Modifier = Modifier,
+    cameraPreview: (@Composable () -> Unit)? = null,
+) {
     Box(
         modifier = modifier
             .clip(AppShape.R6)
@@ -286,18 +297,23 @@ private fun KtpViewfinderFrame(modifier: Modifier = Modifier) {
                 MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = AppAlpha.A10),
             ),
     ) {
+        // Kamera mengisi bingkai; sudut dan panduan tetap digambar di atasnya.
+        cameraPreview?.invoke()
+
         // Corner brackets
         CornerBracket(Modifier.align(Alignment.TopStart))
         CornerBracket(Modifier.align(Alignment.TopEnd))
         CornerBracket(Modifier.align(Alignment.BottomStart))
         CornerBracket(Modifier.align(Alignment.BottomEnd))
 
-        // Wireframe content
-        KtpWireframe(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(Spacing.s3),
-        )
+        // Wireframe hanya jadi pengganti saat preview kamera belum tersedia.
+        if (cameraPreview == null) {
+            KtpWireframe(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(Spacing.s3),
+            )
+        }
     }
 }
 

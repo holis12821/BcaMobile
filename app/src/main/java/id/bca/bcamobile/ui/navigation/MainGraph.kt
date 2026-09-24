@@ -23,6 +23,8 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -33,19 +35,33 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navigation
 import id.bca.bcamobile.R
+import id.bca.bcamobile.ui.screen.transfer.toTransferUiState
+import id.bca.bcamobile.ui.screen.transfer.toPinUiState
+import id.bca.bcamobile.ui.screen.transfer.toBuktiUiState
+import id.bca.bcamobile.ui.screen.transfer.toAntarRekeningUiState
+import id.bca.bcamobile.ui.screen.transfer.TransferFlowViewModel
+import id.bca.bcamobile.ui.screen.transfer.TransferFlowEvent
+import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesScreen
+import id.bca.bcamobile.ui.screen.bukti_transaksi.BuktiTransaksiScreen
+import id.bca.bcamobile.ui.components.AppTopBar
+import id.bca.bcamobile.ui.screen.akun.AkunEvent
 import id.bca.bcamobile.ui.screen.akun.AkunScreen
+import id.bca.bcamobile.ui.screen.akun.AkunViewModel
 import id.bca.bcamobile.ui.screen.akun.AkunUiState
+import id.bca.bcamobile.ui.screen.home.BerandaViewModel
 import id.bca.bcamobile.ui.screen.home.HomeScreen
 import id.bca.bcamobile.ui.screen.home.BerandaUiState
 import id.bca.bcamobile.ui.screen.home.QuickAction
 import id.bca.bcamobile.ui.screen.mutasi.MutasiScreen
-import id.bca.bcamobile.ui.screen.mutasi.MutasiUiState
+import id.bca.bcamobile.ui.screen.mutasi.MutasiViewModel
 import id.bca.bcamobile.ui.screen.transfer.RecentTransferItem
 import id.bca.bcamobile.ui.screen.transfer.TransferAntarRekeningScreen
 import id.bca.bcamobile.ui.screen.transfer.TransferAntarRekeningUiState
@@ -72,14 +88,20 @@ private const val LEFT_TAB_COUNT = 2
 
 // ── Graph ───────────────────────────────────────────────────────────────
 
-fun NavGraphBuilder.mainGraph(navController: NavHostController) {
+fun NavGraphBuilder.mainGraph(
+    navController: NavHostController,
+    onLogout: () -> Unit,
+) {
     navigation<GraphMain>(startDestination = Home) {
 
         composable<Home> {
             MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
+                val viewModel: BerandaViewModel = hiltViewModel()
+                val state by viewModel.uiState.collectAsState()
+
                 HomeScreen(
-                    state = remember { BerandaUiState() },
-                    onToggleBalance = {},
+                    state = state,
+                    onToggleBalance = viewModel::onToggleBalance,
                     onIsiSaldo = {},
                     onMutasi = { navController.navigate(Mutasi) },
                     onQuickAction = { action ->
@@ -92,8 +114,8 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
                     onPromoClick = {},
                     onLihatSemuaPromo = {},
                     onNotificationClick = {},
-                    onProfileClick = {},
-                    onRetry = {},
+                    onProfileClick = { navController.navigate(Akun) },
+                    onRetry = viewModel::load,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -101,14 +123,17 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
 
         composable<Mutasi> {
             MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
+                val viewModel: MutasiViewModel = hiltViewModel()
+                val state by viewModel.uiState.collectAsState()
+
                 MutasiScreen(
-                    state = remember { MutasiUiState() },
+                    state = state,
                     onAccountClick = {},
-                    onPeriodSelected = {},
+                    onPeriodSelected = viewModel::onPeriodSelected,
                     onCustomDateClick = { navController.navigate(RentangWaktu) },
                     onTransactionClick = {},
-                    onLoadMore = {},
-                    onRetry = {},
+                    onLoadMore = viewModel::onLoadMore,
+                    onRetry = viewModel::load,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -129,50 +154,52 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
 
         composable<Akun> {
             MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
+                val viewModel: AkunViewModel = hiltViewModel()
+                val state by viewModel.uiState.collectAsState()
+
+                // Navigasi keluar dikendalikan SessionState, bukan dipanggil layar.
+                LaunchedEffect(viewModel) {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            AkunEvent.LoggedOut -> onLogout()
+                        }
+                    }
+                }
+
                 AkunScreen(
-                    state = remember {
-                        AkunUiState(
-                            userName = "Budi Santoso",
-                            phoneNumber = "0812 3456 7890",
-                            appVersion = "v2.4.1",
-                            isBiometricEnabled = true,
-                        )
-                    },
+                    state = state,
                     onNotificationClick = {},
                     onProfileClick = {},
                     onLihatProfilClick = {},
                     onMenuItemClick = {},
-                    onBiometricToggle = {},
-                    onKeluarClick = {},
-                    onRetry = {},
+                    onBiometricToggle = viewModel::onBiometricToggle,
+                    onKeluarClick = viewModel::onLogout,
+                    onRetry = viewModel::load,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
         }
 
         composable<Transfer> {
+            val viewModel = transferViewModel(navController, it)
+            val state by viewModel.state.collectAsState()
+
             TransferScreen(
-                state = remember {
-                    TransferUiState(
-                        recentTransfers = listOf(
-                            RecentTransferItem("1", "Budi Santoso", "BCA - 0987 6543 21", 'B'),
-                            RecentTransferItem("2", "PT. Aneka Tambang", "Mandiri - 123 456 789", 'A'),
-                            RecentTransferItem("3", "Siti Aminah", "BNI - 555 444 333", 'S'),
-                            RecentTransferItem("4", "Toko Buku Gramedia", "BCA - 111 222 333", 'T'),
-                        ),
-                    )
-                },
+                state = state.toTransferUiState(),
                 onBackClick = { navController.popBackStack() },
-                onToggleBalance = {},
+                onToggleBalance = viewModel::onToggleBalance,
                 onCopyAccount = {},
-                onSearchChange = {},
+                onSearchChange = viewModel::onSearchChange,
                 onTransferTypeClick = { type ->
                     when (type) {
                         TransferType.ANTAR_REKENING -> navController.navigate(TransferAntarRekening)
                         else -> {}
                     }
                 },
-                onRecentTransferClick = {},
+                onRecentTransferClick = { recent ->
+                    viewModel.onRecentSelected(recent.id)
+                    navController.navigate(TransferAntarRekening)
+                },
                 onLihatSemua = {},
                 onNotificationClick = {},
                 onProfileClick = {},
@@ -180,22 +207,79 @@ fun NavGraphBuilder.mainGraph(navController: NavHostController) {
         }
 
         composable<TransferAntarRekening> {
+            val viewModel = transferViewModel(navController, it)
+            val state by viewModel.state.collectAsState()
+
+            // Lanjut menunggu jawaban inquiry, bukan langsung berpindah layar.
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    if (event is TransferFlowEvent.InquiryReady) {
+                        navController.navigate(TransferPin)
+                    }
+                }
+            }
+
             TransferAntarRekeningScreen(
-                state = remember {
-                    TransferAntarRekeningUiState(
-                        currentStep = 1,
-                        sourceAccountType = "Tahapan BCA",
-                        sourceAccountNumber = "1234567890",
-                        sourceBalance = "Rp 12.500.000",
-                    )
-                },
+                state = state.toAntarRekeningUiState(),
                 onBackClick = { navController.popBackStack() },
                 onSourceAccountClick = {},
-                onDestinationAccountChange = {},
+                onDestinationAccountChange = viewModel::onDestinationChange,
                 onContactsClick = {},
-                onAmountChange = {},
-                onNotesChange = {},
-                onLanjutClick = {},
+                onAmountChange = viewModel::onAmountChange,
+                onNotesChange = viewModel::onNotesChange,
+                onLanjutClick = viewModel::onContinue,
+            )
+        }
+
+        composable<TransferPin> {
+            val viewModel = transferViewModel(navController, it)
+            val state by viewModel.state.collectAsState()
+
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    if (event is TransferFlowEvent.TransferSucceeded) {
+                        navController.navigate(TransferBukti) {
+                            popUpTo<TransferPin> { inclusive = true }
+                        }
+                    }
+                }
+            }
+
+            Scaffold(
+                topBar = {
+                    AppTopBar(
+                        title = stringResource(R.string.navigation_input_transaction_pin),
+                        onBackClick = { navController.popBackStack() },
+                    )
+                },
+            ) { innerPadding ->
+                KodeAksesScreen(
+                    state = state.toPinUiState(),
+                    onDigitClick = viewModel::onPinDigit,
+                    onDeleteClick = viewModel::onPinDelete,
+                    onCancelClick = { navController.popBackStack() },
+                    onSubmitClick = viewModel::submitPin,
+                    onForgotClick = {},
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+        }
+
+        composable<TransferBukti> {
+            val viewModel = transferViewModel(navController, it)
+            val state by viewModel.state.collectAsState()
+
+            BuktiTransaksiScreen(
+                state = state.toBuktiUiState(),
+                onBackClick = {
+                    navController.navigate(Home) {
+                        popUpTo<GraphMain> { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onBagikanClick = {},
+                onSimpanClick = {},
+                onRetry = {},
             )
         }
 
@@ -328,4 +412,23 @@ private fun AppBottomBar(
             )
         }
     }
+}
+
+/**
+ * Satu ViewModel untuk empat layar transfer, di-scope ke entri route [Transfer]
+ * supaya inquiry dan PIN tidak hidup lebih lama dari alurnya.
+ */
+@Composable
+private fun transferViewModel(
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+): TransferFlowViewModel {
+    // Dikunci ke entri layar ini sendiri, bukan currentBackStackEntry: saat flow
+    // dipop, layar yang sedang keluar masih ter-compose selama animasi transisi.
+    // Dengan key lama, remember dievaluasi ulang di saat itu dan
+    // getBackStackEntry(Transfer) melempar IllegalArgumentException.
+    val owner = remember(entry) {
+        runCatching { navController.getBackStackEntry(Transfer) }.getOrDefault(entry)
+    }
+    return hiltViewModel(owner)
 }

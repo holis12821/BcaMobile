@@ -351,6 +351,20 @@
     <string name="cd_buka_rekening_kamera_foto">Ambil Foto Sekarang</string>
     <string name="cd_buka_rekening_kamera_flash">Pengaturan Lampu Kilat</string>
 
+    <!-- Buka Rekening - Verifikasi OTP Screen -->
+    <string name="buka_rekening_otp_title">Verifikasi OTP</string>
+    <string name="buka_rekening_otp_step_label">Verifikasi OTP</string>
+    <string name="buka_rekening_otp_heading">Verifikasi Kode OTP</string>
+    <string name="buka_rekening_otp_subtitle">Kode verifikasi 6 digit telah dikirimkan via SMS ke nomor ponsel terdaftar:</string>
+    <string name="buka_rekening_otp_kirim_ulang_dalam">Kirim ulang kode dalam</string>
+    <string name="buka_rekening_otp_hitung_mundur_format">%1$02d:%2$02d</string>
+    <string name="buka_rekening_otp_kirim_ulang">Kirim Ulang OTP</string>
+    <string name="buka_rekening_otp_keamanan_title">PENTING \u2022 JAGA KERAHASIAAN</string>
+    <string name="buka_rekening_otp_keamanan_pesan">Jangan pernah membagikan kode OTP ini kepada siapa pun, termasuk pihak yang mengaku petugas resmi BCA.</string>
+    <string name="buka_rekening_otp_verifikasi">Verifikasi &amp; Lanjut</string>
+    <string name="buka_rekening_otp_enkripsi">Enkripsi End-to-End BCA Secure System</string>
+    <string name="cd_otp_input">Masukkan 6 digit kode OTP</string>
+
     <!-- Buka Rekening - Verifikasi Biometrik Wajah Screen -->
     <string name="buka_rekening_ekyc_title">Buka Rekening Baru</string>
     <string name="buka_rekening_ekyc_step_label">e-KYC</string>
@@ -598,4 +612,103 @@
     <string name="akun_hubungi_cs">Hubungi CS</string>
     <string name="akun_tentang_aplikasi">Tentang Aplikasi</string>
     <string name="akun_keluar">Keluar Aplikasi</string>
+    <!-- Buka Rekening — pesan error integrasi API -->
+    <string name="buka_rekening_error_network">Tidak ada koneksi internet. Periksa jaringan Anda lalu coba lagi.</string>
+    <string name="buka_rekening_error_timeout">Koneksi terlalu lama merespons. Silakan coba lagi.</string>
+    <string name="buka_rekening_error_server">Layanan sedang bermasalah. Silakan coba beberapa saat lagi.</string>
+    <string name="buka_rekening_error_session_expired">Sesi pendaftaran Anda telah berakhir. Silakan mulai ulang dari awal.</string>
+    <string name="buka_rekening_error_session_not_found">Data pendaftaran tidak ditemukan. Silakan mulai ulang dari awal.</string>
+    <string name="buka_rekening_error_invalid_step">Ada tahap yang belum selesai. Kami kembalikan Anda ke tahap yang benar.</string>
+    <string name="buka_rekening_error_rate_limited">Terlalu banyak percobaan. Coba lagi dalam %1$d detik.</string>
+    <string name="buka_rekening_error_rate_limited_no_time">Terlalu banyak percobaan. Silakan coba lagi nanti.</string>
+    <string name="buka_rekening_error_unknown">Terjadi kesalahan. Silakan coba lagi.</string>
+    <string name="buka_rekening_step_belum_tersedia">Data tersimpan. Tahap berikutnya belum tersedia di aplikasi ini.</string>
+    <string name="buka_rekening_error_otp_invalid">Kode OTP salah. Silakan periksa kembali.</string>
+    <string name="buka_rekening_error_otp_expired">Kode OTP sudah kedaluwarsa. Kode baru telah dikirim ke nomor Anda.</string>
+    <string name="buka_rekening_error_otp_blocked">Terlalu banyak percobaan OTP. Coba lagi dalam %1$d detik.</string>
+    <string name="buka_rekening_error_otp_delivery_failed">Kode OTP gagal dikirim. Silakan coba kirim ulang.</string>
+    <string name="buka_rekening_error_validation">Terjadi kesalahan. Silakan coba lagi.</string>
+    <string name="buka_rekening_error_credential_encryption">Gagal mengamankan kredensial Anda. Silakan coba lagi.</string>
+    <string name="buka_rekening_error_no_photo">Foto e-KTP belum tersedia. Silakan ambil foto terlebih dahulu.</string>
+    <string name="buka_rekening_error_no_ocr">Data e-KTP belum terbaca. Silakan ulangi pengambilan foto.</string>
+    <string name="buka_rekening_error_credential_invalid">Kode akses dan PIN belum memenuhi ketentuan.</string>
+    <string name="buka_rekening_error_agreement_required">Centang persetujuan terlebih dahulu untuk melanjutkan.</string>
+    <string name="buka_rekening_draft_saved">Draf pendaftaran Anda tersimpan.</string>
+    <!-- Buka Rekening — format tampilan hasil OCR dan data pribadi -->
+    <string name="buka_rekening_hasil_foto_resolusi_format">Resolusi %1$s \u2022 %2$s</string>
+    <string name="buka_rekening_hasil_foto_sudut_presisi">Sudut Presisi</string>
+    <string name="buka_rekening_hasil_foto_sudut_terpotong">Sudut Terpotong</string>
+    <string name="buka_rekening_hasil_foto_akurasi_format">%1$s%% Terbaca</string>
+    <string name="buka_rekening_pekerjaan_karyawan_swasta">Karyawan Swasta</string>
+    <string name="buka_rekening_penghasilan_10_20_juta">Rp 10.000.000 - Rp 20.000.000</string>
+    <string name="buka_rekening_sumber_dana_gaji">Gaji</string>
+    <string name="buka_rekening_ringkasan_setoran_format">Rp %1$s</string>
+    <!-- Buka Rekening — izin kamera -->
+    <string name="buka_rekening_izin_kamera_judul">Izin Kamera Diperlukan</string>
+    <string name="buka_rekening_izin_kamera_pesan">Kami memerlukan kamera untuk memotret e-KTP dan memverifikasi wajah Anda.</string>
+    <string name="buka_rekening_izin_kamera_pesan_pengaturan">Izin kamera ditolak. Aktifkan lewat Pengaturan untuk melanjutkan pendaftaran.</string>
+    <string name="buka_rekening_izin_kamera_beri">Beri Izin</string>
+    <string name="buka_rekening_izin_kamera_pengaturan">Buka Pengaturan</string>
+
+    <!-- Buka Rekening - Pilih Jenis Kartu Paspor BCA -->
+    <string name="buka_rekening_kartu_title">Jenis Kartu Paspor</string>
+    <string name="buka_rekening_kartu_step_label">Pilihan Kartu Debit</string>
+    <string name="buka_rekening_kartu_heading">Pilih Kartu Paspor BCA</string>
+    <string name="buka_rekening_kartu_subtitle">Tentukan jenis kartu debit Mastercard yang sesuai dengan limit transaksi harian dan gaya hidup Anda.</string>
+    <string name="buka_rekening_kartu_brand">BCA</string>
+    <string name="buka_rekening_kartu_paspor">PASPOR</string>
+    <string name="buka_rekening_kartu_tipe">Tipe Kartu</string>
+    <string name="buka_rekening_kartu_biaya_admin">Biaya Administrasi</string>
+    <string name="buka_rekening_kartu_per_bulan">/bulan</string>
+    <string name="buka_rekening_kartu_limit_tarik_tunai">Tarik Tunai</string>
+    <string name="buka_rekening_kartu_limit_transfer_bca">Transfer BCA</string>
+    <string name="buka_rekening_kartu_limit_antar_bank">Antar Bank</string>
+    <string name="buka_rekening_kartu_limit_debit">Debit / Belanja</string>
+    <string name="buka_rekening_kartu_pengiriman_judul">Pengiriman Kartu Fisik</string>
+    <string name="buka_rekening_kartu_pengiriman_desc">Kartu fisik dapat dikirim langsung ke alamat tempat tinggal Anda, atau diambil di kantor cabang BCA terdekat setelah verifikasi akun selesai.</string>
+    <string name="buka_rekening_kartu_lanjut">Lanjut ke Syarat &amp; Ketentuan</string>
+    <string name="buka_rekening_kartu_ojk_lps">PT Bank Central Asia Tbk berizin &amp; diawasi oleh OJK dan merupakan peserta penjaminan LPS</string>
+
+    <!-- Buka Rekening - Kartu Blue Mastercard -->
+    <string name="buka_rekening_kartu_blue_nama">Blue Mastercard</string>
+    <string name="buka_rekening_kartu_blue_tipe_label">DEBIT</string>
+    <string name="buka_rekening_kartu_blue_badge">Rekomendasi Pemula</string>
+    <string name="buka_rekening_kartu_blue_biaya">Rp14.000</string>
+    <string name="buka_rekening_kartu_blue_tarik_tunai">Rp10.000.000</string>
+    <string name="buka_rekening_kartu_blue_transfer_bca">Rp50.000.000</string>
+    <string name="buka_rekening_kartu_blue_antar_bank">Rp15.000.000</string>
+    <string name="buka_rekening_kartu_blue_debit">Rp50.000.000</string>
+
+    <!-- Buka Rekening - Kartu Gold Mastercard -->
+    <string name="buka_rekening_kartu_gold_nama">Gold Mastercard</string>
+    <string name="buka_rekening_kartu_gold_tipe_label">DEBIT</string>
+    <string name="buka_rekening_kartu_gold_badge">Transaksi Fleksibel</string>
+    <string name="buka_rekening_kartu_gold_biaya">Rp16.000</string>
+    <string name="buka_rekening_kartu_gold_tarik_tunai">Rp15.000.000</string>
+    <string name="buka_rekening_kartu_gold_transfer_bca">Rp75.000.000</string>
+    <string name="buka_rekening_kartu_gold_antar_bank">Rp20.000.000</string>
+    <string name="buka_rekening_kartu_gold_debit">Rp75.000.000</string>
+
+    <!-- Buka Rekening - Kartu Platinum Mastercard -->
+    <string name="buka_rekening_kartu_platinum_nama">Platinum Mastercard</string>
+    <string name="buka_rekening_kartu_platinum_tipe_label">PLATINUM DEBIT</string>
+    <string name="buka_rekening_kartu_platinum_badge">Limit Maksimal</string>
+    <string name="buka_rekening_kartu_platinum_biaya">Rp19.000</string>
+    <string name="buka_rekening_kartu_platinum_tarik_tunai">Rp20.000.000</string>
+    <string name="buka_rekening_kartu_platinum_transfer_bca">Rp100.000.000</string>
+    <string name="buka_rekening_kartu_platinum_antar_bank">Rp25.000.000</string>
+    <string name="buka_rekening_kartu_platinum_debit">Rp100.000.000</string>
+
+    <!-- Error umum lintas domain -->
+    <string name="error_unauthorized">Sesi Anda telah berakhir. Silakan masuk kembali.</string>
+
+    <!-- Login biometrik -->
+    <string name="biometric_prompt_title_face">Masuk dengan Face ID</string>
+    <string name="biometric_prompt_title_fingerprint">Masuk dengan Sidik Jari</string>
+    <string name="biometric_prompt_subtitle">Verifikasi identitas Anda untuk masuk ke BCA mobile</string>
+    <string name="biometric_prompt_use_access_code">Gunakan Kode Akses</string>
+    <string name="biometric_error_needs_registration">Biometrik perlu didaftarkan ulang. Masuk dengan kode akses terlebih dahulu.</string>
+    <string name="biometric_error_not_enrolled">Belum ada biometrik terdaftar di perangkat ini. Daftarkan lewat Pengaturan.</string>
+    <string name="biometric_error_no_hardware">Perangkat ini tidak mendukung login biometrik.</string>
+    <string name="biometric_error_unavailable">Sensor biometrik sedang tidak bisa dipakai. Gunakan kode akses.</string>
 </resources>

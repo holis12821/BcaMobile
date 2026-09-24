@@ -48,6 +48,16 @@ Urutan yang disarankan: dari yang paling sedikit state ke yang paling banyak.
 | 12 | Bukti Transaksi | Kartu struk: logo, `Transaksi Berhasil` + badge sukses, Tanggal, Sumber Rekening, Jenis Transaksi, Nomor Tujuan, Nama Tujuan, Nominal, Biaya Admin, pemisah, Total; tombol `Simpan` dengan ikon unduh | Watermark di belakang kartu; Total memakai penekanan lebih besar |
 | 13 | Riwayat | Daftar transaksi: ikon, judul, bank + nomor, No. Ref, timestamp, badge status (sukses/gagal), bottom nav | Dua varian badge wajib ada |
 
+### Flow buka rekening
+
+Tabel di atas memuat screen inti aplikasi; layar flow buka rekening belum
+seluruhnya diinventarisasi. Yang sudah dicatat:
+
+| Screen | Elemen utama | Catatan implementasi |
+|---|---|---|
+| Buka Rekening — Verifikasi OTP | Step indicator, kartu info (ikon SMS, judul, penjelasan, chip nomor tersamar), enam kotak digit, hitung mundur kirim ulang, kartu peringatan kerahasiaan, tombol `Verifikasi & Lanjut`, catatan enkripsi | Urutan ke-8: **sesudah Data Pribadi, sebelum Verifikasi Biometrik**. Layar penuh, bukan dialog — alasannya di `compose-architecture/references/navigation.md` §15. Input sesungguhnya satu `BasicTextField` tanpa tampilan dengan `decorationBox` = `OtpDigitBoxes`, supaya keyboard angka, tempel, dan autofill SMS tetap bekerja. Tiga error terpisah dari kontrak: `OTP_INVALID`, `OTP_EXPIRED`, `OTP_BLOCKED` (hitung mundur dari `details.retry_after_seconds`). **Sudah diimplementasikan dan tersambung** sebagai `BukaRekeningVerifikasiOtpScreen.kt`, route `Auth.BukaRekeningOtp`. Dua keadaan blokir dibedakan di state: `isInputDiblokir` (`OTP_BLOCKED`, input mati) dan `isKirimUlangDiblokir` (kuota kirim ulang habis, input tetap aktif). |
+| Buka Rekening — Pilih Jenis Kartu Paspor BCA | Step indicator, judul + deskripsi, tiga kartu pilihan (Blue / Gold / Platinum) berisi badge, indikator pilihan, render miniatur kartu (gradient, chip EMV, emblem Mastercard, contactless), `Biaya Administrasi`, grid 2×2 limit (Tarik Tunai, Transfer BCA, Antar Bank, Debit/Belanja); catatan pengiriman kartu fisik; tombol `Lanjut ke Syarat & Ketentuan` + footer OJK/LPS di `bottomBar` | Warna kartu memakai grup token `CardArt` (bukan lima ramp) — lihat catatan di `Color.kt`; emblem Mastercard adalah aset merek di `drawable/`, bukan token. Artefak Stitch menambahkan blur dekoratif, header kaca, dan avatar yang **tidak** diimplementasikan. |
+
 ---
 
 ## 3. Task flow

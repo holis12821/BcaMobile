@@ -50,20 +50,20 @@ import id.bca.bcamobile.ui.theme.StrokeWidth
 enum class JenisKelamin { LAKI_LAKI, PEREMPUAN }
 
 data class BukaRekeningDataPribadiUiState(
-    val nik: String = "3174082104950001",
-    val namaLengkap: String = "MUHAMMAD ARDAN PRAYOGI",
-    val tempatLahir: String = "Jakarta",
-    val tanggalLahir: String = "21 April 1995",
+    val nik: String = "",
+    val namaLengkap: String = "",
+    val tempatLahir: String = "",
+    val tanggalLahir: String = "",
     val jenisKelamin: JenisKelamin = JenisKelamin.LAKI_LAKI,
-    val alamatLengkap: String = "Jl. Sudirman Kav. 45 No. 12B",
-    val rtRw: String = "004 / 002",
-    val kodePos: String = "12190",
-    val kelurahanKecamatan: String = "Senayan, Kebayoran Baru",
-    val kotaProvinsi: String = "Jakarta Selatan, DKI Jakarta",
+    val alamatLengkap: String = "",
+    val rtRw: String = "",
+    val kodePos: String = "",
+    val kelurahanKecamatan: String = "",
+    val kotaProvinsi: String = "",
     val alamatDomisiliSama: Boolean = true,
-    val jenisPekerjaan: String = "Karyawan Swasta",
-    val penghasilanPerBulan: String = "Rp 10.000.000 - Rp 20.000.000",
-    val sumberDanaUtama: String = "Gaji",
+    val jenisPekerjaan: String = "",
+    val penghasilanPerBulan: String = "",
+    val sumberDanaUtama: String = "",
 )
 
 // -- Main Screen ---------------------------------------------------------------

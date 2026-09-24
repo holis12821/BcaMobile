@@ -1,0 +1,182 @@
+package id.bca.bcamobile.core.network
+
+import id.bca.bcamobile.domain.common.DataResult
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import retrofit2.Response
+import java.io.IOException
+import java.net.SocketTimeoutException
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
+
+/**
+ * Menjalankan panggilan Retrofit lalu menerjemahkan hasilnya jadi [DataResult].
+ *
+ * Kebijakan retry mengikuti skill `buka-rekening-api`:
+ *   - error jaringan  -> 3x percobaan ulang, jeda 1s, 3s, 5s
+ *   - HTTP 5xx        -> 2x percobaan ulang
+ *   - HTTP 429        -> hormati `details.retry_after_seconds` dari body (header
+ *                        `Retry-After` hanya cadangan), tidak diulang otomatis
+ *   - HTTP 401        -> [ApiFailure.Unauthorized]; refresh sudah dicoba di
+ *                        [TokenAuthenticator] sebelum sampai ke sini
+ *   - HTTP 4xx lain   -> tidak diulang, langsung tampilkan pesan server
+ */
+@Singleton
+class ApiCaller @Inject constructor(
+    private val json: Json,
+) {
+
+    /**
+     * @param notFoundAs arti HTTP 404 tanpa error code di body. Onboarding memakai
+     *   [ApiFailure.SessionNotFound]; domain lain [ApiFailure.Unknown].
+     */
+    suspend fun <T> call(
+        allowRetry: Boolean = true,
+        notFoundAs: ApiFailure = ApiFailure.Unknown,
+        block: suspend () -> Response<ApiEnvelope<T>>,
+    ): DataResult<T> {
+        var lastError: ApiFailure = ApiFailure.Unknown
+
+        for (attempt in 0..MAX_ATTEMPTS) {
+            val outcome = runCatching { withTimeoutOrNull(CALL_TIMEOUT_MS.milliseconds) { block() } }
+
+            val response = outcome.getOrElse { throwable ->
+                // runCatching ikut menangkap CancellationException. Kalau ditelan,
+                // coroutine yang sudah dibatalkan tetap menulis state error — layar
+                // yang baru ditinggalkan memunculkan pesan gagal palsu.
+                if (throwable is CancellationException) throw throwable
+
+                lastError = when (throwable) {
+                    is SocketTimeoutException -> ApiFailure.Timeout
+                    is IOException -> ApiFailure.Network
+                    else -> ApiFailure.Unknown
+                }
+                if (!allowRetry || lastError == ApiFailure.Unknown) {
+                    return DataResult.Failure(lastError)
+                }
+                if (attempt < NETWORK_RETRIES) {
+                    delay(BACKOFF_MS[attempt].milliseconds)
+                    continue
+                }
+                return DataResult.Failure(lastError)
+            }
+
+            if (response == null) {
+                lastError = ApiFailure.Timeout
+                if (allowRetry && attempt < NETWORK_RETRIES) {
+                    delay(BACKOFF_MS[attempt].milliseconds)
+                    continue
+                }
+                return DataResult.Failure(lastError)
+            }
+
+            if (response.isSuccessful) {
+                val envelope = response.body()
+                    ?: return DataResult.Failure(ApiFailure.Unknown)
+                val payload = envelope.data
+                return when {
+                    !envelope.isSuccess -> DataResult.Failure(classifyBody(envelope.error))
+                    payload == null -> DataResult.Failure(ApiFailure.Unknown)
+                    else -> DataResult.Success(payload)
+                }
+            }
+
+            val code = response.code()
+            val apiError = parseErrorBody(response)
+
+            // 5xx layak diulang; sisanya keputusan final dari server.
+            if (code >= 500) {
+                lastError = ApiFailure.Server
+                if (allowRetry && attempt < SERVER_RETRIES) {
+                    delay(BACKOFF_MS[attempt].milliseconds)
+                    continue
+                }
+                return DataResult.Failure(lastError)
+            }
+
+            return DataResult.Failure(
+                classifyHttp(code, apiError, response.headers()["Retry-After"], notFoundAs),
+            )
+        }
+
+        return DataResult.Failure(lastError)
+    }
+
+    private fun <T> parseErrorBody(response: Response<ApiEnvelope<T>>): ApiError? {
+        val raw = runCatching { response.errorBody()?.string() }.getOrNull()
+        if (raw.isNullOrBlank()) return null
+        return runCatching {
+            val obj = json.parseToJsonElement(raw).jsonObject
+            val errorObj = obj["error"]?.jsonObject ?: return null
+            ApiError(
+                code = errorObj["code"]?.jsonPrimitive?.content.orEmpty(),
+                message = errorObj["message"]?.jsonPrimitive?.content.orEmpty(),
+                details = errorObj["details"],
+            )
+        }.getOrNull()
+    }
+
+    /** Envelope HTTP 200 tapi `status: "error"`. */
+    private fun classifyBody(error: ApiError?): ApiFailure =
+        classifyCode(error?.code, error?.message, retryAfterFrom(error))
+            ?: ApiFailure.Unknown
+
+    private fun classifyHttp(
+        httpCode: Int,
+        error: ApiError?,
+        retryAfterHeader: String?,
+        notFoundAs: ApiFailure,
+    ): ApiFailure {
+        val retryAfter = retryAfterFrom(error) ?: retryAfterHeader?.toIntOrNull()
+        classifyCode(error?.code, error?.message, retryAfter)?.let { return it }
+
+        return when (httpCode) {
+            401 -> ApiFailure.Unauthorized
+            404 -> notFoundAs
+            429 -> ApiFailure.RateLimited(retryAfter)
+            in 400..499 -> error?.let { ApiFailure.Business(it.code, it.message) }
+                ?: ApiFailure.Unknown
+            else -> ApiFailure.Unknown
+        }
+    }
+
+    private fun classifyCode(code: String?, message: String?, retryAfter: Int?): ApiFailure? =
+        when (code) {
+            null, "" -> null
+            CODE_SESSION_EXPIRED -> ApiFailure.SessionExpired
+            CODE_NOT_FOUND -> ApiFailure.SessionNotFound
+            CODE_INVALID_STEP -> ApiFailure.InvalidStep
+            CODE_RATE_LIMIT -> ApiFailure.RateLimited(retryAfter, message = message.orEmpty())
+            CODE_OTP_BLOCKED -> ApiFailure.RateLimited(
+                retryAfterSeconds = retryAfter,
+                isOtpBlocked = true,
+                message = message.orEmpty(),
+            )
+            CODE_INTERNAL -> ApiFailure.Server
+            else -> ApiFailure.Business(code, message.orEmpty())
+        }
+
+    private fun retryAfterFrom(error: ApiError?): Int? = runCatching {
+        error?.details?.jsonObject?.get("retry_after_seconds")?.jsonPrimitive?.content?.toInt()
+    }.getOrNull()
+
+    private companion object {
+        const val MAX_ATTEMPTS = 3
+        const val NETWORK_RETRIES = 3
+        const val SERVER_RETRIES = 2
+        const val CALL_TIMEOUT_MS = 60_000L
+        val BACKOFF_MS = longArrayOf(1_000L, 3_000L, 5_000L)
+
+        const val CODE_SESSION_EXPIRED = "ONBOARDING_SESSION_EXPIRED"
+        const val CODE_NOT_FOUND = "ONBOARDING_NOT_FOUND"
+        const val CODE_INVALID_STEP = "ONBOARDING_INVALID_STEP"
+        const val CODE_RATE_LIMIT = "RATE_LIMIT_EXCEEDED"
+        const val CODE_OTP_BLOCKED = "OTP_BLOCKED"
+        const val CODE_INTERNAL = "INTERNAL_ERROR"
+    }
+}

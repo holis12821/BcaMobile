@@ -71,12 +71,13 @@ NavHost
 │   ├── Auth.Login              ← layar sambutan + tombol login
 │   │   └── dialog Auth.KodeAkses   ← modal di atas Login
 │   ├── Auth.BukaRekening
+│   ├── Auth.BukaRekeningPilihKartu
 │   ├── Auth.BukaRekeningSyaratKetentuan
 │   ├── Auth.BukaRekeningPanduanFoto
 │   ├── Auth.BukaRekeningKameraFoto
 │   ├── Auth.BukaRekeningHasilFoto
 │   ├── Auth.BukaRekeningDataPribadi
-│   ├── Auth.BukaRekeningEkyc
+│   ├── Auth.BukaRekeningOtp        ← verifikasi OTP; lihat §15
 │   ├── Auth.BukaRekeningVerifikasiBiometrik
 │   ├── Auth.BukaRekeningAntreanVideoCall
 │   ├── Auth.BukaRekeningVideoCall
@@ -90,8 +91,10 @@ NavHost
     ├── Main.Mutasi             ← tab
     ├── Main.Riwayat            ← tab
     ├── Main.Akun               ← tab
-    ├── Main.Transfer           ← dibuka dari Beranda quick action
+    ├── Main.Transfer           ← dibuka dari Beranda quick action; pemilik ViewModel alur transfer
     ├── Main.TransferAntarRekening ← dibuka dari Transfer > Antar Rekening
+    ├── Main.TransferPin        ← setelah inquiry berhasil; memakai ulang KodeAksesScreen
+    ├── Main.TransferBukti      ← setelah execute berhasil; memakai ulang BuktiTransaksiScreen
     ├── Main.RentangWaktu       ← dibuka dari Mutasi
     └── navigation(route = Graph.EWallet)   ← flow transaksi
         ├── EWallet.Pilih
@@ -99,6 +102,21 @@ NavHost
         ├── EWallet.Pin
         └── EWallet.Bukti
 ```
+
+### Scope ViewModel flow buka rekening
+
+Route `Auth.BukaRekening*` berbagi satu `BukaRekeningFlowViewModel`
+yang di-scope ke back stack entry `Auth.BukaRekening` lewat
+`hiltViewModel(navController.getBackStackEntry(BukaRekening))` — bukan nested
+graph tersendiri, dan bukan satu ViewModel per layar. Selama `Auth.BukaRekening`
+masih di back stack, state flow bertahan; begitu ia lepas, ViewModel dan seluruh
+PII di memory ikut dibuang.
+
+Perpindahan antar layar buka rekening yang menyentuh API tidak dipicu oleh
+tombol, melainkan oleh `current_step` dari response server lewat side effect
+`AdvanceTo`. Jangan menambahkan `navigate()` langsung pada callback yang
+memanggil API — itu membuka jalan user melompati step yang belum disetujui
+server.
 
 **Kenapa bersarang.** Batas graph memberi kamu satu nama untuk seluruh wilayah. Logout jadi
 satu operasi terhadap `Graph.Main`, bukan daftar route yang harus dijaga manual.
@@ -355,6 +373,69 @@ Nomor 1, 2, 6, dan 8 adalah sifat keamanan, bukan preferensi UX. Jadikan tes oto
 3. **Ambang auto-lock** — 1, 3, atau 5 menit di background?
 4. **Setelah re-auth dari `Locked`** — kembali ke layar terakhir, atau selalu ke Beranda?
 5. **Cakupan `FLAG_SECURE`** — hanya layar auth dan transaksi, atau seluruh aplikasi?
+Pertanyaan bentuk layar OTP sudah terjawab: layar penuh, alasannya di §15.
 
 Nomor 3 dan 4 adalah keputusan produk, bukan teknis. Sisanya keputusan dependency yang menurut
 `CLAUDE.md` butuh persetujuanmu.
+
+---
+
+## 15. Layar OTP — `Auth.BukaRekeningOtp`
+
+Urutan ke-8 dari 14 layar: **sesudah `Auth.BukaRekeningDataPribadi`, sebelum
+`Auth.BukaRekeningVerifikasiBiometrik`**, mengikuti mesin step server:
+
+```
+TNC → OCR → PERSONAL_DATA → OTP_VERIFY → BIOMETRIC → VIDEO_CALL → CREDENTIALS → REVIEW → COMPLETED
+```
+
+| Bagian | Di mana |
+|---|---|
+| Route `BukaRekeningOtp` | `Route.kt` |
+| Entri `composable<BukaRekeningOtp>` | `AuthGraph.kt` |
+| `OnboardingStep.OTP_VERIFY -> BukaRekeningOtp` | `AuthGraph.kt`, `toRoute()` |
+| Layar + `OtpDigitBoxes` | `ui/screen/buka_rekening/BukaRekeningVerifikasiOtpScreen.kt` |
+| State `otpCode`, `otpCountdownSeconds`, `isOtpInputBlocked`, `isOtpResendBlocked` | `BukaRekeningFlowState` |
+| Event `OtpCodeChanged`, `OtpSubmitted`, `OtpResendRequested`, `OtpCodeCleared` | `BukaRekeningFlowContract.kt` |
+| Hitung mundur, blokir, regenerasi | `BukaRekeningFlowViewModel.kt` |
+| `toOtpUiState()` | `BukaRekeningUiStates.kt` |
+| Pemetaan error → teks | `BukaRekeningFlowMappers.kt` |
+
+Kontrak API-nya: `docs/backend/06-BUKA-REKENING-API-SPEC.md` §3b, §3c, dan skill
+`frontend-otp-verification` untuk perilaku UI per error code.
+
+### Layar penuh, bukan dialog
+
+Kode Akses memang dialog (§7), tapi OTP **jangan** mengikutinya. Dua alasan:
+
+1. **Back stack.** `AdvanceTo` memanggil `navController.navigate(target)` polos,
+   tanpa `popUpTo`. Kalau OTP berupa `dialog<>`, entri dialognya tetap tertinggal
+   di back stack setelah pindah ke Biometrik — tombol Back dari Biometrik akan
+   membuka lagi dialog OTP yang sudah terverifikasi. Kode Akses tidak kena ini
+   karena perpindahannya memakai `popUpTo<Login>`.
+2. **Beban state.** OTP membawa hitung mundur kedaluwarsa (`otp_expires_at`),
+   jeda kirim ulang, dan hitung mundur blokir dari `details.retry_after_seconds`
+   saat `OTP_BLOCKED`. Itu lebih banyak daripada yang ditampung dialog Kode Akses.
+
+### Aturan yang mengikat di layar ini
+
+- **ViewModel tidak bertambah.** Layar ini ikut `BukaRekeningFlowViewModel` lewat
+  `bukaRekeningViewModel(navController, entry)` seperti layar lain.
+- **Jangan `navigate()` di callback tombol Verifikasi.** `verifyOtp()` yang sukses
+  mengirim `AdvanceTo(current_step)` — tujuannya datang dari response, bukan dari
+  konstanta `BIOMETRIC` di client.
+- **Back kembali ke Data Pribadi** supaya nomor HP bisa diperbaiki.
+- **Kode OTP tidak keluar dari layar.** Ia hidup di `otpCode` (memory), dibuang
+  lewat `OtpCodeCleared` di `DisposableEffect`, dan tidak pernah masuk
+  `SavedStateHandle`, DataStore, log, atau laporan bug.
+- **`OTP_EXPIRED` bukan kegagalan terminal.** Server sudah mengirim OTP baru;
+  layar hanya mengosongkan input dan memulai jendela 5 menit baru — **jangan**
+  memanggil `resend-otp`, itu memotong kuota kirim ulang tanpa perlu.
+- **`OTP_BLOCKED` mematikan input dan tombol kirim ulang**, sedangkan
+  `RATE_LIMIT_EXCEEDED` pada kirim ulang hanya mematikan tombolnya — kode terakhir
+  masih sah. Keduanya dibedakan lewat `ApiFailure.RateLimited.isOtpBlocked`.
+- **Hitung mundur hanya tampilan.** Deadline ditegakkan server, jadi angka nol
+  tidak pernah memblokir pengiriman kode, dan selisih jam perangkat dibatasi ke
+  umur OTP supaya tombol kirim ulang tidak mati selamanya.
+- **Setiap route baru** memperbarui berkas ini dan `screen-inventory.md` di commit
+  yang sama.

@@ -47,14 +47,14 @@ import id.bca.bcamobile.ui.theme.Spacing
 
 data class BukaRekeningHasilFotoUiState(
     val isFotoValid: Boolean = true,
-    val resolusiInfo: String = "Resolusi 1920x1080 \u2022 Sudut Presisi",
-    val ocrAccuracy: String = "99.4% Terbaca",
-    val nik: String = "3174 0821 0495 0001",
-    val namaLengkap: String = "MUHAMMAD ARDAN PRAYOGI",
-    val tempatTanggalLahir: String = "JAKARTA, 21-04-1995",
-    val alamat: String = "JL. SUDIRMAN KAV. 45 NO. 12B, RT 004 / RW 002, SENAYAN, KEBAYORAN BARU, JAKARTA SELATAN",
-    val agama: String = "ISLAM",
-    val statusPerkawinan: String = "BELUM KAWIN",
+    val resolusiInfo: String = "",
+    val ocrAccuracy: String = "",
+    val nik: String = "",
+    val namaLengkap: String = "",
+    val tempatTanggalLahir: String = "",
+    val alamat: String = "",
+    val agama: String = "",
+    val statusPerkawinan: String = "",
 )
 
 // -- Main Screen ---------------------------------------------------------------

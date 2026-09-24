@@ -1,7 +1,8 @@
 # API Specification — Buka Rekening (KYC Flow)
 
 > Endpoint lengkap untuk flow pembukaan rekening digital BCA.
-> Mengikuti konvensi di `01-API-SPECIFICATION.md` (envelope, auth header, error codes).
+> Mengikuti konvensi envelope dan error code di `01-API-SPECIFICATION.md`.
+> **Otorisasi flow ini berbeda** dari endpoint bernasabah — lihat §0.
 
 ---
 
@@ -11,15 +12,80 @@
 POST /onboarding/sessions          ← init session
 POST /onboarding/ocr               ← upload foto KTP
 POST /onboarding/personal-data     ← simpan data pribadi
+POST /onboarding/verify-otp        ← verifikasi OTP
+POST /onboarding/resend-otp        ← kirim ulang OTP
+GET  /onboarding/ocr/{session_id}  ← ambil ulang hasil OCR (resume)
 POST /onboarding/biometric         ← upload face + liveness
 POST /onboarding/video-call/queue  ← join antrean video call
 WS   /onboarding/video-call/signal ← WebRTC signaling
 POST /onboarding/video-call/result ← CS submit hasil verifikasi
+GET  /onboarding/credentials/public-key ← kunci publik enkripsi kredensial
 POST /onboarding/credentials       ← simpan kode akses + PIN
 POST /onboarding/submit            ← final submit, buat rekening
 GET  /onboarding/sessions/{id}     ← resume draft / cek status
 DELETE /onboarding/sessions/{id}   ← batalkan & hapus data
 ```
+
+---
+
+## 0. Otorisasi dan Header Wajib
+
+Flow ini berjalan **sebelum nasabah punya rekening**, jadi tidak ada
+`Authorization: Bearer <access_token>` seperti endpoint di `01-API-SPECIFICATION.md`
+§2–§8. Yang menggantikannya bukan "tanpa otorisasi", melainkan **session_id sebagai
+capability token yang diikat ke perangkat**.
+
+### Header wajib di semua endpoint `/v1/onboarding/*`
+
+| Header | Wajib | Isi | Kegunaan |
+|---|---|---|---|
+| `X-Device-ID` | ya | Fingerprint perangkat, nilai sama dengan `device_id` saat sesi dibuat | Mengikat sesi ke perangkat |
+| `X-Request-ID` | ya | UUID v4, dibuat client per request | Korelasi log; dipantulkan di `meta.request_id` |
+| `X-Client-Platform` | ya | `android` \| `ios` | Rate limit dan telemetri |
+| `X-Client-Version` | ya | Versi aplikasi, mis. `1.4.0` | Fallback perilaku client lama |
+| `X-Idempotency-Key` | pada operasi mutasi | UUID v4 | Mencegah efek ganda; lihat §7 |
+
+Tidak ada `Authorization` pada satu pun endpoint di dokumen ini. Satu-satunya
+pengecualian ada di §5c (`X-Internal-Service-Key`, dipanggil backend CS, bukan mobile)
+dan §5b (JWT di `signaling_url`, diterbitkan server).
+
+### Pengikatan sesi ke perangkat
+
+1. `POST /sessions` menyimpan `device_id` dari body **dan** `X-Device-ID` dari header.
+   Keduanya harus sama; kalau berbeda, tolak `400 ONBOARDING_DEVICE_MISMATCH`.
+2. Setiap permintaan berikutnya yang membawa `session_id` diverifikasi terhadap
+   `device_id` yang tersimpan. Tidak cocok → `403 ONBOARDING_DEVICE_MISMATCH`.
+3. Pesan error tidak boleh membocorkan apakah `session_id` itu ada atau tidak —
+   perlakukan sama dengan sesi tidak dikenal dari sisi informasi yang bocor.
+
+Tanpa langkah 2, siapa pun yang memperoleh `session_id` bisa melanjutkan pendaftaran
+orang lain dari perangkat berbeda: mengunggah KTP, menyetel kode akses, lalu
+menyelesaikan pembukaan rekening. `session_id` muncul di log, di URL `GET /sessions/{id}`,
+dan di penyimpanan client — memperlakukannya sebagai rahasia tunggal tidak memadai.
+
+### Token WebSocket signaling
+
+`signaling_url` di §5a memuat JWT yang diterbitkan server. Ketentuannya:
+
+- Masa berlaku **maksimal 5 menit**, hanya untuk satu `queue_id`
+- Memuat klaim `session_id` dan `queue_id`; server signaling memverifikasi keduanya
+- Sekali pakai — koneksi ulang meminta antrean ulang lewat `POST /video-call/queue`
+- Tidak pernah ditulis ke log maupun disimpan client di disk
+
+### Keputusan yang masih terbuka
+
+Empat hal berikut butuh jawaban tim backend sebelum implementasi dikunci. Jangan
+diisi tebakan:
+
+| # | Pertanyaan | Kenapa mengganjal |
+|---|---|---|
+| 1 | Keluarga endpoint mana yang berlaku: `/v1/onboarding/*` (dokumen ini) atau `/v1/registration/*` (`01-API-SPECIFICATION.md` §9)? | Keduanya mendeskripsikan fitur yang sama dengan otorisasi berbeda — §9 memakai **Registration Token**, dokumen ini memakai `session_id`. Client Android sudah mengimplementasikan yang pertama |
+| 2 | Kalau `/registration/*` yang menang, apakah `session_id` diganti Registration Token bertanda tangan? | Menentukan apakah client perlu menyimpan dan menyegarkan token, bukan sekadar id |
+| 3 | Bagaimana perlakuan sesi setelah aplikasi dipasang ulang? | `X-Device-ID` di Android berbasis `ANDROID_ID`, yang berubah saat pasang ulang atau reset pabrik. Pengikatan perangkat membuat draf lama tidak bisa dilanjutkan — perlu diputuskan apakah itu memang diinginkan |
+| 4 | Apakah `X-Device-ID` juga wajib untuk `GET /products/{type}/cards` (`08-PILIH-KARTU-API-SPEC.md` §4)? | Endpoint itu tanpa sesi dan rate limit-nya per device, jadi header ini satu-satunya pengenal yang ada |
+
+Sampai nomor 1 dijawab, dokumen ini yang dipakai sebagai acuan implementasi mobile,
+karena kode client sudah mengikutinya.
 
 ---
 
@@ -65,6 +131,7 @@ POST /v1/onboarding/sessions
 | `ONBOARDING_DUPLICATE_NIK` | NIK sudah terdaftar sebagai nasabah |
 | `ONBOARDING_PRODUCT_UNAVAILABLE` | Produk sedang maintenance |
 | `ONBOARDING_SESSION_LIMIT` | Maks 3 session aktif per device |
+| `ONBOARDING_DEVICE_MISMATCH` | `X-Device-ID` tidak sama dengan `device_id` di body (400) |
 
 ---
 
@@ -127,6 +194,28 @@ Content-Type: multipart/form-data
 | `OCR_EXPIRED_KTP` | KTP sudah tidak berlaku |
 | `OCR_DUKCAPIL_MISMATCH` | Data tidak cocok dengan Dukcapil |
 | `OCR_DUKCAPIL_TIMEOUT` | Koneksi ke Dukcapil timeout, retry |
+
+---
+
+## 2b. Ambil Ulang Hasil OCR
+
+Dipakai saat client melanjutkan draf: data OCR sudah ada di server, tidak perlu
+mengunggah ulang foto.
+
+```
+GET /v1/onboarding/ocr/{session_id}
+```
+
+### Response `200 OK`
+
+Bentuknya identik dengan response `POST /v1/onboarding/ocr`.
+
+### Error Codes
+
+| Code | HTTP | Keterangan |
+|---|---|---|
+| `ONBOARDING_NOT_FOUND` | 404 | Session tidak dikenal |
+| `OCR_NOT_AVAILABLE` | 404 | Session ada, tapi belum pernah unggah foto KTP |
 
 ---
 
@@ -195,6 +284,34 @@ POST /v1/onboarding/verify-otp
 ```
 
 Response: `200 OK` → `current_step: "BIOMETRIC"`
+
+Error codes: `OTP_INVALID` (400), `OTP_EXPIRED` (422), `OTP_BLOCKED` (429).
+`OTP_BLOCKED` wajib menyertakan `details.retry_after_seconds` supaya client bisa
+menampilkan hitung mundur.
+
+### 3c. Kirim Ulang OTP
+
+```
+POST /v1/onboarding/resend-otp
+```
+
+```json
+{
+  "session_id": "onb_9f8e7d6c5b4a"
+}
+```
+
+### Response `200 OK`
+
+```json
+{
+  "otp_sent_to": "0812****8889",
+  "otp_expires_at": "2026-09-18T10:40:00Z"
+}
+```
+
+Rate limit: 3 kali per session per jam. Melebihi itu balas `RATE_LIMIT_EXCEEDED`
+(429) dengan `details.retry_after_seconds`.
 
 ---
 
@@ -344,9 +461,48 @@ X-Internal-Service-Key: <cs-backend-key>
 
 ---
 
+## 6a. Kunci Publik Enkripsi Kredensial
+
+Client mengambil kunci ini lebih dulu, lalu memakainya untuk mengenkripsi kode
+akses dan PIN. Kunci tidak pernah ditanam di aplikasi supaya bisa dirotasi tanpa
+merilis ulang APK.
+
+```
+GET /v1/onboarding/credentials/public-key
+```
+
+### Response `200 OK`
+
+```json
+{
+  "algorithm": "RSA-OAEP-SHA256",
+  "key_id": "pin-key-v1",
+  "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIIB..."
+}
+```
+
+Saat server belum dikonfigurasi kunci RSA (lingkungan dev), balas `public_key_pem`
+kosong dan `key_id: "dev-mode"`. Client akan mengirim kredensial apa adanya —
+mode ini **tidak boleh** aktif di staging maupun produksi.
+
+```json
+{
+  "algorithm": "RSA-OAEP-SHA256",
+  "key_id": "dev-mode",
+  "public_key_pem": "",
+  "note": "Dev mode: send plaintext credentials (no encryption needed)."
+}
+```
+
+`key_id` yang dikembalikan di sini wajib dikirim balik oleh client sebagai
+`encryption_key_id` saat menyimpan kredensial, supaya server tahu kunci mana
+yang dipakai saat dekripsi.
+
+---
+
 ## 6. Simpan Kredensial
 
-Kode akses dan PIN dikirim terenkripsi (RSA public key dari server).
+Kode akses dan PIN dikirim terenkripsi (RSA public key dari `6a`).
 
 ```
 POST /v1/onboarding/credentials

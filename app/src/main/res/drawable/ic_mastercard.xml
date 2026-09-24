@@ -1,0 +1,14 @@
+<!-- Emblem Mastercard: lambang dagang pihak ketiga, bukan token design system. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="24dp"
+    android:viewportWidth="40"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#EB001B"
+        android:pathData="M12,0A12,12 0 1,0 12,24A12,12 0 1,0 12,0Z"/>
+    <path
+        android:fillColor="#F79E1B"
+        android:fillAlpha="0.9"
+        android:pathData="M28,0A12,12 0 1,0 28,24A12,12 0 1,0 28,0Z"/>
+</vector>

@@ -44,6 +44,8 @@ data class KodeAksesUiState(
     val maxDigits: Int = 6,
     val isError: Boolean = false,
     val errorMessage: String? = null,
+    /** true selama permintaan login berjalan; tombol angka dikunci. */
+    val isSubmitting: Boolean = false,
 )
 
 // ── Keypad Model ─────────────────────────────────────────────────────────

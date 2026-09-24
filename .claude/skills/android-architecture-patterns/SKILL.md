@@ -19,7 +19,7 @@ description: Android Implementation Guide — Clean Architecture + MVI + Dagger 
 | Pattern | MVI (Model-View-Intent) | Unidirectional data flow |
 | Navigation | Compose Navigation | Single activity routing |
 | DI | Dagger Hilt | Compile-time DI |
-| Network | Retrofit + OkHttp + Moshi | HTTP client + JSON |
+| Network | Retrofit + OkHttp + kotlinx-serialization | HTTP client + JSON |
 | Storage | EncryptedSharedPreferences | Secure token storage |
 | Security | AndroidKeyStore, BiometricPrompt | Biometric + key management |
 | Camera | CameraX + ML Kit Barcode | QRIS scanner |

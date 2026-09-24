@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Khusus flavor `local`. Server pengembangan dipanggil lewat HTTP polos di
+  10.0.2.2:8080, sementara Android memblokir cleartext sejak API 28.
+
+  Izinnya sengaja dipersempit ke dua host loopback saja — bukan
+  android:usesCleartextTraffic="true" yang membuka seluruh jaringan. Flavor
+  ngrok, staging, dan production tidak memuat berkas ini sama sekali, jadi
+  build mereka tetap menolak HTTP polos.
+
+  Lihat docs/backend/10-BASE-URL-DAN-ENDPOINT.md §4c.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Alias loopback host dari dalam emulator Android. -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

@@ -9,12 +9,13 @@ import kotlinx.serialization.Serializable
 @Serializable data object FaceId
 @Serializable data object TouchId
 @Serializable data object BukaRekening
+@Serializable data object BukaRekeningPilihKartu
 @Serializable data object BukaRekeningSyaratKetentuan
 @Serializable data object BukaRekeningPanduanFoto
 @Serializable data object BukaRekeningKameraFoto
 @Serializable data object BukaRekeningHasilFoto
 @Serializable data object BukaRekeningDataPribadi
-@Serializable data object BukaRekeningEkyc
+@Serializable data object BukaRekeningOtp
 @Serializable data object BukaRekeningVerifikasiBiometrik
 @Serializable data object BukaRekeningAntreanVideoCall
 @Serializable data object BukaRekeningVideoCall
@@ -33,6 +34,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object Transfer
 @Serializable data object TransferAntarRekening
+@Serializable data object TransferPin
+@Serializable data object TransferBukti
 
 // ── EWallet ─────────────────────────────────────────────────────────────
 

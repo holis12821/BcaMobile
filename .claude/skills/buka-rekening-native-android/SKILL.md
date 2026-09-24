@@ -1,16 +1,31 @@
 ---
 name: buka-rekening-native-android
-description: Native Android integration untuk flow buka rekening BCA — CameraX capture KTP, ML Kit OCR e-KTP Indonesia, ML Kit Face Liveness Detection, permission handling, credential encryption RSA-OAEP Android Keystore, clipboard/share, dan shared ViewModel flow-scoped. Gunakan saat mengintegrasikan CameraX, ML Kit OCR, face detection, permission request, RSA encryption, atau state management onboarding di Android. JANGAN gunakan untuk backend Go (itu skill buka-rekening-backend), layout/UI composable (itu `stitch-to-compose`), atau navigasi/state (itu `compose-architecture`).
+description: Native Android integration untuk flow buka rekening BCA — CameraX capture KTP, ML Kit OCR e-KTP Indonesia, ML Kit Face Liveness Detection, permission handling, credential encryption RSA-OAEP Android Keystore, clipboard/share, dan shared ViewModel flow-scoped. Gunakan saat mengintegrasikan CameraX, ML Kit OCR, face detection, permission request, RSA encryption, atau state management onboarding di Android. JANGAN gunakan untuk backend Go (itu skill `buka-rekening-onboarding` di project backend), Retrofit/DTO/repository onboarding (itu skill `buka-rekening-api`), WebRTC dan signaling video call (itu skill `buka-rekening-video-call`), layout/UI composable (itu `stitch-to-compose`), navigasi/state (itu `compose-architecture`), atau login biometrik dengan BiometricPrompt dan AndroidKeyStore (itu skill `android-biometric-keystore`).
 ---
 
 # Skill: Buka Rekening — Native Android Integration
 
 Gunakan skill ini saat mengintegrasikan capability native Android ke flow buka rekening:
-CameraX, ML Kit OCR, ML Kit Face Detection, WebRTC, permission handling,
+CameraX, ML Kit OCR, ML Kit Face Detection, permission handling,
 credential encryption, clipboard/share.
 
-**Jangan** gunakan untuk layout/UI composable (itu `stitch-to-compose`) atau
-navigasi/state (itu `compose-architecture`).
+**Jangan trigger** untuk:
+
+| Wilayah | Skill |
+|---|---|
+| Backend Go service `/v1/onboarding/*` | `buka-rekening-onboarding` (project backend, bukan repo ini) |
+| `OnboardingApi`, DTO, repository, klasifikasi error | `buka-rekening-api` |
+| WebRTC, WebSocket signaling, antrean video call | `buka-rekening-video-call` |
+| Layout dan token visual | `stitch-to-compose` |
+| Navigasi, batas ViewModel, keamanan sesi | `compose-architecture` |
+| Login biometrik: BiometricPrompt, AndroidKeyStore, tanda tangan challenge | `android-biometric-keystore` |
+
+Kamera untuk **foto e-KTP dan liveness** wilayah skill ini; kamera untuk **video call**
+wilayah `buka-rekening-video-call`.
+
+Biometrik juga terbelah dua: **liveness dan face matching e-KYC** saat buka rekening ada
+di sini, sedangkan **login biometrik** nasabah yang sudah punya akun — BiometricPrompt,
+kunci AndroidKeyStore, penandatanganan challenge — ada di `android-biometric-keystore`.
 
 ---
 
@@ -26,13 +41,14 @@ navigasi/state (itu `compose-architecture`).
 
 ## 1. CameraX — Foto e-KTP & Biometrik
 
-### Dependency (perlu persetujuan)
+### Dependency (sudah disetujui dan terpasang)
 ```kotlin
 // build.gradle.kts
-implementation("androidx.camera:camera-core:1.4.1")
-implementation("androidx.camera:camera-camera2:1.4.1")
-implementation("androidx.camera:camera-lifecycle:1.4.1")
-implementation("androidx.camera:camera-view:1.4.1")
+// Sudah terpasang di project — lihat gradle/libs.versions.toml (camerax = "1.5.3")
+implementation(libs.androidx.camera.core)
+implementation(libs.androidx.camera.camera2)
+implementation(libs.androidx.camera.lifecycle)
+implementation(libs.androidx.camera.view)
 ```
 
 ### Architecture Pattern
@@ -82,11 +98,10 @@ val launcher = rememberLauncherForActivityResult(
 
 ## 2. ML Kit — OCR e-KTP Indonesia
 
-### Dependency (perlu persetujuan)
+### Dependency (sudah disetujui dan terpasang)
 ```kotlin
-implementation("com.google.mlkit:text-recognition:16.0.1")
-// Atau bundled (tanpa download model):
-implementation("com.google.mlkit:text-recognition-bundled:16.0.1")
+// Sudah terpasang — mlkitTextRecognition = "16.0.1"
+implementation(libs.mlkit.text.recognition)
 ```
 
 ### Processing Flow
@@ -135,9 +150,10 @@ data class KtpOcrResult(
 
 ## 3. ML Kit — Face Liveness Detection
 
-### Dependency (perlu persetujuan)
+### Dependency (sudah disetujui dan terpasang)
 ```kotlin
-implementation("com.google.mlkit:face-detection:16.1.7")
+// Sudah terpasang — mlkitFaceDetection = "16.1.7"
+implementation(libs.mlkit.face.detection)
 ```
 
 ### Liveness Challenge Flow
@@ -176,6 +192,34 @@ val options = FaceDetectorOptions.Builder()
 - JANGAN simpan face data di device setelah upload
 - Tampilkan oval guide overlay — wajah harus di dalam oval
 - Precision score = `(leftEyeOpenProb + rightEyeOpenProb) / 2 * 100`
+
+---
+
+## 3b. Peta Implementasi yang Sudah Ada
+
+Bagian 1-3 di atas sudah diwujudkan. Pakai yang ada, jangan tulis ulang.
+
+| Kebutuhan | Berkas |
+| --------- | ------ |
+| Jepret, kompresi, rotasi, hapus berkas cache | `core/camera/CameraCapture.kt` |
+| Preview + gerbang izin | `ui/components/CameraPreview.kt` |
+| Notice saat izin ditolak | `ui/components/CameraPermissionNotice.kt` |
+| OCR on-device | `core/ocr/KtpTextRecognizer.kt` |
+| Parser e-KTP Indonesia | `core/ocr/KtpParser.kt` |
+| Auto-capture berbasis NIK | `core/ocr/KtpAutoCaptureAnalyzer.kt` |
+| Mesin tantangan liveness | `core/liveness/LivenessDetector.kt` |
+| Jembatan frame CameraX ke ML Kit | `core/liveness/LivenessAnalyzer.kt` |
+
+**Layar menerima slot, bukan controller.** `BukaRekeningKameraFotoScreen` dan
+`BukaRekeningVerifikasiBiometrikScreen` punya parameter
+`cameraPreview: (@Composable () -> Unit)? = null`. Null berarti wireframe bawaan
+yang tampil — itulah yang menjaga `@Preview` tetap hidup dan layar tetap
+stateless sesuai aturan 5 di `CLAUDE.md`.
+
+**OCR lokal bukan pengganti OCR server.** Hasil ML Kit dipakai untuk pratinjau
+seketika dan menolak foto buruk sebelum diunggah; `state.ocr` dari backend
+menimpanya begitu tersedia. `BukaRekeningFlowState.ktpData` yang memilih sumber
+mana yang sedang dipakai.
 
 ---
 

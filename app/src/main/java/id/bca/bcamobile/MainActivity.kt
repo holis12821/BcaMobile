@@ -2,19 +2,22 @@ package id.bca.bcamobile
 
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.fragment.app.FragmentActivity
+import dagger.hilt.android.AndroidEntryPoint
 import id.bca.bcamobile.session.SessionState
 import id.bca.bcamobile.session.SessionViewModel
 import id.bca.bcamobile.ui.navigation.BcaApp
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
 
-class MainActivity : ComponentActivity() {
+@AndroidEntryPoint
+// FragmentActivity, bukan ComponentActivity: BiometricPrompt mensyaratkannya.
+class MainActivity : FragmentActivity() {
 
     private val sessionViewModel: SessionViewModel by viewModels()
 
@@ -33,8 +36,9 @@ class MainActivity : ComponentActivity() {
             BcaMobileTheme {
                 BcaApp(
                     sessionState = sessionState,
-                    onAuthenticated = {
-                        sessionViewModel.repository.authenticate("User")
+                    onLogout = { sessionViewModel.repository.logout() },
+                    onAuthenticated = { displayName ->
+                        sessionViewModel.repository.authenticate(displayName)
                     },
                     onSaveRouteForReturn = { route ->
                         sessionViewModel.repository.saveRouteForReturn(route)

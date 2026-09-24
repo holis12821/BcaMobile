@@ -103,7 +103,7 @@ fun BukaRekeningSyaratKetentuanScreen(
                 ),
             ) {
                 StepProgressIndicator(
-                    currentStep = 2,
+                    currentStep = 3,
                     totalSteps = 7,
                     stepLabel = stringResource(R.string.buka_rekening_sk_step_label),
                 )

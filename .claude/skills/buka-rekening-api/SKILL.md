@@ -1,6 +1,6 @@
 ---
 name: buka-rekening-api
-description: Android client API integration untuk seluruh flow buka rekening BCA — session lifecycle, endpoint reference (/onboarding/*), request/response contract, OCR upload multipart, personal data + OTP verification, biometric upload, video call queue + WebSocket signaling protocol, credential encryption RSA-OAEP, final submit + idempotency, error handling strategy, dan step-by-step implementation prompts. Gunakan saat membuat atau memodifikasi API client onboarding, Retrofit interface, DTO request/response, repository implementation, atau error handling buka rekening. JANGAN gunakan untuk backend Go (itu skill buka-rekening-backend), endpoint auth/login/PIN (itu skill auth), atau endpoint transaksi (itu skill transaction).
+description: Android client API integration untuk seluruh flow buka rekening BCA — session lifecycle, endpoint reference (/onboarding/*), request/response contract, OCR upload multipart, personal data + OTP verification, biometric upload, video call queue + WebSocket signaling protocol, credential encryption RSA-OAEP, final submit + idempotency, error handling strategy, dan step-by-step implementation prompts. Gunakan saat membuat atau memodifikasi API client onboarding, Retrofit interface, DTO request/response, repository implementation, atau error handling buka rekening. JANGAN gunakan untuk backend Go (itu skill `buka-rekening-onboarding` di project backend), endpoint auth/login/PIN dan transaksi (itu skill `bca-mobile-api`), CameraX/ML Kit/RSA Keystore (itu skill `buka-rekening-native-android`), atau WebRTC/signaling video call (itu skill `buka-rekening-video-call`).
 ---
 
 # Skill: Buka Rekening — Android Native Integration
@@ -10,18 +10,26 @@ Integrasi dengan backend API `/v1/onboarding/*` mencakup: session lifecycle,
 camera capture + OCR preview, form data pribadi + OTP input, face liveness
 capture, video call queue + WebRTC, credential encryption, dan final review.
 
-**Trigger**: saat menyentuh screen/fragment onboarding, API client buka rekening,
-camera capture, liveness SDK, WebRTC/WebSocket signaling, RSA encryption untuk
-credential, atau state management flow buka rekening di Android.
+**Trigger**: saat menyentuh API client buka rekening — `OnboardingApi`, DTO
+request/response, repository onboarding, `ApiCaller`, klasifikasi error, atau
+state management flow buka rekening di Android.
 
-**Jangan trigger** untuk: backend Go service (itu skill `buka-rekening-backend`),
-endpoint auth/login/PIN (itu skill `auth`), endpoint transaksi/transfer (itu
-skill `transaction`).
+**Jangan trigger** untuk:
 
-> **Referensi backend:**
+| Wilayah | Skill |
+|---|---|
+| Backend Go service `/v1/onboarding/*` | `buka-rekening-onboarding` (project backend, bukan repo ini) |
+| Endpoint auth/login/PIN dan transaksi/transfer | `bca-mobile-api` |
+| CameraX, ML Kit OCR/face, permission, RSA Keystore | `buka-rekening-native-android` |
+| WebRTC, WebSocket signaling, antrean video call | `buka-rekening-video-call` |
+| Layout dan token visual | `stitch-to-compose` |
+| Navigasi, batas ViewModel, keamanan sesi | `compose-architecture` |
+
+> **Referensi kontrak:**
 > ```text
-> docs/06-BUKA-REKENING-API-SPEC.md   -- API contract lengkap (request/response/error codes)
-> .claude/skills/buka-rekening-backend/SKILL.md  -- Backend skill & arsitektur
+> docs/backend/06-BUKA-REKENING-API-SPEC.md   -- kontrak API onboarding (request/response/error codes)
+> docs/backend/08-PILIH-KARTU-API-SPEC.md     -- sisipan pilih kartu Paspor (belum tersambung)
+> docs/backend/07-BUKA-REKENING-BACKEND-SKILL-PROMPTS.md  -- definisi skill backend `buka-rekening-onboarding`
 > ```
 
 ---
@@ -32,22 +40,22 @@ skill `transaction`).
 
 - **Language**: Kotlin
 - **Min SDK**: 26 (Android 8.0)
-- **Architecture**: MVVM + Clean Architecture
+- **Architecture**: Clean Architecture + MVI
 - **DI**: Hilt (Dagger)
-- **Networking**: Retrofit + OkHttp + Moshi
+- **Networking**: Retrofit + OkHttp + kotlinx-serialization
 - **Image**: CameraX (capture KTP + liveness frames)
 - **WebRTC**: Google WebRTC SDK (`org.webrtc`)
 - **WebSocket**: OkHttp WebSocket
-- **Crypto**: Android Keystore + Bouncy Castle (RSA-OAEP-SHA256)
-- **Navigation**: Jetpack Navigation Component (single-activity)
-- **State**: ViewModel + StateFlow / SavedStateHandle
+- **Crypto**: `javax.crypto` bawaan platform, transformasi `RSA/ECB/OAEPWithSHA-256AndMGF1Padding`
+- **Navigation**: Navigation Compose type-safe (single-activity)
+- **State**: satu `BukaRekeningFlowViewModel` untuk seluruh flow, `StateFlow` + `Channel` side effect
 
 ### Module Structure
 
 ```text
 app/
 ├── src/main/java/id/co/bca/mobile/
-│   ├── onboarding/
+│   ├── onboarding/   -- catatan: paket sebenarnya di project ini `id.bca.bcamobile`
 │   │   ├── data/
 │   │   │   ├── api/
 │   │   │   │   └── OnboardingApi.kt          -- Retrofit interface
@@ -917,6 +925,118 @@ val client = OkHttpClient.Builder()
     )
     .build()
 ```
+
+---
+
+## Pola ViewModel dan Wiring Compose
+
+Bagian ini menggambarkan kode yang **sudah ada** di project. Ikuti, jangan bikin
+pola tandingan.
+
+### Satu ViewModel untuk sebelas layar
+
+Sebelas layar berbagi satu sesi onboarding, jadi state-nya juga satu:
+`BukaRekeningFlowViewModel`. Jangan bikin ViewModel per layar untuk flow ini.
+
+```text
+ui/screen/buka_rekening/
+├── BukaRekeningFlowContract.kt   -- BukaRekeningFlowState, Event, SideEffect
+├── BukaRekeningFlowViewModel.kt  -- @HiltViewModel, onEvent(), state, sideEffect
+├── BukaRekeningFlowMappers.kt    -- OnboardingError -> ErrorText, OCR -> PersonalData, validasi kredensial
+└── BukaRekeningUiStates.kt       -- BukaRekeningFlowState -> UiState tiap layar
+```
+
+### Bentuk ViewModel
+
+```kotlin
+@HiltViewModel
+class BukaRekeningFlowViewModel @Inject constructor(
+    private val repository: OnboardingRepository,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(BukaRekeningFlowState())
+    val state: StateFlow<BukaRekeningFlowState> = _state.asStateFlow()
+
+    private val _sideEffect = Channel<BukaRekeningSideEffect>(Channel.BUFFERED)
+    val sideEffect: Flow<BukaRekeningSideEffect> = _sideEffect.receiveAsFlow()
+
+    fun onEvent(event: BukaRekeningEvent) { ... }
+}
+```
+
+Satu pintu masuk `onEvent`, satu `StateFlow` keluar, side effect terpisah lewat
+`Channel`. Ini pola MVI yang sama dengan `android-architecture-patterns`.
+
+### Scope ke back stack entry, bukan per layar
+
+```kotlin
+@Composable
+private fun bukaRekeningViewModel(navController: NavHostController): BukaRekeningFlowViewModel {
+    val parentEntry = remember(navController.currentBackStackEntry) {
+        navController.getBackStackEntry(BukaRekening)
+    }
+    return hiltViewModel(parentEntry)
+}
+```
+
+`BukaRekening` adalah layar pertama flow dan bertahan di back stack sampai flow
+selesai. Begitu ia lepas, ViewModel ikut dibuang — PII di memory hilang tanpa
+pembersihan manual. Ini juga alasan flow tidak perlu nested graph sendiri.
+
+### Navigasi maju berasal dari server
+
+Aturan wajib #8 diwujudkan begini: layar **tidak** memanggil `navigate()` setelah
+aksi yang menyentuh API. ViewModel mengirim `AdvanceTo(step)` dengan
+`current_step` dari response, dan `AuthGraph` yang menavigasi.
+
+```kotlin
+is DataResult.Success -> {
+    _state.update { it.copy(sessionId = session.sessionId) }
+    _sideEffect.send(BukaRekeningSideEffect.AdvanceTo(session.currentStep))
+}
+```
+
+Perpindahan yang murni UI — Pilih Jenis ke S&K, Panduan ke Kamera — tetap boleh
+`navigate()` langsung karena tidak menyentuh server.
+
+### Layar tetap stateless
+
+Composable tidak pernah menerima ViewModel. `AuthGraph` menurunkan `UiState`
+tiap layar dari `BukaRekeningFlowState`:
+
+```kotlin
+val viewModel = bukaRekeningViewModel(navController)
+val state by viewModel.state.collectAsState()
+BukaRekeningSideEffects(viewModel, navController)
+
+BukaRekeningRingkasanScreen(
+    state = state.toRingkasanUiState(),
+    onProsesClick = { viewModel.onEvent(BukaRekeningEvent.ApplicationSubmitted) },
+    ...
+)
+```
+
+### Alur error
+
+`ApiCaller` mengklasifikasi HTTP status dan error code jadi `OnboardingError`.
+`toErrorText()` menerjemahkannya ke `ErrorText` — `Res` untuk pesan kita sendiri
+(wajib lewat `strings.xml`), `Raw` untuk pesan bisnis dari server yang sudah
+berbahasa Indonesia.
+
+Dua error ditangani ViewModel, bukan layar:
+
+| Error | Yang dilakukan ViewModel |
+| ----- | ------------------------ |
+| `SessionExpired`, `SessionNotFound` | `clearLocalSession()`, reset state, kirim `RestartFlow` |
+| `InvalidStep` | GET session, lalu `AdvanceTo(current_step)` |
+
+### Idempotency dan kredensial
+
+- Idempotency key submit dibuat sekali lalu dipakai ulang untuk setiap retry,
+  disimpan di `OnboardingSessionStore` supaya selamat dari process death.
+- Kode akses dan PIN dikosongkan dari state begitu berhasil dikirim.
+- Repository yang mengambil public key dan mengenkripsi; pemanggil cukup
+  mengirim nilai apa adanya ke `saveCredentials(accessCode, pin)`.
 
 ---
 

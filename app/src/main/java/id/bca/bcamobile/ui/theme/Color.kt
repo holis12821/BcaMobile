@@ -64,6 +64,45 @@ object AppColor {
     val Neutral1000 = Color(0xFF333333)
 }
 
+/**
+ * Warna reproduksi kartu debit fisik (Paspor BCA Blue / Gold / Platinum).
+ *
+ * Bukan peran UI dan bukan bagian dari lima ramp design system — ini material
+ * kartu, jadi nilainya tidak boleh dipakai untuk latar, teks, atau aksen layar.
+ * Satu-satunya pemakai: komponen kartu di layar pilih jenis kartu Paspor BCA.
+ */
+object CardArt {
+    // Blue Mastercard
+    val BlueStart = Color(0xFF005E9F)
+    val BlueEnd = Color(0xFF002E5C)
+
+    // Gold Mastercard
+    val GoldStart = Color(0xFFD4AF37)
+    val GoldMid = Color(0xFFC59B27)
+    val GoldEnd = Color(0xFF7B5B00)
+
+    // Platinum Mastercard
+    val PlatinumStart = Color(0xFF2B2B2C)
+    val PlatinumMid = Color(0xFF1A1A1A)
+    val PlatinumEnd = Color(0xFF0A0A0A)
+
+    // Chip EMV per kartu
+    val ChipBlueStart = Color(0xFFF6D365)
+    val ChipBlueEnd = Color(0xFFFDA085)
+    val ChipGoldStart = Color(0xFFFFF5C3)
+    val ChipGoldEnd = Color(0xFF947100)
+    val ChipPlatinumStart = Color(0xFFD6D6D6)
+    val ChipPlatinumEnd = Color(0xFF737373)
+
+    /** Garis kontak chip EMV; dipakai dengan alpha, bukan solid. */
+    val ChipLine = Color(0xFF3F2E00)
+
+    // Teks di atas permukaan kartu
+    val OnCard = Color(0xFFFFFFFF)
+    val OnCardPlatinum = Color(0xFFE0E0E0)
+    val OnCardPlatinumMuted = Color(0xFFB0B0B0)
+}
+
 object AppAlpha {
     const val A10 = 0.10f
     const val A20 = 0.20f
@@ -92,6 +131,14 @@ object M3Color {
     val OnSecondary = Color(0xFFFFFFFF)
     val SecondaryContainer = Color(0xFF9ECEFD)
     val OnSecondaryContainer = Color(0xFF235881)
+
+    /**
+     * Aksen sekunder yang tidak ikut berubah antara skema terang dan gelap.
+     *
+     * Dipakai sebagai latar lingkaran ikon di kartu informasi — lebih terang
+     * daripada [SecondaryContainer] sehingga ikon primary tetap terbaca di atasnya.
+     */
+    val SecondaryFixed = Color(0xFFCEE5FF)
 
     // Tertiary
     val Tertiary = Color(0xFF006B1A)
