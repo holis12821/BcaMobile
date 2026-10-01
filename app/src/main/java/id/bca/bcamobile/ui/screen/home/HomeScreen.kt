@@ -74,6 +74,11 @@ data class BerandaUiState(
     val balance: String = "Rp 12.500.000",
     val isBalanceVisible: Boolean = false,
     val promoItems: List<PromoItem> = emptyList(),
+    /**
+     * Menu yang boleh tampil, sudah disaring `feature_flags` dari `GET /health`.
+     * Menu yang servernya mematikan tidak ditampilkan alih-alih gagal saat ditekan.
+     */
+    val quickActions: List<QuickAction> = QuickAction.entries,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 )
@@ -137,7 +142,7 @@ fun HomeScreen(
                 onMutasi = onMutasi,
             )
 
-            QuickActionsGrid(onQuickAction = onQuickAction)
+            QuickActionsGrid(actions = state.quickActions, onQuickAction = onQuickAction)
 
             PromoSection(
                 promoItems = state.promoItems,
@@ -411,8 +416,11 @@ private fun SaldoActionButton(
 
 // ── Quick Actions Grid ───────────────────────────────────────────────────
 
+private const val QUICK_ACTION_PER_ROW = 4
+
 @Composable
 private fun QuickActionsGrid(
+    actions: List<QuickAction>,
     onQuickAction: (QuickAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -427,7 +435,7 @@ private fun QuickActionsGrid(
             horizontalArrangement = Arrangement.spacedBy(Spacing.s2),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            QuickAction.entries.take(4).forEach { action ->
+            actions.take(QUICK_ACTION_PER_ROW).forEach { action ->
                 MenuGridItem(
                     action = action,
                     onClick = { onQuickAction(action) },
@@ -439,7 +447,7 @@ private fun QuickActionsGrid(
             horizontalArrangement = Arrangement.spacedBy(Spacing.s2),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            QuickAction.entries.drop(4).forEach { action ->
+            actions.drop(QUICK_ACTION_PER_ROW).forEach { action ->
                 MenuGridItem(
                     action = action,
                     onClick = { onQuickAction(action) },

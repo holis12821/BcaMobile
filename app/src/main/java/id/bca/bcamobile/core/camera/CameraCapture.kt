@@ -8,7 +8,7 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.LifecycleCameraController
-import id.bca.bcamobile.ui.screen.buka_rekening.FlashMode
+import id.bca.bcamobile.ui.screen.buka_rekening.common.FlashMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext

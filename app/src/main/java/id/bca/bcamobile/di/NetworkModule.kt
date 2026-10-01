@@ -12,10 +12,15 @@ import id.bca.bcamobile.core.network.AppNetwork
 import id.bca.bcamobile.core.network.AuthInterceptor
 import id.bca.bcamobile.core.network.HeaderInterceptor
 import id.bca.bcamobile.core.network.OnboardingNetwork
+import id.bca.bcamobile.data.card.remote.CardApi
+import id.bca.bcamobile.data.content.remote.ContentApi
 import id.bca.bcamobile.core.network.TokenAuthenticator
 import id.bca.bcamobile.data.account.remote.AccountApi
 import id.bca.bcamobile.data.auth.remote.AuthApi
+import id.bca.bcamobile.data.config.remote.HealthApi
 import id.bca.bcamobile.data.ewallet.remote.EWalletApi
+import id.bca.bcamobile.data.notification.remote.NotificationApi
+import id.bca.bcamobile.data.qris.remote.QrisApi
 import id.bca.bcamobile.data.onboarding.remote.OnboardingApi
 import id.bca.bcamobile.data.transaction.remote.TransactionApi
 import id.bca.bcamobile.data.transfer.remote.TransferApi
@@ -108,6 +113,22 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideCardApi(@AppNetwork retrofit: Retrofit): CardApi =
+        retrofit.create(CardApi::class.java)
+
+    /**
+     * Pusat Bantuan dan Kontak CS **publik** — path-nya terdaftar di
+     * [AuthInterceptor] sebagai jalur tanpa Authorization, jadi klien
+     * bernasabah ini tidak menempelkan token ke keduanya. Nasabah yang terkunci
+     * di luar aplikasi tetap bisa menghubungi Halo BCA.
+     */
+    @Provides
+    @Singleton
+    fun provideContentApi(@AppNetwork retrofit: Retrofit): ContentApi =
+        retrofit.create(ContentApi::class.java)
+
+    @Provides
+    @Singleton
     fun provideTransferApi(@AppNetwork retrofit: Retrofit): TransferApi =
         retrofit.create(TransferApi::class.java)
 
@@ -115,6 +136,25 @@ object NetworkModule {
     @Singleton
     fun provideEWalletApi(@AppNetwork retrofit: Retrofit): EWalletApi =
         retrofit.create(EWalletApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(@AppNetwork retrofit: Retrofit): NotificationApi =
+        retrofit.create(NotificationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideQrisApi(@AppNetwork retrofit: Retrofit): QrisApi =
+        retrofit.create(QrisApi::class.java)
+
+    /**
+     * `GET /health` publik, tapi tetap di klien bernasabah: alamatnya `APP_BASE_URL`,
+     * dan [AuthInterceptor] tidak menyisipkan apa pun selama token belum ada.
+     */
+    @Provides
+    @Singleton
+    fun provideHealthApi(@AppNetwork retrofit: Retrofit): HealthApi =
+        retrofit.create(HealthApi::class.java)
 
     @Provides
     @Singleton

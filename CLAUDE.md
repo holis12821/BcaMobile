@@ -16,26 +16,26 @@ bukan di sini. Panduan yang terlalu panjang cenderung terabaikan.
 - DI **Hilt** (`BcaMobileApplication` + `MainActivity` `@AndroidEntryPoint`)
 - **4 product flavor** dimensi `environment`: `local` (emulator, default), `ngrok`
   (tester), `staging`, `production`. Varian = flavor × buildType, jadi 8.
-- Jaringan: Retrofit + OkHttp + kotlinx-serialization
+- Jaringan: Retrofit + OkHttp + kotlinx-serialization; push: Firebase Messaging (BoM)
 - Theme composable: `BcaMobileTheme` — pertahankan namanya, jangan bikin theme kedua
 
 ### Jebakan tema yang harus diketahui
 
-`BcaMobileTheme` menerima `darkTheme` dan `dynamicColor`, lalu **mengabaikan keduanya** —
-`Theme.kt:52` mengunci ke `LightColorScheme`. Banyak `@Preview` memanggil
-`BcaMobileTheme(darkTheme = true)` dan hasilnya tetap terang. Itu bukan bug yang perlu
-diperbaiki: skema gelap belum didefinisikan desain, **jangan dibuat dengan nilai tebakan**.
+`BcaMobileTheme` menerima `darkTheme`/`dynamicColor` lalu **mengabaikan keduanya** —
+`Theme.kt:52` mengunci ke `LightColorScheme`, jadi `@Preview(darkTheme = true)` tetap terang.
+Bukan bug: skema gelap belum didefinisikan desain, **jangan dibuat dengan nilai tebakan**.
 
 ## Struktur paket
 
 ```text
 id.bca.bcamobile
-├── core/        camera, liveness, network (ApiEnvelope, ErrorText), ocr, security (RsaEncryptor)
-├── data/        onboarding/{remote, local, mapper} — DTO, OnboardingApi, ApiCaller, session store
+├── core/        camera, device, download, format, liveness, network (ApiEnvelope, ErrorText), ocr, push, qris, security
+├── data/        {remote/dto, mapper, RepositoryImpl} per domain
 ├── di/          NetworkModule, RepositoryModule
-├── domain/      common/DataResult, onboarding/{model, OnboardingRepository}
-├── session/     SessionRepository, SessionState, SessionViewModel, AppLifecycleObserver
-└── ui/          components, navigation, screen (12 paket layar), theme
+├── domain/      common/DataResult + onboarding, auth, account, card, content, transaction,
+│                transfer, ewallet, notification, qris, config — {model, Repository}
+├── session/     SessionRepository, SessionState, SessionViewModel, AppGate, AppLifecycleObserver
+└── ui/          components, navigation, screen (15 paket layar), theme
 ```
 
 Arsitektur: Clean Architecture + MVI. Screen stateless → state dari ViewModel →
@@ -57,9 +57,10 @@ BukaRekening (pilih jenis) → PilihKartu → SyaratKetentuan → PanduanFoto �
 → VideoCall → BuatKredensial → Ringkasan → BerhasilDibuat
 ```
 
-Satu `BukaRekeningFlowViewModel` untuk seluruh flow, di-scope ke back stack entry graph
-lewat `hiltViewModel(parentEntry)` (`AuthGraph.kt:614`) — **bukan** satu ViewModel per layar.
-
+**Satu layar = satu folder** (`Screen`/`ViewModel`/`UiState`/`Contract`, mewarisi
+`common/BukaRekeningStepViewModel`). State bersama di `common/BukaRekeningSessionStore`; umurnya
+diikat ke graph oleh `BukaRekeningFlowScopeViewModel` — di situ PII dibersihkan.
+`GraphMain` memuat `Riwayat`, `Notifikasi`, `BuktiTransaksi(id)`, `PusatBantuan`, `HubungiCs`, dialog `KartuAksi`/`KartuPin`.
 **Navigasi maju digerakkan server.** Sumber kebenarannya `current_step` dari response,
 diteruskan sebagai side effect `AdvanceTo(step)`. Jangan menavigasi berdasarkan tebakan lokal.
 
@@ -77,20 +78,21 @@ aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak bole
 **URL WebSocket signaling bukan konstanta**: datang sebagai `signaling_url` dari response
 `video-call/queue`, jangan dirakit dari base URL. Peta lengkap: `docs/backend/10-…`.
 
-- Semua response dibungkus `ApiEnvelope<T>` (`status` / `data` / `error` / `meta` / `pagination`)
-- `ApiCaller` (di `core/network/`) memusatkan retry & klasifikasi error → `DataResult<T>`:
-  jaringan 3× (1s/3s/5s), 5xx 2×, 429 hormati `Retry-After`, 401 → `Unauthorized`
-- Error domain `ApiFailure` dipakai semua domain; teks untuk UI lewat `ErrorText`
-- `HeaderInterceptor` mengirim `X-Device-ID` + `X-Request-ID` ke **kedua** jaringan;
-  `X-Device-ID` wajib sama dengan `device_id` body — satu sumber di `DeviceIdProvider`
+- Semua response dibungkus `ApiEnvelope<T>` (`status`/`data`/`error`/`meta`/`pagination`)
+- `ApiCaller` (`core/network/`) memusatkan retry & klasifikasi → `DataResult<T>`: jaringan 3×
+  (1s/3s/5s), 5xx 2×, 429 hormati `Retry-After`, 401 → `Unauthorized`; teks UI lewat `ErrorText`
+- `HeaderInterceptor` kirim `X-Device-ID` + `X-Request-ID` ke **kedua** jaringan; `X-Device-ID`
+  wajib sama dengan `device_id` body — satu sumber di `DeviceIdProvider`
 - Token: access di memory, refresh di EncryptedSharedPreferences (`TokenManager`);
-  `TokenAuthenticator` menyegarkan sekali saat 401, antre lewat mutex
-- Transaksi finansial: `inquiry → verifyPin → execute` dengan `IdempotencyKeyProvider`
-  (kunci terikat `inquiry_id`, dilepas setelah jawaban final)
-- `OnboardingSessionStore` hanya menyimpan `session_id` dan idempotency key —
-  **tidak ada PII yang ditulis ke disk**
-- Certificate pinning aktif di release, tapi **daftar pin masih kosong**
-  (`NetworkModule.certificatePinner()`) — TODO infra, disengaja, jangan "diperbaiki" diam-diam
+  `TokenAuthenticator` refresh sekali saat 401, antre lewat mutex
+- Transaksi: `inquiry → verifyPin → execute`, `IdempotencyKeyProvider` terikat `inquiry_id`
+- `OnboardingSessionStore` hanya menyimpan `session_id` + idempotency key — **tidak ada PII ke disk**
+- Certificate pinning aktif di release tapi **daftar pin kosong** (`NetworkModule`) — TODO infra
+- **Selisih spec QRIS**: §8 menaruh `idempotency_key` di body `qris/pay`; §Headers dan
+  transfer/e-wallet memakai header `X-Idempotency-Key`. Client memakai **header**
+- Kartu: `block`/`replacement` butuh `verification_token` (`BLOCK_CARD`/`REPLACE_CARD`, 120d
+  sekali pakai, jangan di-cache); `replacement` berbiaya → `X-Idempotency-Key` di `SavedStateHandle`
+- `content/*` dan `auth/pin/public-key` **tanpa Authorization** — `AuthInterceptor.PUBLIC_PATHS`
 - **`assets/pin_public.pem` belum ada** — tanpa itu `PinEncryptor.encrypt` balas null dan
   operasi berbasis PIN gagal lebih awal. Jangan mengirim PIN apa adanya sebagai jalan pintas.
 
@@ -99,11 +101,17 @@ aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak bole
 | Fitur | Status |
 |---|---|
 | Session, OCR, data pribadi, biometrik, kredensial, submit | Tersambung ke `OnboardingApi` |
-| Verifikasi OTP | Tersambung: `verify-otp` + `resend-otp`, hitung mundur `otp_expires_at`, blokir `OTP_BLOCKED` dan kuota kirim ulang ditangani terpisah |
-| Antrean video call | Hanya `POST video-call/queue`; **WebRTC belum jadi dependency**, layar video call masih UI |
-| Pilih kartu Paspor | **Belum tersambung** — data dari `strings.xml` via `defaultKartuPasporList()`. Kontrak API: `docs/backend/08-PILIH-KARTU-API-SPEC.md` |
+| Verifikasi OTP | Tersambung `verify-otp` + `resend-otp`; hitung mundur `otp_expires_at`, `OTP_BLOCKED` vs kuota kirim ulang dibedakan |
+| Antrean video call | `POST video-call/queue` + `ice_servers`/`signaling_expires_in` dimodelkan; **WebRTC belum jadi dependency**, layar video call masih UI |
+| Pilih kartu Paspor | **Tersambung** `products/{type}/cards` + `card_type` di `sessions` dan `PUT sessions/{id}/card`; step `CARD_SELECTION` |
 | Auth, Account, Mutasi, Transfer, e-Wallet | **Tersambung penuh** sampai layar. Alur transaksi memakai satu ViewModel per flow, di-scope ke entri graph |
-| Riwayat, Rentang Waktu, QRIS, Notifikasi | Layar belum ada — `MainGraph.kt` masih placeholder teks |
+| Riwayat | **Tersambung** `transactions/history` + filter `type` & `period` (kosakata sama dengan Mutasi); baris → struk `receipt`, tombol Simpan → `receipt/pdf` |
+| Notifikasi | **Tersambung** `notifications?type=` + `read`/`read-all`; tab menyaring di server, cursor direset per tab |
+| Splash | **Tersambung** `health`: `maintenance_mode`/`force_update` memblokir sebelum NavHost, `feature_flags` menyaring menu |
+| QRIS | Client `qris/decode` + `qris/pay` ada; layar pemindai belum |
+| Rentang Waktu | **Tersambung** — dipakai Mutasi **dan** Riwayat lewat `SavedStateHandle` entri masing-masing |
+| Kartu & Profil | **Tersambung** `account/cards` + `settings`/`block`/`replacement`, dan field `tier` di `account/profile` |
+| Pusat Bantuan & Kontak CS | **Tersambung** `content/help-center` + `content/contact-cs` (publik, tanpa Authorization) |
 
 ## Agent Rules
 
@@ -143,8 +151,7 @@ aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak bole
 | WebRTC, signaling, antrean video call | `buka-rekening-video-call` |
 | Performa, ANR, recomposition, memory, R8 | `performance-quality` |
 
-Aturan di dalam skill **jangan disalin ke sini** — cukup rujukan, supaya tidak ada dua
-sumber kebenaran yang bisa berbeda.
+Aturan di dalam skill **jangan disalin ke sini** — cukup rujukan.
 
 ## Dokumen kontrak
 
@@ -152,11 +159,9 @@ sumber kebenaran yang bisa berbeda.
 |---|---|
 | Kontrak API onboarding | `docs/backend/06-BUKA-REKENING-API-SPEC.md` |
 | Base URL & endpoint per lingkungan | `docs/backend/10-BASE-URL-DAN-ENDPOINT.md` |
-| Sisipan pilih kartu + konfigurasinya | `docs/backend/08-PILIH-KARTU-API-SPEC.md` |
-| Skill & prompt backend pilih kartu | `docs/backend/09-PILIH-KARTU-SKILL-PROMPTS.md` |
+| Pilih kartu: kontrak + prompt backend | `docs/backend/08-…-API-SPEC.md`, `09-…-SKILL-PROMPTS.md` |
 | Skill backend OTP onboarding (untuk disalin ke project backend) | `docs/backend-skills/buka-rekening-otp/` |
-| Playbook integrasi API seluruh aplikasi | `docs/buka-rekening-android-prompts.md` |
-| Prompt integrasi Android pilih kartu | `docs/buka-rekening-pilih-kartu-android-prompts.md` |
+| Playbook integrasi Android | `docs/buka-rekening-android-prompts.md`, `…-pilih-kartu-android-prompts.md` |
 | Inventaris layar & komponen | `.claude/skills/stitch-to-compose/references/screen-inventory.md` |
 | Struktur navigasi (mengikat) | `.claude/skills/compose-architecture/references/navigation.md` |
 
@@ -184,8 +189,7 @@ Wajib diperbarui **di commit yang sama** ketika:
 - menambah skill di `.claude/skills/` → perbarui tabel §Skill mana untuk pekerjaan apa
 - menambah dependency, permission, atau `buildConfigField` → sebut di §Project atau §Integrasi API
 
-Yang ditulis di sini hanya **peta dan status**, bukan detail implementasi. Kalau butuh lebih
-dari tiga baris untuk menjelaskan sesuatu, tempatnya di skill atau `docs/`, lalu tautkan.
+Yang ditulis di sini hanya **peta dan status**. Penjelasan panjang tempatnya di skill atau `docs/`.
 
 ## Batasan
 

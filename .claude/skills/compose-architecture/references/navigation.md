@@ -89,28 +89,67 @@ NavHost
 └── navigation(route = Graph.Main)
     ├── Main.Beranda            ← tab
     ├── Main.Mutasi             ← tab
-    ├── Main.Riwayat            ← tab
-    ├── Main.Akun               ← tab
+    ├── Main.Riwayat            ← tab; GET transactions/history
+    ├── Main.Akun               ← tab; **ini halaman profil**, tidak ada route Profil terpisah
+    ├── Main.Notifikasi         ← dibuka dari ikon bel di Beranda, Mutasi, dan Akun;
+    │                             layar push tanpa bottom nav — chrome app shell diurus
+    │                             satu gerbang, bukan dipasang ulang per layar
+    ├── Main.BuktiTransaksi(transactionId) ← struk dari daftar; GET transactions/{id}/receipt
     ├── Main.Transfer           ← dibuka dari Beranda quick action; pemilik ViewModel alur transfer
     ├── Main.TransferAntarRekening ← dibuka dari Transfer > Antar Rekening
     ├── Main.TransferPin        ← setelah inquiry berhasil; memakai ulang KodeAksesScreen
     ├── Main.TransferBukti      ← setelah execute berhasil; memakai ulang BuktiTransaksiScreen
-    ├── Main.RentangWaktu       ← dibuka dari Mutasi
-    └── navigation(route = Graph.EWallet)   ← flow transaksi
-        ├── EWallet.Pilih
-        ├── EWallet.Nominal
-        ├── EWallet.Pin
-        └── EWallet.Bukti
+    ├── Main.RentangWaktu       ← dibuka dari Mutasi **dan** Riwayat; hasilnya dikirim balik
+    │                             lewat SavedStateHandle entri pemanggil (kunci
+    │                             `rentang_waktu_result`), bukan ViewModel bersama
+    ├── Main.RekeningKartu      ← GET account/profile + balance + account/cards;
+    │                             dibuka dari menu m-Info
+    ├── Main.PusatBantuan       ← GET content/help-center; **publik, tanpa Authorization**
+    ├── Main.HubungiCs          ← GET content/contact-cs; **publik, tanpa Authorization**;
+    │                             dibuka dari Akun maupun dari Pusat Bantuan
+    ├── Main.UbahKodeAkses      ← POST auth/pin/change; tiga langkah dalam satu route
+    ├── Main.AturLimit          ← PUT account/transaction-limit
+    │   └── dialog Main.AturLimitPin  ← PIN wajib; ViewModel-nya milik entri AturLimit
+    ├── dialog Main.KartuAksi   ← pemilih alasan blokir / alasan + metode kirim penggantian;
+    │                             ViewModel-nya milik entri Akun, bukan milik dialog
+    ├── dialog Main.KartuPin    ← PIN untuk blokir & ganti kartu; terpisah dari
+    │                             AturLimitPin karena `purpose` token-nya berbeda
+    ├── navigation(route = Graph.EWallet)   ← flow transaksi
+    │   ├── EWallet.Pilih
+    │   ├── EWallet.Nominal
+    │   ├── EWallet.Pin
+    │   └── EWallet.Bukti
+    └── navigation(route = Graph.Qris)      ← flow transaksi; dibuka dari FAB scan
+        ├── Qris.Scan          ← kamera + ML Kit barcode; kirim teks QR mentah ke server
+        ├── Qris.Konfirmasi
+        ├── Qris.Pin           ← memakai ulang KodeAksesScreen
+        └── Qris.Bukti         ← memakai ulang BuktiTransaksiScreen
 ```
+
+### Gerbang aplikasi di atas NavHost
+
+`GET /health` dibaca `SessionViewModel` saat startup dan hasilnya jadi `AppGate`.
+`AppGate.Maintenance` dan `AppGate.UpdateRequired` menampilkan `AppBlockedScreen`
+**sebelum** `AppNavHost` dipasang — bukan sebagai route. Alasannya: route yang sudah
+terpasang bisa dicapai lewat deep link walaupun server menutup layanan.
+
+`AppGate.Checking` menahan splash. Config yang gagal diambil **tidak** memblokir:
+`AppConfig.Permissive` dipakai, dan endpoint sebenarnya yang menolak kalau fiturnya mati.
 
 ### Scope ViewModel flow buka rekening
 
-Route `Auth.BukaRekening*` berbagi satu `BukaRekeningFlowViewModel`
-yang di-scope ke back stack entry `Auth.BukaRekening` lewat
-`hiltViewModel(navController.getBackStackEntry(BukaRekening))` — bukan nested
-graph tersendiri, dan bukan satu ViewModel per layar. Selama `Auth.BukaRekening`
-masih di back stack, state flow bertahan; begitu ia lepas, ViewModel dan seluruh
-PII di memory ikut dibuang.
+Tiap route `Auth.BukaRekening*` punya ViewModel sendiri, di-resolve dengan
+`hiltViewModel()` biasa. State yang dibagi 14 layar — `session_id`, hasil OCR,
+produk dan kartu, status OTP, biometrik, antrean, kredensial — tinggal di
+`common/BukaRekeningSessionStore` (`@ActivityRetainedScoped`).
+
+Umur store itu **bukan** umur Activity: `BukaRekeningFlowScopeViewModel` di-scope ke
+back stack entry `Auth.BukaRekening` lewat
+`hiltViewModel(navController.getBackStackEntry(BukaRekening))` dan memanggil
+`store.clear()` di `onCleared()`. Jadi begitu `Auth.BukaRekening` lepas dari back
+stack, seluruh PII di memory ikut dibuang — termasuk berkas foto e-KTP yang masih
+menggantung di cache. Menghapus pemanggilan `bukaRekeningFlowScope(...)` dari sebuah
+destination berarti membocorkan PII; jangan dilakukan.
 
 Perpindahan antar layar buka rekening yang menyentuh API tidak dipicu oleh
 tombol, melainkan oleh `current_step` dari response server lewat side effect
@@ -397,7 +436,7 @@ TNC → OCR → PERSONAL_DATA → OTP_VERIFY → BIOMETRIC → VIDEO_CALL → CR
 | Layar + `OtpDigitBoxes` | `ui/screen/buka_rekening/BukaRekeningVerifikasiOtpScreen.kt` |
 | State `otpCode`, `otpCountdownSeconds`, `isOtpInputBlocked`, `isOtpResendBlocked` | `BukaRekeningFlowState` |
 | Event `OtpCodeChanged`, `OtpSubmitted`, `OtpResendRequested`, `OtpCodeCleared` | `BukaRekeningFlowContract.kt` |
-| Hitung mundur, blokir, regenerasi | `BukaRekeningFlowViewModel.kt` |
+| Hitung mundur, blokir, regenerasi | `verifikasi_otp/BukaRekeningVerifikasiOtpViewModel.kt` |
 | `toOtpUiState()` | `BukaRekeningUiStates.kt` |
 | Pemetaan error → teks | `BukaRekeningFlowMappers.kt` |
 
@@ -419,8 +458,9 @@ Kode Akses memang dialog (§7), tapi OTP **jangan** mengikutinya. Dua alasan:
 
 ### Aturan yang mengikat di layar ini
 
-- **ViewModel tidak bertambah.** Layar ini ikut `BukaRekeningFlowViewModel` lewat
-  `bukaRekeningViewModel(navController, entry)` seperti layar lain.
+- **Hitung mundur mati bersama layar.** Ticker OTP tinggal di
+  `BukaRekeningVerifikasiOtpViewModel`, dan jendelanya dibuka ulang dari
+  `otpExpiresAt` di state bersama saat layar dibuka kembali.
 - **Jangan `navigate()` di callback tombol Verifikasi.** `verifyOtp()` yang sukses
   mengirim `AdvanceTo(current_step)` — tujuannya datang dari response, bukan dari
   konstanta `BIOMETRIC` di client.
@@ -439,3 +479,40 @@ Kode Akses memang dialog (§7), tapi OTP **jangan** mengikutinya. Dua alasan:
   umur OTP supaya tombol kirim ulang tidak mati selamanya.
 - **Setiap route baru** memperbarui berkas ini dan `screen-inventory.md` di commit
   yang sama.
+
+---
+
+## 16. Notifikasi push sebagai pintu masuk navigasi
+
+Push tidak menambah route maupun graph — ia **pintu masuk ketiga** ke route yang
+sudah ada, di samping tap nasabah dan perpindahan graph karena sesi.
+
+**Jalurnya, dan kenapa bukan lewat service.** Muatan dari server memuat blok
+`notification`, jadi saat aplikasi di background SDK FCM menampilkannya sendiri dan
+`onMessageReceived` **tidak** dipanggil. Tap membuka `MainActivity` dan `data` sampai
+sebagai extras Intent. Karena itu penanganan tap ada di `MainActivity`
+(`onCreate` **dan** `onNewIntent` — yang kedua untuk aplikasi yang sudah hidup di
+belakang dan tidak dibuat ulang), bukan di `BcaFirebaseMessagingService`.
+
+```text
+tray → MainActivity.handlePushIntent → SessionViewModel.onPushNotificationOpened
+     → PushEventBus.pendingOpen → PushDeepLink.routeFor → BcaApp → navigate
+```
+
+Tiga aturan yang mengikat:
+
+1. **Tujuan ditunggu, tidak dibuang.** Tap bisa datang saat sesi masih `Locked`.
+   Nilainya tertahan di `SessionViewModel.pendingPushRoute` sampai sesi
+   `Authenticated`, lalu baru dinavigasikan — dan dikosongkan lewat
+   `onPushRouteConsumed()`, bukan otomatis.
+2. **Menunggu `GraphMain` terpasang.** Efek navigasi push menunggu
+   `currentBackStackEntryFlow` sampai tujuan berada di dalam `GraphMain`. Kalau
+   dinavigasikan lebih dulu, `popUpTo(inclusive = true)` pada perpindahan graph
+   (§8) mengosongkan back stack dan tujuan dari notifikasi ikut terbuang.
+3. **Deep link tidak dirakit client.** `bcamobile://…` datang utuh dari server;
+   `PushDeepLink.routeFor` hanya menerjemahkan. Skema atau tujuan yang tidak
+   dikenal, dan notifikasi tanpa `deep_link`, jatuh ke `Notifikasi` — bukan
+   dibiarkan di layar awal tanpa penjelasan.
+
+Menambah tujuan deep link baru berarti menambah cabang di `PushDeepLink.routeFor`
+**dan** memperbarui bagian ini di commit yang sama.

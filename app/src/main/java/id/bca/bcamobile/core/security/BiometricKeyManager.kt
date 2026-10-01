@@ -35,9 +35,11 @@ sealed interface SigningKeyResult {
  * Kunci privat tidak pernah keluar dari perangkat keras — yang dikirim ke server
  * hanya kunci publik, rantai attestation, dan tanda tangan atas challenge.
  *
- * **Asumsi yang belum dikonfirmasi backend:** EC P-256 dan `SHA256withECDSA`.
- * Lihat `docs/backend/10-HANDOVER-BLOCKER-BACKEND.md` butir 2. Kalau backend
- * memilih RSA, yang berubah hanya berkas ini dan konstanta di bawah.
+ * **Kontraknya kini dipastikan backend:** EC P-256 (`secp256r1`),
+ * `SHA256withECDSA`, tanda tangan base64 dari DER, kunci publik base64 X.509
+ * SPKI tanpa pembungkus PEM. Response challenge ikut membawa `algorithm` dan
+ * `signature_format`, jadi pemanggil mencocokkan ke [WIRE_ALGORITHM] alih-alih
+ * memercayai konstanta di berkas ini secara buta.
  */
 @Suppress("DEPRECATION")
 @Singleton
@@ -173,12 +175,19 @@ class BiometricKeyManager @Inject constructor(
         prefs.edit().remove(KEY_ID).apply()
     }
 
-    private companion object {
-        const val KEYSTORE = "AndroidKeyStore"
-        const val KEY_ALIAS = "bca_biometric_login_v1"
-        const val CURVE = "secp256r1"
-        const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
-        const val PREFS_FILE = "biometric_key"
-        const val KEY_ID = "key_id"
+    companion object {
+        /**
+         * Nama algoritma seperti yang dikirim server di `algorithm`. Dipakai
+         * untuk menolak lebih awal saat backend berpindah ke algoritma lain,
+         * daripada mengirim tanda tangan yang pasti ditolak.
+         */
+        const val WIRE_ALGORITHM = "EC-P256"
+
+        private const val KEYSTORE = "AndroidKeyStore"
+        private const val KEY_ALIAS = "bca_biometric_login_v1"
+        private const val CURVE = "secp256r1"
+        private const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
+        private const val PREFS_FILE = "biometric_key"
+        private const val KEY_ID = "key_id"
     }
 }

@@ -14,6 +14,7 @@ import id.bca.bcamobile.data.auth.remote.dto.RegisterBiometricResponse
 import id.bca.bcamobile.data.auth.remote.dto.RefreshTokenResponse
 import id.bca.bcamobile.data.auth.remote.dto.VerifyPinRequest
 import id.bca.bcamobile.data.auth.remote.dto.VerifyPinResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.PublicKeyResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -26,6 +27,16 @@ import retrofit2.http.Query
  * Base URL memuat prefix `v1/`, jadi path di sini relatif terhadap itu.
  */
 interface AuthApi {
+
+    /**
+     * Kunci publik untuk `pin_encrypted`. Publik — tanpa Authorization.
+     *
+     * Bentuk response-nya sama persis dengan
+     * `GET /onboarding/credentials/public-key` dan **kuncinya pun sama**, jadi
+     * [PublicKeyResponse] milik onboarding dipakai ulang di sini.
+     */
+    @GET("auth/pin/public-key")
+    suspend fun pinPublicKey(): Response<ApiEnvelope<PublicKeyResponse>>
 
     @POST("auth/login/pin")
     suspend fun loginWithPin(
@@ -62,8 +73,25 @@ interface AuthApi {
         @Body request: VerifyPinRequest,
     ): Response<ApiEnvelope<VerifyPinResponse>>
 
+    /** Memindahkan PIN **transaksi**. Bukan kredensial login. */
     @POST("auth/pin/change")
     suspend fun changePin(
+        @Body request: ChangePinRequest,
+    ): Response<ApiEnvelope<MessageResponse>>
+
+    /**
+     * Memindahkan **kode akses** (kredensial login).
+     *
+     * Kode akses dan PIN transaksi adalah dua rahasia berbeda dan punya
+     * endpoint masing-masing. Layar Ubah Kode Akses sebelumnya memanggil
+     * `auth/pin/change`, jadi yang berubah adalah PIN transaksi — sementara
+     * kode akses login tetap seperti semula.
+     *
+     * Bentuk body-nya sama (`ChangePINRequest` di backend), jadi
+     * [ChangePinRequest] dipakai ulang.
+     */
+    @POST("auth/access-code/change")
+    suspend fun changeAccessCode(
         @Body request: ChangePinRequest,
     ): Response<ApiEnvelope<MessageResponse>>
 }

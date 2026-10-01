@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import id.bca.bcamobile.core.format.CurrencyFormatter
 import id.bca.bcamobile.core.network.messageOrNull
+import id.bca.bcamobile.core.push.PushEventBus
 import id.bca.bcamobile.domain.account.AccountRepository
 import id.bca.bcamobile.domain.common.DataResult
+import id.bca.bcamobile.domain.config.AppConfigRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,9 +19,13 @@ import javax.inject.Inject
 @HiltViewModel
 class BerandaViewModel @Inject constructor(
     private val accountRepository: AccountRepository,
+    private val appConfigRepository: AppConfigRepository,
+    private val pushEventBus: PushEventBus,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(BerandaUiState())
+    private val _uiState = MutableStateFlow(
+        BerandaUiState(quickActions = visibleQuickActions()),
+    )
     val uiState: StateFlow<BerandaUiState> = _uiState.asStateFlow()
 
     /** Nominal asli dipisah dari teks tampilan supaya saldo tidak bocor saat disembunyikan. */
@@ -27,6 +33,30 @@ class BerandaViewModel @Inject constructor(
 
     init {
         load()
+
+        // Lencana belum dibaca hanya punya satu sumber yang dilayani server:
+        // `unread_notifications` di `GET /account/dashboard`. Push yang masuk
+        // membuat angka itu basi, jadi dashboard ditarik ulang — bukan dihitung
+        // dari muatan push, yang tidak punya status baca.
+        viewModelScope.launch {
+            pushEventBus.arrivals.collect { load() }
+        }
+    }
+
+    /**
+     * Menu disaring `feature_flags` dari `GET /health` yang sudah dibaca saat splash.
+     *
+     * Tanpa config (mis. panggilan health gagal) semua menu tampil: menyembunyikan
+     * menu karena config tidak terbaca justru menghilangkan layanan yang sebenarnya hidup.
+     */
+    private fun visibleQuickActions(): List<QuickAction> {
+        val flags = appConfigRepository.cached()?.featureFlags ?: return QuickAction.entries
+        return QuickAction.entries.filter { action ->
+            when (action) {
+                QuickAction.E_WALLET -> flags.eWalletEnabled
+                else -> true
+            }
+        }
     }
 
     fun load() {
@@ -39,6 +69,7 @@ class BerandaViewModel @Inject constructor(
                         state.copy(
                             isLoading = false,
                             errorMessage = null,
+                            quickActions = visibleQuickActions(),
                             userName = result.value.displayName,
                             balance = renderBalance(state.isBalanceVisible),
                             promoItems = result.value.promotions.map {

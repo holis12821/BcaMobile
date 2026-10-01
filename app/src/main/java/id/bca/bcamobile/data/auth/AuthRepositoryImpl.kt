@@ -20,6 +20,7 @@ import id.bca.bcamobile.data.auth.remote.dto.VerifyPinRequest
 import id.bca.bcamobile.domain.auth.AuthRepository
 import id.bca.bcamobile.domain.auth.model.AuthUser
 import id.bca.bcamobile.domain.auth.model.BiometricChallenge
+import id.bca.bcamobile.domain.auth.model.BiometricRegistration
 import id.bca.bcamobile.domain.auth.model.BiometricType
 import id.bca.bcamobile.domain.auth.model.PinPurpose
 import id.bca.bcamobile.domain.auth.model.PinVerification
@@ -41,24 +42,34 @@ class AuthRepositoryImpl @Inject constructor(
 
     override val isLoggedIn: Boolean get() = tokenManager.isLoggedIn
 
-    override suspend fun loginWithAccessCode(accessCode: String): DataResult<AuthUser> {
-        val encrypted = pinEncryptor.encrypt(accessCode)
-            ?: return DataResult.Failure(PIN_KEY_MISSING)
+    override suspend fun loginWithAccessCode(accessCode: String): DataResult<AuthUser> =
+        withFreshPinKey {
+            val encrypted = pinEncryptor.encrypt(accessCode)
+                ?: return@withFreshPinKey DataResult.Failure(PIN_KEY_MISSING)
 
-        return caller.call(allowRetry = false) {
-            api.loginWithPin(
-                LoginPinRequest(
-                    deviceId = deviceIdProvider.deviceId(),
-                    pinEncrypted = encrypted,
-                    deviceInfo = deviceInfo(),
-                ),
-            )
-        }.storeTokens()
-    }
+            caller.call(allowRetry = false) {
+                api.loginWithPin(
+                    LoginPinRequest(
+                        deviceId = deviceIdProvider.deviceId(),
+                        pinEncrypted = encrypted.ciphertext,
+                        deviceInfo = deviceInfo(),
+                        encryptionKeyId = encrypted.keyId,
+                    ),
+                )
+            }.storeTokens()
+        }
 
     override suspend fun biometricChallenge(): DataResult<BiometricChallenge> =
         caller.call { api.biometricChallenge(deviceIdProvider.deviceId()) }
-            .map { BiometricChallenge(it.challengeId, it.challenge) }
+            .map {
+                BiometricChallenge(
+                    challengeId = it.challengeId,
+                    challenge = it.challenge,
+                    expiresInSeconds = it.expiresIn,
+                    algorithm = it.algorithm,
+                    signatureFormat = it.signatureFormat,
+                )
+            }
 
     override suspend fun loginWithBiometric(
         type: BiometricType,
@@ -83,7 +94,7 @@ class AuthRepositoryImpl @Inject constructor(
      * Kunci dibuat lebih dulu, baru didaftarkan. Kalau server menolak, kunci lokal
      * ikut dibuang supaya tidak ada kunci yatim yang dipakai login dan selalu gagal.
      */
-    override suspend fun registerBiometric(type: BiometricType): DataResult<Unit> {
+    override suspend fun registerBiometric(type: BiometricType): DataResult<BiometricRegistration> {
         val attestationChallenge = ByteArray(ATTESTATION_CHALLENGE_BYTES).also {
             SecureRandom().nextBytes(it)
         }
@@ -111,7 +122,15 @@ class AuthRepositoryImpl @Inject constructor(
         }
 
         if (result is DataResult.Failure) biometricKeyManager.deleteKey()
-        return result.map { }
+        return result.map {
+            BiometricRegistration(
+                biometricId = it.biometricId,
+                // Server boleh menetapkan key_id-nya sendiri; kalau tidak, yang
+                // berlaku tetap milik Keystore lokal.
+                keyId = it.keyId.ifBlank { biometricKeyManager.keyId() },
+                replacedKeys = it.replacedKeys,
+            )
+        }
     }
 
     override suspend fun unregisterBiometric(): DataResult<Unit> {
@@ -123,24 +142,57 @@ class AuthRepositoryImpl @Inject constructor(
         pin: String,
         purpose: PinPurpose,
     ): DataResult<PinVerification> {
-        val encrypted = pinEncryptor.encrypt(pin)
-            ?: return DataResult.Failure(PIN_KEY_MISSING)
+        return withFreshPinKey {
+            val encrypted = pinEncryptor.encrypt(pin)
+                ?: return@withFreshPinKey DataResult.Failure(PIN_KEY_MISSING)
 
-        return caller.call(allowRetry = false) {
-            api.verifyPin(VerifyPinRequest(encrypted, purpose.wireValue))
-        }.map { PinVerification(it.verificationToken, it.expiresIn) }
+            caller.call(allowRetry = false) {
+                api.verifyPin(
+                    VerifyPinRequest(
+                        pinEncrypted = encrypted.ciphertext,
+                        purpose = purpose.wireValue,
+                        encryptionKeyId = encrypted.keyId,
+                    ),
+                )
+            }.map { PinVerification(it.verificationToken, it.expiresIn) }
+        }
     }
 
-    override suspend fun changePin(oldPin: String, newPin: String): DataResult<Unit> {
-        val oldEncrypted = pinEncryptor.encrypt(oldPin)
-            ?: return DataResult.Failure(PIN_KEY_MISSING)
-        val newEncrypted = pinEncryptor.encrypt(newPin)
-            ?: return DataResult.Failure(PIN_KEY_MISSING)
+    override suspend fun changePin(oldPin: String, newPin: String): DataResult<Unit> =
+        withFreshPinKey {
+            val old = pinEncryptor.encrypt(oldPin)
+                ?: return@withFreshPinKey DataResult.Failure(PIN_KEY_MISSING)
+            val new = pinEncryptor.encrypt(newPin)
+                ?: return@withFreshPinKey DataResult.Failure(PIN_KEY_MISSING)
 
-        return caller.call(allowRetry = false) {
-            api.changePin(ChangePinRequest(oldEncrypted, newEncrypted))
-        }.map { }
-    }
+            caller.call(allowRetry = false) {
+                api.changePin(
+                    ChangePinRequest(
+                        oldPinEncrypted = old.ciphertext,
+                        newPinEncrypted = new.ciphertext,
+                        encryptionKeyId = old.keyId,
+                    ),
+                )
+            }.map { }
+        }
+
+    override suspend fun changeAccessCode(oldCode: String, newCode: String): DataResult<Unit> =
+        withFreshPinKey {
+            val old = pinEncryptor.encrypt(oldCode)
+                ?: return@withFreshPinKey DataResult.Failure(PIN_KEY_MISSING)
+            val new = pinEncryptor.encrypt(newCode)
+                ?: return@withFreshPinKey DataResult.Failure(PIN_KEY_MISSING)
+
+            caller.call(allowRetry = false) {
+                api.changeAccessCode(
+                    ChangePinRequest(
+                        oldPinEncrypted = old.ciphertext,
+                        newPinEncrypted = new.ciphertext,
+                        encryptionKeyId = old.keyId,
+                    ),
+                )
+            }.map { }
+        }
 
     /** Token lokal selalu dibersihkan, termasuk saat server gagal dihubungi. */
     override suspend fun logout(): DataResult<Unit> {
@@ -158,6 +210,32 @@ class AuthRepositoryImpl @Inject constructor(
             displayName = it.user?.displayName.orEmpty(),
             maskedAccount = it.user?.maskedAccount.orEmpty(),
         )
+    }
+
+    /**
+     * Menjalankan [block]; kalau server menolak kunci yang dipakai, buang kunci
+     * itu lalu jalankan **sekali** lagi dengan kunci baru.
+     *
+     * Tiga aturan dari `.claude/skills/frontend-pin-encryption/SKILL.md` §4:
+     *
+     * 1. **Sekali saja.** Gagal lagi berarti masalahnya bukan kunci basi;
+     *    mengulang terus hanya menghabiskan jatah rate limit.
+     * 2. **Enkripsi ulang dari awal.** [block] memanggil `encrypt` di dalamnya,
+     *    jadi percobaan kedua membawa nonce dan `ts` yang segar — ciphertext lama
+     *    tidak bisa dipakai ulang karena nonce-nya sudah hangus di server.
+     * 3. **Bukan PIN salah.** Kode ini tidak pernah diteruskan sebagai kegagalan
+     *    PIN, jadi layar tidak menampilkan sisa percobaan atau peringatan lockout.
+     */
+    private suspend fun <T> withFreshPinKey(
+        block: suspend () -> DataResult<T>,
+    ): DataResult<T> {
+        val first = block()
+        val failure = (first as? DataResult.Failure)?.error
+        val isStaleKey = failure is ApiFailure.Business && failure.code in STALE_PIN_KEY_CODES
+        if (!isStaleKey) return first
+
+        pinEncryptor.invalidateKey()
+        return block()
     }
 
     private fun deviceInfo() = DeviceInfoDto(
@@ -184,5 +262,11 @@ class AuthRepositoryImpl @Inject constructor(
             code = "CLIENT_PIN_KEY_MISSING",
             message = "",
         )
+
+        /**
+         * Server menolak `encryption_key_id` yang dikirim — kuncinya sudah
+         * dirotasi. Onboarding memakai kode berbeda untuk keadaan yang sama.
+         */
+        val STALE_PIN_KEY_CODES = setOf("AUTH_PIN_KEY_UNKNOWN", "CRED_DECRYPTION_FAILED")
     }
 }

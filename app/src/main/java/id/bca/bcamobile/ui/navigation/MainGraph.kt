@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -50,16 +51,54 @@ import id.bca.bcamobile.ui.screen.transfer.toAntarRekeningUiState
 import id.bca.bcamobile.ui.screen.transfer.TransferFlowViewModel
 import id.bca.bcamobile.ui.screen.transfer.TransferFlowEvent
 import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesScreen
+import androidx.navigation.compose.dialog
+import androidx.compose.ui.window.DialogProperties
+import id.bca.bcamobile.ui.components.LocalSnackbarHostState
+import id.bca.bcamobile.ui.screen.akun.AkunMenuItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import id.bca.bcamobile.ui.screen.rentang.RentangPilihan
+import id.bca.bcamobile.ui.screen.rentang.RentangWaktuScreen
+import id.bca.bcamobile.ui.screen.rentang.RentangWaktuUiState
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import id.bca.bcamobile.ui.screen.ubah_kode_akses.UbahKodeAksesScreen
+import id.bca.bcamobile.ui.screen.ubah_kode_akses.UbahKodeAksesViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import id.bca.bcamobile.ui.screen.rekening.RekeningKartuScreen
+import id.bca.bcamobile.ui.screen.rekening.RekeningKartuViewModel
+import id.bca.bcamobile.ui.screen.limit.AturLimitEvent
+import id.bca.bcamobile.ui.screen.limit.AturLimitScreen
+import id.bca.bcamobile.ui.screen.limit.AturLimitViewModel
+import id.bca.bcamobile.ui.screen.bukti_transaksi.BuktiTransaksiEvent
 import id.bca.bcamobile.ui.screen.bukti_transaksi.BuktiTransaksiScreen
+import id.bca.bcamobile.ui.screen.bukti_transaksi.BuktiTransaksiViewModel
+import id.bca.bcamobile.ui.screen.notifikasi.NotifikasiScreen
+import id.bca.bcamobile.ui.screen.notifikasi.NotifikasiViewModel
+import id.bca.bcamobile.ui.screen.riwayat.RiwayatScreen
+import id.bca.bcamobile.ui.screen.riwayat.RiwayatPeriod
+import id.bca.bcamobile.ui.screen.riwayat.RiwayatViewModel
 import id.bca.bcamobile.ui.components.AppTopBar
 import id.bca.bcamobile.ui.screen.akun.AkunEvent
 import id.bca.bcamobile.ui.screen.akun.AkunScreen
 import id.bca.bcamobile.ui.screen.akun.AkunViewModel
+import id.bca.bcamobile.ui.screen.akun.AksiKartuDialog
+import id.bca.bcamobile.ui.screen.bantuan.HubungiCsScreen
+import id.bca.bcamobile.ui.screen.bantuan.HubungiCsViewModel
+import id.bca.bcamobile.ui.screen.bantuan.PusatBantuanScreen
+import id.bca.bcamobile.ui.screen.bantuan.PusatBantuanViewModel
+import id.bca.bcamobile.ui.screen.bantuan.dial
+import id.bca.bcamobile.ui.screen.bantuan.openLink
+import id.bca.bcamobile.ui.screen.bantuan.openWhatsApp
+import id.bca.bcamobile.ui.screen.bantuan.sendEmail
 import id.bca.bcamobile.ui.screen.akun.AkunUiState
 import id.bca.bcamobile.ui.screen.home.BerandaViewModel
 import id.bca.bcamobile.ui.screen.home.HomeScreen
 import id.bca.bcamobile.ui.screen.home.BerandaUiState
 import id.bca.bcamobile.ui.screen.home.QuickAction
+import id.bca.bcamobile.ui.screen.mutasi.MutasiPeriod
 import id.bca.bcamobile.ui.screen.mutasi.MutasiScreen
 import id.bca.bcamobile.ui.screen.mutasi.MutasiViewModel
 import id.bca.bcamobile.ui.screen.transfer.RecentTransferItem
@@ -95,7 +134,7 @@ fun NavGraphBuilder.mainGraph(
     navigation<GraphMain>(startDestination = Home) {
 
         composable<Home> {
-            MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
+            MainScaffold(navController = navController, onScanClick = { navController.navigate(GraphQris) }) { innerPadding ->
                 val viewModel: BerandaViewModel = hiltViewModel()
                 val state by viewModel.uiState.collectAsState()
 
@@ -106,6 +145,8 @@ fun NavGraphBuilder.mainGraph(
                     onMutasi = { navController.navigate(Mutasi) },
                     onQuickAction = { action ->
                         when (action) {
+                            // m-Info = informasi rekening: saldo per rekening.
+                            QuickAction.M_INFO -> navController.navigate(RekeningKartu)
                             QuickAction.TRANSFER -> navController.navigate(Transfer)
                             QuickAction.E_WALLET -> navController.navigate(EWalletPilih)
                             else -> {}
@@ -113,7 +154,7 @@ fun NavGraphBuilder.mainGraph(
                     },
                     onPromoClick = {},
                     onLihatSemuaPromo = {},
-                    onNotificationClick = {},
+                    onNotificationClick = { navController.navigate(Notifikasi) },
                     onProfileClick = { navController.navigate(Akun) },
                     onRetry = viewModel::load,
                     modifier = Modifier.padding(innerPadding),
@@ -121,10 +162,30 @@ fun NavGraphBuilder.mainGraph(
             }
         }
 
-        composable<Mutasi> {
-            MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
+        composable<Mutasi> { entry ->
+            MainScaffold(navController = navController, onScanClick = { navController.navigate(GraphQris) }) { innerPadding ->
                 val viewModel: MutasiViewModel = hiltViewModel()
                 val state by viewModel.uiState.collectAsState()
+
+                // Hasil layar Rentang Waktu dikembalikan lewat SavedStateHandle entri
+                // ini, bukan lewat ViewModel bersama: Mutasi adalah tab, dan layar
+                // rentangnya hanya dibuka sesaat di atasnya.
+                val periodResult by entry.savedStateHandle
+                    .getStateFlow<String?>(RENTANG_RESULT_KEY, null)
+                    .collectAsState()
+
+                LaunchedEffect(periodResult) {
+                    val value = periodResult ?: return@LaunchedEffect
+                    entry.savedStateHandle[RENTANG_RESULT_KEY] = null
+                    val parts = value.split(RENTANG_RESULT_SEPARATOR)
+                    if (parts.size == 3 && parts[0] == RENTANG_CUSTOM) {
+                        viewModel.onCustomRangeSelected(parts[1], parts[2])
+                    } else {
+                        MutasiPeriod.entries
+                            .firstOrNull { period -> period.name == parts.firstOrNull() }
+                            ?.let(viewModel::onPeriodSelected)
+                    }
+                }
 
                 MutasiScreen(
                     state = state,
@@ -139,45 +200,319 @@ fun NavGraphBuilder.mainGraph(
             }
         }
 
-        composable<Riwayat> {
-            MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(stringResource(R.string.navigation_history))
+        composable<Riwayat> { entry ->
+            MainScaffold(navController = navController, onScanClick = { navController.navigate(GraphQris) }) { innerPadding ->
+                val viewModel: RiwayatViewModel = hiltViewModel()
+                val state by viewModel.uiState.collectAsState()
+
+                // Sama seperti Mutasi: layar Rentang Waktu dibuka sesaat di atas
+                // tab ini dan mengembalikan pilihannya lewat SavedStateHandle
+                // entri ini, bukan lewat ViewModel bersama.
+                val periodResult by entry.savedStateHandle
+                    .getStateFlow<String?>(RENTANG_RESULT_KEY, null)
+                    .collectAsState()
+
+                LaunchedEffect(periodResult) {
+                    val value = periodResult ?: return@LaunchedEffect
+                    entry.savedStateHandle[RENTANG_RESULT_KEY] = null
+                    val parts = value.split(RENTANG_RESULT_SEPARATOR)
+                    if (parts.size == 3 && parts[0] == RENTANG_CUSTOM) {
+                        viewModel.onCustomRangeSelected(parts[1], parts[2])
+                    } else {
+                        RiwayatPeriod.entries
+                            .firstOrNull { period -> period.name == parts.firstOrNull() }
+                            ?.let(viewModel::onPeriodSelected)
+                    }
                 }
+
+                RiwayatScreen(
+                    state = state,
+                    onFilterSelected = viewModel::onFilterSelected,
+                    onPeriodSelected = viewModel::onPeriodSelected,
+                    onCustomDateClick = { navController.navigate(RentangWaktu) },
+                    // Struk ditarik ulang dari server, bukan dirakit dari baris daftar.
+                    onItemClick = { item -> navController.navigate(BuktiTransaksi(item.id)) },
+                    onLoadMore = viewModel::onLoadMore,
+                    onRetry = viewModel::load,
+                    modifier = Modifier.padding(innerPadding),
+                )
             }
         }
 
+        composable<Notifikasi> {
+            val viewModel: NotifikasiViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+
+            NotifikasiScreen(
+                state = state,
+                onTabSelected = viewModel::onTabSelected,
+                onItemClick = viewModel::onItemOpened,
+                onTandaiSemuaClick = viewModel::onTandaiSemuaClick,
+                onLoadMore = viewModel::onLoadMore,
+                onBackClick = { navController.popBackStack() },
+                onRetry = viewModel::load,
+            )
+        }
+
+        composable<BuktiTransaksi> {
+            val viewModel: BuktiTransaksiViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+            val snackbarHostState = LocalSnackbarHostState.current
+
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        is BuktiTransaksiEvent.SaveFinished ->
+                            snackbarHostState.showSnackbar(event.message)
+                    }
+                }
+            }
+
+            BuktiTransaksiScreen(
+                state = state,
+                onBackClick = { navController.popBackStack() },
+                onBagikanClick = {},
+                onSimpanClick = viewModel::onSimpanClick,
+                onRetry = viewModel::load,
+            )
+        }
+
         composable<Akun> {
-            MainScaffold(navController = navController, onScanClick = {}) { innerPadding ->
+            MainScaffold(navController = navController, onScanClick = { navController.navigate(GraphQris) }) { innerPadding ->
                 val viewModel: AkunViewModel = hiltViewModel()
                 val state by viewModel.uiState.collectAsState()
+
+                val snackbarHostState = LocalSnackbarHostState.current
+                val scope = rememberCoroutineScope()
+                val belumTersedia = stringResource(R.string.profil_menu_belum_tersedia)
 
                 // Navigasi keluar dikendalikan SessionState, bukan dipanggil layar.
                 LaunchedEffect(viewModel) {
                     viewModel.events.collect { event ->
                         when (event) {
                             AkunEvent.LoggedOut -> onLogout()
+
+                            // Verifikasi PIN diwajibkan server untuk blokir dan
+                            // ganti kartu, jadi dialognya bagian dari alur.
+                            AkunEvent.PinRequired -> navController.navigate(KartuPin)
+
+                            is AkunEvent.CardActionDone -> {
+                                // Dua dialog ditutup sekaligus: PIN di atas,
+                                // pemilih alasan di bawahnya.
+                                navController.popBackStack(KartuAksi, inclusive = true)
+                                snackbarHostState.showSnackbar(event.message)
+                            }
                         }
                     }
                 }
 
                 AkunScreen(
                     state = state,
-                    onNotificationClick = {},
+                    onNotificationClick = { navController.navigate(Notifikasi) },
+                    // Halaman ini sendiri sudah halaman profil; tidak ada route terpisah.
                     onProfileClick = {},
                     onLihatProfilClick = {},
-                    onMenuItemClick = {},
+                    onMenuItemClick = { menu ->
+                        when (menu) {
+                            AkunMenuItem.UBAH_PIN -> navController.navigate(UbahKodeAkses)
+                            AkunMenuItem.ATUR_LIMIT -> navController.navigate(AturLimit)
+                            AkunMenuItem.PUSAT_BANTUAN -> navController.navigate(PusatBantuan)
+                            AkunMenuItem.HUBUNGI_CS -> navController.navigate(HubungiCs)
+                            AkunMenuItem.BLOKIR_KARTU -> {
+                                viewModel.onBlokirKartuClick()
+                                navController.navigate(KartuAksi)
+                            }
+                            // Dua pintu ke alur yang sama: desain menaruhnya
+                            // sebagai aksi kartu dan sebagai baris pengaturan.
+                            AkunMenuItem.GANTI_KARTU,
+                            AkunMenuItem.PENGGANTIAN_KARTU,
+                            -> {
+                                viewModel.onGantiKartuClick()
+                                navController.navigate(KartuAksi)
+                            }
+                            // Kontrol Akses ada di desain tetapi belum punya
+                            // endpoint sendiri — yang dilayani server hanya dua
+                            // sakelar kanal yang sudah tampil di bawah kartu.
+                            AkunMenuItem.KONTROL_AKSES,
+                            AkunMenuItem.TENTANG_APLIKASI,
+                            AkunMenuItem.NOTIFIKASI_PUSH,
+                            AkunMenuItem.EMAIL_STATEMENT,
+                            -> scope.launch {
+                                snackbarHostState.showSnackbar(belumTersedia)
+                            }
+                        }
+                    },
+                    onCardSettingToggle = viewModel::onCardSettingToggle,
                     onBiometricToggle = viewModel::onBiometricToggle,
+                    onNotificationToggle = viewModel::onNotificationToggle,
+                    onEmailStatementToggle = viewModel::onEmailStatementToggle,
                     onKeluarClick = viewModel::onLogout,
                     onRetry = viewModel::load,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
+        }
+
+        composable<UbahKodeAkses> {
+            val viewModel: UbahKodeAksesViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+
+            UbahKodeAksesScreen(
+                state = state,
+                onKodeLamaChanged = viewModel::onKodeLamaChanged,
+                onKodeBaruChanged = viewModel::onKodeBaruChanged,
+                onKonfirmasiChanged = viewModel::onKonfirmasiChanged,
+                onToggleKodeLamaVisibility = viewModel::onToggleKodeLamaVisibility,
+                onToggleKodeBaruVisibility = viewModel::onToggleKodeBaruVisibility,
+                onToggleKonfirmasiVisibility = viewModel::onToggleKonfirmasiVisibility,
+                onLanjutClick = viewModel::onLanjutClick,
+                onSelesaiClick = { navController.popBackStack() },
+                // Back di langkah kedua kembali ke langkah pertama dulu.
+                onBackClick = {
+                    if (!viewModel.onBackRequested()) navController.popBackStack()
+                },
+            )
+        }
+
+        composable<RekeningKartu> {
+            val viewModel: RekeningKartuViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+
+            RekeningKartuScreen(
+                state = state,
+                onToggleBalance = viewModel::onToggleBalance,
+                onDetailToggle = viewModel::onDetailToggle,
+                // Mutasi memilih rekening utamanya sendiri; membawa account_id ke
+                // sana butuh argumen route baru, jadi itu pekerjaan terpisah.
+                onMutasiClick = { navController.navigate(Mutasi) },
+                onBackClick = { navController.popBackStack() },
+                onRetry = viewModel::load,
+            )
+        }
+
+        composable<AturLimit> {
+            val viewModel: AturLimitViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+            val snackbarHostState = LocalSnackbarHostState.current
+            val savedMessage = stringResource(R.string.limit_berhasil)
+
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        // Verifikasi PIN diwajibkan server, jadi dialognya bagian dari alur.
+                        AturLimitEvent.PinRequired -> navController.navigate(AturLimitPin)
+                        AturLimitEvent.Saved -> {
+                            navController.popBackStack(AturLimitPin, inclusive = true)
+                            snackbarHostState.showSnackbar(savedMessage)
+                        }
+                    }
+                }
+            }
+
+            AturLimitScreen(
+                state = state,
+                onEditClick = viewModel::onEditClick,
+                onInputChanged = viewModel::onInputChanged,
+                onCancelEdit = viewModel::onCancelEdit,
+                onSaveClick = viewModel::onSaveClick,
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        dialog<KartuAksi>(
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+        ) { entry ->
+            // ViewModel milik tab Akun: pilihan alasan, PIN, dan daftar kartu
+            // harus satu instance, kalau tidak aksinya kehilangan konteksnya.
+            val owner = remember(entry) {
+                runCatching { navController.getBackStackEntry(Akun) }.getOrDefault(entry)
+            }
+            val viewModel: AkunViewModel = hiltViewModel(owner)
+            val state by viewModel.aksiKartuState.collectAsState()
+
+            AksiKartuDialog(
+                state = state,
+                onBlockReasonSelected = viewModel::onBlockReasonSelected,
+                onReplacementReasonSelected = viewModel::onReplacementReasonSelected,
+                onDeliveryMethodSelected = viewModel::onDeliveryMethodSelected,
+                onConfirm = viewModel::onAksiKartuConfirm,
+                onDismiss = {
+                    viewModel.onAksiKartuDismiss()
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        dialog<KartuPin>(
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+        ) { entry ->
+            val owner = remember(entry) {
+                runCatching { navController.getBackStackEntry(Akun) }.getOrDefault(entry)
+            }
+            val viewModel: AkunViewModel = hiltViewModel(owner)
+            val pinState by viewModel.pinState.collectAsState()
+
+            KodeAksesScreen(
+                state = pinState,
+                onDigitClick = viewModel::onPinDigit,
+                onDeleteClick = viewModel::onPinDelete,
+                // Batal hanya menutup dialog PIN; pilihan alasan di bawahnya
+                // dibiarkan supaya nasabah tidak memilih ulang dari awal.
+                onCancelClick = { navController.popBackStack() },
+                onSubmitClick = viewModel::submitPin,
+                onForgotClick = {},
+            )
+        }
+
+        composable<PusatBantuan> {
+            val viewModel: PusatBantuanViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+
+            PusatBantuanScreen(
+                state = state,
+                onItemToggle = viewModel::onItemToggle,
+                onHubungiCsClick = { navController.navigate(HubungiCs) },
+                onBackClick = { navController.popBackStack() },
+                onRetry = viewModel::load,
+            )
+        }
+
+        composable<HubungiCs> {
+            val viewModel: HubungiCsViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+            val context = LocalContext.current
+
+            HubungiCsScreen(
+                state = state,
+                // Aplikasi hanya menyerahkan niatnya ke sistem; tidak ada
+                // nomor yang dirakit di sini.
+                onPhoneClick = { context.dial(it) },
+                onWhatsAppClick = { context.openWhatsApp(it) },
+                onEmailClick = { context.sendEmail(it) },
+                onChatClick = { context.openLink(it) },
+                onBackClick = { navController.popBackStack() },
+                onRetry = viewModel::load,
+            )
+        }
+
+        dialog<AturLimitPin>(
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            // ViewModel milik layar di bawah dialog: nilai limit dan PIN harus satu instance.
+            val owner = remember(it) {
+                runCatching { navController.getBackStackEntry(AturLimit) }.getOrDefault(it)
+            }
+            val viewModel: AturLimitViewModel = hiltViewModel(owner)
+            val pinState by viewModel.pinState.collectAsState()
+
+            KodeAksesScreen(
+                state = pinState,
+                onDigitClick = viewModel::onPinDigit,
+                onDeleteClick = viewModel::onPinDelete,
+                onCancelClick = { navController.popBackStack() },
+                onSubmitClick = viewModel::submitPin,
+                onForgotClick = {},
+            )
         }
 
         composable<Transfer> {
@@ -201,7 +536,7 @@ fun NavGraphBuilder.mainGraph(
                     navController.navigate(TransferAntarRekening)
                 },
                 onLihatSemua = {},
-                onNotificationClick = {},
+                onNotificationClick = { navController.navigate(Notifikasi) },
                 onProfileClick = {},
             )
         }
@@ -284,12 +619,26 @@ fun NavGraphBuilder.mainGraph(
         }
 
         composable<RentangWaktu> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.navigation_date_range))
-            }
+            var state by remember { mutableStateOf(RentangWaktuUiState()) }
+
+            RentangWaktuScreen(
+                state = state,
+                onPilihanSelected = { state = state.copy(pilihan = it) },
+                onTanggalMulaiSelected = { state = state.copy(tanggalMulai = it.toIsoDate()) },
+                onTanggalAkhirSelected = { state = state.copy(tanggalAkhir = it.toIsoDate()) },
+                onTerapkanClick = {
+                    // Nilainya dikirim balik ke entri Mutasi lalu layar ini ditutup.
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(RENTANG_RESULT_KEY, state.toResultValue())
+                    navController.popBackStack()
+                },
+                onBackClick = { navController.popBackStack() },
+            )
         }
 
         eWalletGraph(navController)
+        qrisGraph(navController)
     }
 }
 
@@ -432,3 +781,31 @@ private fun transferViewModel(
     }
     return hiltViewModel(owner)
 }
+
+// ── Hasil layar Rentang Waktu ───────────────────────────────────────────
+
+// Dipakai bersama oleh Mutasi dan Riwayat. Tidak ada tabrakan: kuncinya
+// disimpan di SavedStateHandle milik masing-masing entri, bukan satu tempat.
+private const val RENTANG_RESULT_KEY = "rentang_waktu_result"
+private const val RENTANG_RESULT_SEPARATOR = "|"
+private const val RENTANG_CUSTOM = "CUSTOM"
+
+/**
+ * Pilihan rentang dikirim sebagai satu String supaya cukup lewat SavedStateHandle
+ * tanpa menambah tipe yang harus di-parcel.
+ */
+private fun RentangWaktuUiState.toResultValue(): String = when (pilihan) {
+    RentangPilihan.HARI_INI -> {
+        val today = LocalDate.now().toString()
+        listOf(RENTANG_CUSTOM, today, today).joinToString(RENTANG_RESULT_SEPARATOR)
+    }
+    RentangPilihan.TUJUH_HARI -> MutasiPeriod.LAST_7_DAYS.name
+    RentangPilihan.BULAN_INI -> MutasiPeriod.THIS_MONTH.name
+    RentangPilihan.BULAN_LALU -> MutasiPeriod.LAST_MONTH.name
+    RentangPilihan.PILIH_TANGGAL -> listOf(RENTANG_CUSTOM, tanggalMulai, tanggalAkhir)
+        .joinToString(RENTANG_RESULT_SEPARATOR)
+}
+
+/** Milidetik dari DatePicker adalah UTC; tanggal dikirim apa adanya sebagai `yyyy-MM-dd`. */
+private fun Long.toIsoDate(): String =
+    Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate().toString()

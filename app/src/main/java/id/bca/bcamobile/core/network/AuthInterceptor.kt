@@ -39,6 +39,17 @@ class AuthInterceptor @Inject constructor(
             "auth/login/biometric",
             "auth/biometric/challenge",
             "auth/token/refresh",
+
+            // Kunci publik PIN diambil justru saat token belum ada atau sudah
+            // basi — mengirim Authorization ke sini hanya menambah 401 yang
+            // tidak berarti apa-apa.
+            "auth/pin/public-key",
+
+            // Pusat Bantuan dan Kontak CS sengaja tanpa Authorization: nasabah
+            // yang terkunci di luar aplikasi justru yang paling butuh nomor
+            // Halo BCA.
+            "content/help-center",
+            "content/contact-cs",
         )
     }
 }

@@ -58,6 +58,20 @@ class SessionRepository @Inject constructor(
         _sessionState.value = SessionState.LoggedOut
     }
 
+    /**
+     * Mengakhiri sesi karena **server** menolak perangkat ini, bukan karena nasabah
+     * menekan keluar — satu-satunya pemicunya hari ini adalah
+     * `403 AUTH_DEVICE_NOT_RECOGNIZED` saat mendaftarkan token push.
+     *
+     * Berbeda dari [logout], yang hanya memindahkan keadaan dan mengandalkan
+     * pemanggilnya sudah membersihkan token: di sini tidak ada layar yang
+     * melakukannya, jadi token lokal dibuang di sini.
+     */
+    suspend fun forceLogout() {
+        authRepository.logout()
+        logout()
+    }
+
     fun saveRouteForReturn(route: Any?) {
         _pendingReturnRoute = route?.takeUnless { isTransactionRoute(it) }
     }

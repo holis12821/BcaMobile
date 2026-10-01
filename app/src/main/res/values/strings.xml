@@ -47,6 +47,149 @@
     <string name="tampilkan_lebih_banyak">Tampilkan Lebih Banyak</string>
     <string name="cd_notifikasi">Notifikasi</string>
     <string name="cd_pilih_rekening">Pilih rekening</string>
+    <!-- Rekening & Kartu (GET /account/profile + /account/balance) -->
+    <!-- Ubah kode akses (POST /auth/pin/change) -->
+    <string name="ubah_kode_title">Ubah Kode Akses</string>
+    <string name="ubah_kode_langkah_format">Langkah %1$d dari %2$d</string>
+    <string name="ubah_kode_step_lama">Verifikasi Kode Lama</string>
+    <string name="ubah_kode_step_baru">Buat Kode Baru</string>
+    <string name="ubah_kode_step_berhasil">Selesai</string>
+    <string name="ubah_kode_lama_title">Masukkan Kode Akses Lama</string>
+    <string name="ubah_kode_lama_desc">Ketik 6 karakter kode akses m-BCA Anda saat ini untuk memastikan identitas.</string>
+    <string name="ubah_kode_lama_label">Kode Akses Lama</string>
+    <string name="ubah_kode_baru_title">Buat Kode Akses Baru</string>
+    <string name="ubah_kode_baru_desc">Tentukan kombinasi kode akses baru untuk login ke m-BCA.</string>
+    <string name="ubah_kode_baru_label">Kode Akses Baru</string>
+    <string name="ubah_kode_konfirmasi_label">Konfirmasi Kode Akses Baru</string>
+    <string name="ubah_kode_kriteria">Kriteria Keamanan</string>
+    <string name="ubah_kode_kriteria_panjang">Terdiri dari 6 huruf atau angka</string>
+    <string name="ubah_kode_kriteria_berurutan">Bukan deret berurutan</string>
+    <string name="ubah_kode_kriteria_berulang">Bukan karakter berulang</string>
+    <string name="ubah_kode_kriteria_cocok">Konfirmasi sama dengan kode baru</string>
+    <string name="ubah_kode_lihat">Lihat kode akses</string>
+    <string name="ubah_kode_lanjut">Lanjut</string>
+    <string name="ubah_kode_simpan">Simpan Kode Akses</string>
+    <string name="ubah_kode_selesai">Selesai</string>
+    <string name="ubah_kode_berhasil_title">Kode Akses Berhasil Diubah</string>
+    <string name="ubah_kode_berhasil_desc">Gunakan kode akses baru Anda pada login berikutnya.</string>
+    <!-- Rentang waktu mutasi (GET /transactions/mutations) -->
+    <string name="rentang_title">Rentang Waktu</string>
+    <string name="rentang_hari_ini">Hari Ini</string>
+    <string name="rentang_tujuh_hari">7 Hari Terakhir</string>
+    <string name="rentang_bulan_ini">Bulan Ini</string>
+    <string name="rentang_bulan_lalu">Bulan Lalu</string>
+    <string name="rentang_pilih_tanggal">Pilih Tanggal</string>
+    <string name="rentang_tanggal_mulai">Tanggal Mulai</string>
+    <string name="rentang_tanggal_akhir">Tanggal Akhir</string>
+    <string name="rentang_pilih">Pilih</string>
+    <string name="rentang_terapkan">Terapkan</string>
+    <!-- Manajemen kartu di halaman Akun (belum ada endpoint kartu) -->
+    <string name="akun_hp_rekening_format">%1$s \u2022 Rek. %2$s</string>
+    <string name="profil_manajemen_kartu">Manajemen Kartu &amp; Paspor BCA</string>
+    <string name="profil_kartu_belum_tersedia">Data kartu fisik belum tersedia dari server.</string>
+    <string name="profil_kartu_nomor_kosong">\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022</string>
+    <string name="profil_kartu_pemegang">Nama Pemegang</string>
+    <string name="profil_kartu_valid_thru">Berlaku Hingga</string>
+    <string name="profil_kartu_valid_thru_kosong">--/--</string>
+    <string name="profil_aksi_atur_limit">Atur Limit</string>
+    <string name="profil_aksi_kontrol_akses">Kontrol Akses</string>
+    <string name="profil_aksi_blokir_kartu">Blokir Kartu</string>
+    <string name="profil_aksi_ganti_kartu">Ganti Kartu</string>
+    <string name="profil_debit_online">Transaksi Debit Online</string>
+    <string name="profil_debit_online_sub">E-commerce &amp; langganan</string>
+    <string name="profil_luar_negeri">Transaksi Luar Negeri</string>
+    <string name="profil_luar_negeri_sub">POS &amp; ATM internasional</string>
+    <string name="profil_penggantian_kartu">Permintaan Penggantian Kartu</string>
+    <string name="profil_penggantian_kartu_sub">Kartu rusak, hilang, atau upgrade fisik</string>
+    <string name="profil_menu_belum_tersedia">Menu ini belum tersedia.</string>
+    <string name="rekening_title">Rekening &amp; Kartu</string>
+    <string name="rekening_heading">Rekening Saya</string>
+    <string name="rekening_saldo_efektif">Saldo Efektif</string>
+    <string name="rekening_saldo_tersedia">Saldo Tersedia</string>
+    <string name="rekening_dana_ditahan">Dana Ditahan</string>
+    <string name="rekening_saldo_tersembunyi">\u2022\u2022\u2022\u2022\u2022\u2022</string>
+    <string name="rekening_mutasi">Mutasi</string>
+    <string name="rekening_detail">Detail</string>
+    <!-- Atur limit transaksi (PUT /account/transaction-limit) -->
+    <string name="limit_title">Limit Transaksi</string>
+    <string name="limit_heading">Atur Limit Transaksi</string>
+    <string name="limit_subtitle">Kelola batas maksimal transaksi harian Anda untuk keamanan tambahan.</string>
+    <string name="limit_info_title">Pembaruan Limit</string>
+    <string name="limit_info_pesan">Perubahan limit aktif seketika dan meminta verifikasi PIN. Pastikan PIN Anda selalu dirahasiakan.</string>
+    <string name="limit_info_belum_tersedia">Batas yang berlaku saat ini belum dapat ditampilkan. Angka akan muncul setelah Anda menyimpan perubahan.</string>
+    <string name="limit_transfer_internal">Transfer Antar Rekening</string>
+    <string name="limit_transfer_external">Transfer Antar Bank</string>
+    <string name="limit_ewallet">Top Up e-Wallet</string>
+    <string name="limit_harian">Limit Harian</string>
+    <string name="limit_terpakai">Terpakai</string>
+    <string name="limit_sisa_format">Sisa Limit: %1$s</string>
+    <string name="limit_ubah">Ubah</string>
+    <string name="limit_batal">Batal</string>
+    <string name="limit_simpan">Simpan Perubahan</string>
+    <string name="limit_berhasil">Limit transaksi berhasil diperbarui.</string>
+    <!-- QRIS (POST /qris/decode, /qris/pay) -->
+    <string name="qris_scan_title">Scan QRIS</string>
+    <string name="qris_scan_instruksi">Arahkan kamera ke QR Code untuk melakukan pembayaran</string>
+    <string name="qris_scan_flash">Flash</string>
+    <string name="qris_scan_galeri">Galeri</string>
+    <string name="qris_konfirmasi_title">Konfirmasi Pembayaran</string>
+    <string name="qris_sumber_rekening">Sumber Rekening</string>
+    <string name="qris_saldo">Saldo</string>
+    <string name="qris_nominal">Nominal</string>
+    <string name="qris_biaya_admin">Biaya Admin</string>
+    <string name="qris_total">Total</string>
+    <string name="qris_bayar">Bayar</string>
+    <string name="qris_error_saldo_kurang">Saldo tidak mencukupi untuk pembayaran ini.</string>
+    <string name="qris_error_qr_tidak_valid">QR Code tidak dikenali. Pastikan QR yang dipindai adalah QRIS.</string>
+    <string name="qris_error_kamera">Izin kamera diperlukan untuk memindai QR Code.</string>
+    <!-- Gerbang aplikasi (GET /health) -->
+    <string name="gate_maintenance_title">Sedang Dalam Pemeliharaan</string>
+    <string name="gate_maintenance_default_message">Layanan m-BCA sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.</string>
+    <string name="gate_update_title">Perbarui Aplikasi</string>
+    <string name="gate_update_message">Versi aplikasi Anda sudah tidak didukung. Perbarui ke versi %1$s atau lebih baru untuk melanjutkan.</string>
+    <string name="gate_coba_lagi">Coba Lagi</string>
+    <string name="gate_perbarui">Perbarui Sekarang</string>
+    <!-- Notifikasi (GET /notifications) -->
+    <string name="notifikasi_title">Notifikasi</string>
+    <string name="notifikasi_tandai_semua">Tandai Semua</string>
+    <string name="notifikasi_tab_semua">Semua</string>
+    <string name="notifikasi_tab_transaksi">Transaksi</string>
+    <string name="notifikasi_tab_promo">Promo</string>
+    <string name="notifikasi_tab_info">Info</string>
+    <string name="notifikasi_empty_title">Belum Ada Notifikasi</string>
+    <string name="notifikasi_empty_description">Semua pemberitahuan transaksi dan info promo terbaru akan muncul di sini.</string>
+    <string name="notifikasi_error_title">Notifikasi Gagal Dimuat</string>
+    <string name="notifikasi_kembali_beranda">Kembali ke Beranda</string>
+    <string name="notifikasi_waktu_baru_saja">Baru saja</string>
+    <string name="notifikasi_waktu_kemarin">Kemarin</string>
+    <!-- Notifikasi: desain kartu (artefak Stitch terbaru). Entri lama di atas
+         tidak diubah supaya layar lain yang memakainya tidak ikut bergeser. -->
+    <string name="notifikasi_tandai_dibaca">Tandai Dibaca</string>
+    <string name="notifikasi_tab_promo_hadiah">Promo &amp; Hadiah</string>
+    <string name="notifikasi_tab_info_bank">Info Bank</string>
+    <string name="notifikasi_grup_hari_ini">Hari Ini</string>
+    <string name="notifikasi_grup_kemarin">Kemarin</string>
+    <string name="notifikasi_grup_minggu_ini">Minggu Ini</string>
+    <string name="notifikasi_grup_lebih_lama">Lebih Lama</string>
+    <string name="notifikasi_belum_dibaca_jumlah">%1$d Belum Dibaca</string>
+    <string name="notifikasi_penanda_belum_dibaca">Belum dibaca</string>
+    <string name="notifikasi_buka_detail">Buka detail notifikasi</string>
+    <string name="notifikasi_akhir_daftar">Anda telah melihat semua notifikasi dalam 30 hari terakhir</string>
+    <string name="notifikasi_aksi_bukti_transfer">Lihat Bukti Transfer</string>
+    <string name="notifikasi_aksi_qris">Pakai QRIS Sekarang</string>
+    <string name="notifikasi_aksi_salin_referensi">Salin No. Referensi</string>
+    <!-- Riwayat transaksi (GET /transactions/history) -->
+    <string name="riwayat_title">Riwayat Transaksi</string>
+    <string name="riwayat_empty_description">Belum ada transaksi untuk filter yang dipilih.</string>
+    <string name="riwayat_filter_semua">Semua Transaksi</string>
+    <string name="riwayat_filter_transfer">Transfer</string>
+    <string name="riwayat_filter_ewallet">e-Wallet</string>
+    <string name="riwayat_filter_pembayaran">Pembayaran</string>
+    <string name="riwayat_filter_pulsa">Pulsa</string>
+    <string name="riwayat_status_berhasil">Berhasil</string>
+    <string name="riwayat_status_diproses">Diproses</string>
+    <string name="riwayat_status_gagal">Gagal</string>
+    <string name="riwayat_tujuan_waktu_format">%1$s \u2022 %2$s</string>
     <string name="mutasi_empty_title">Tidak Ada Transaksi</string>
     <string name="mutasi_empty_description">Tidak ditemukan transaksi untuk periode yang dipilih.</string>
     <string name="mutasi_ubah_periode">Ubah Periode</string>
@@ -612,6 +755,20 @@
     <string name="akun_hubungi_cs">Hubungi CS</string>
     <string name="akun_tentang_aplikasi">Tentang Aplikasi</string>
     <string name="akun_keluar">Keluar Aplikasi</string>
+    <!-- Profil Saya — teks sesuai desain Stitch. Entri lama di atas sengaja tidak diubah. -->
+    <string name="akun_section_keamanan_akun">KEAMANAN &amp; AKUN</string>
+    <string name="akun_section_notifikasi_laporan">NOTIFIKASI &amp; LAPORAN</string>
+    <string name="akun_section_bantuan_informasi">BANTUAN &amp; INFORMASI</string>
+    <string name="akun_ubah_pin_password">Ubah PIN &amp; Password</string>
+    <string name="akun_login_biometrik_sub">Face ID / Sidik Jari</string>
+    <string name="akun_notifikasi_transaksi">Notifikasi Transaksi</string>
+    <string name="akun_notifikasi_transaksi_sub">Push notifikasi &amp; SMS</string>
+    <string name="akun_email_estatement_sub">Kirim berkala setiap akhir bulan</string>
+    <string name="akun_pusat_bantuan_faq">Pusat Bantuan &amp; FAQ</string>
+    <string name="akun_halo_bca_cs">Halo BCA CS</string>
+    <string name="akun_halo_bca_cs_sub">Telepon bebas pulsa &amp; Chat 24/7</string>
+    <string name="profil_kartu_status_aktif">Aktif &amp; Terhubung</string>
+    <string name="cd_mastercard">Mastercard</string>
     <!-- Buka Rekening — pesan error integrasi API -->
     <string name="buka_rekening_error_network">Tidak ada koneksi internet. Periksa jaringan Anda lalu coba lagi.</string>
     <string name="buka_rekening_error_timeout">Koneksi terlalu lama merespons. Silakan coba lagi.</string>
@@ -621,6 +778,7 @@
     <string name="buka_rekening_error_invalid_step">Ada tahap yang belum selesai. Kami kembalikan Anda ke tahap yang benar.</string>
     <string name="buka_rekening_error_rate_limited">Terlalu banyak percobaan. Coba lagi dalam %1$d detik.</string>
     <string name="buka_rekening_error_rate_limited_no_time">Terlalu banyak percobaan. Silakan coba lagi nanti.</string>
+    <string name="buka_rekening_nomor_disalin">Nomor rekening disalin</string>
     <string name="buka_rekening_error_unknown">Terjadi kesalahan. Silakan coba lagi.</string>
     <string name="buka_rekening_step_belum_tersedia">Data tersimpan. Tahap berikutnya belum tersedia di aplikasi ini.</string>
     <string name="buka_rekening_error_otp_invalid">Kode OTP salah. Silakan periksa kembali.</string>
@@ -667,6 +825,18 @@
     <string name="buka_rekening_kartu_pengiriman_judul">Pengiriman Kartu Fisik</string>
     <string name="buka_rekening_kartu_pengiriman_desc">Kartu fisik dapat dikirim langsung ke alamat tempat tinggal Anda, atau diambil di kantor cabang BCA terdekat setelah verifikasi akun selesai.</string>
     <string name="buka_rekening_kartu_lanjut">Lanjut ke Syarat &amp; Ketentuan</string>
+    <!-- Katalog kartu dari GET /onboarding/products/{type}/cards -->
+    <string name="buka_rekening_kartu_rupiah_format">Rp%1$s</string>
+    <string name="buka_rekening_kartu_badge_recommended_beginner">Rekomendasi Pemula</string>
+    <string name="buka_rekening_kartu_badge_flexible_transaction">Transaksi Fleksibel</string>
+    <string name="buka_rekening_kartu_badge_max_limit">Limit Maksimal</string>
+    <string name="buka_rekening_kartu_tier_debit">DEBIT</string>
+    <string name="buka_rekening_kartu_tier_platinum_debit">PLATINUM DEBIT</string>
+    <string name="buka_rekening_kartu_tidak_tersedia_stok">Stok kartu ini sedang kosong di wilayah Anda.</string>
+    <string name="buka_rekening_kartu_tidak_tersedia_nonaktif">Kartu ini sementara tidak dapat dipilih.</string>
+    <string name="buka_rekening_kartu_tidak_tersedia_produk">Kartu ini tidak tersedia untuk jenis rekening yang Anda pilih.</string>
+    <string name="buka_rekening_kartu_tidak_tersedia_usia">Kartu ini memiliki syarat usia minimum yang berbeda.</string>
+    <string name="buka_rekening_kartu_tidak_tersedia_umum">Kartu ini sedang tidak tersedia.</string>
     <string name="buka_rekening_kartu_ojk_lps">PT Bank Central Asia Tbk berizin &amp; diawasi oleh OJK dan merupakan peserta penjaminan LPS</string>
 
     <!-- Buka Rekening - Kartu Blue Mastercard -->
@@ -711,4 +881,87 @@
     <string name="biometric_error_not_enrolled">Belum ada biometrik terdaftar di perangkat ini. Daftarkan lewat Pengaturan.</string>
     <string name="biometric_error_no_hardware">Perangkat ini tidak mendukung login biometrik.</string>
     <string name="biometric_error_unavailable">Sensor biometrik sedang tidak bisa dipakai. Gunakan kode akses.</string>
+
+    <!-- Kartu nasabah: GET /account/cards dan tiga endpoint turunannya -->
+    <string name="profil_kartu_status_diblokir">Diblokir</string>
+    <string name="profil_kartu_status_kedaluwarsa">Kedaluwarsa</string>
+    <string name="profil_kartu_status_penggantian">Penggantian Diproses</string>
+    <string name="profil_kartu_status_tidak_dikenal">Status Tidak Dikenal</string>
+    <string name="profil_kartu_kosong">Belum ada kartu yang terhubung ke rekening ini.</string>
+    <string name="profil_kartu_diblokir_alasan">Diblokir: %1$s</string>
+    <string name="profil_kartu_alasan_hilang">Hilang</string>
+    <string name="profil_kartu_alasan_dicuri">Dicuri</string>
+    <string name="profil_kartu_alasan_rusak">Rusak</string>
+    <string name="profil_kartu_alasan_penipuan">Dugaan penipuan</string>
+    <string name="profil_kartu_alasan_upgrade">Upgrade kartu</string>
+    <string name="profil_kartu_kirim_kurir">Dikirim kurir</string>
+    <string name="profil_kartu_kirim_cabang">Ambil di cabang</string>
+    <string name="profil_kartu_label_alasan">Alasan</string>
+    <string name="profil_kartu_label_pengiriman">Pengiriman</string>
+    <string name="profil_kartu_blokir_judul">Blokir Kartu</string>
+    <string name="profil_kartu_blokir_deskripsi">Kartu yang diblokir tidak bisa dipakai lagi. Pilih alasannya, lalu masukkan PIN.</string>
+    <string name="profil_kartu_ganti_judul">Ganti Kartu</string>
+    <string name="profil_kartu_ganti_deskripsi">Penggantian kartu dikenakan biaya. Biayanya dikonfirmasi setelah permintaan dikirim.</string>
+    <string name="profil_kartu_batal">Batal</string>
+    <string name="profil_kartu_lanjut">Lanjut</string>
+    <string name="profil_kartu_blokir_berhasil">Kartu berhasil diblokir.</string>
+    <string name="profil_kartu_ganti_berhasil">Permintaan penggantian dikirim. Perkiraan tiba %1$s sampai %2$s.</string>
+    <string name="profil_kartu_ganti_sedang_diproses">Permintaan penggantian kartu sedang diproses.</string>
+    <string name="profil_kartu_cabang_tidak_tersedia">Ambil di cabang belum tersedia untuk kartu ini. Pilih pengiriman kurir.</string>
+    <string name="profil_kartu_tidak_ditemukan">Kartu tidak ditemukan. Daftar kartu dimuat ulang.</string>
+    <string name="profil_kartu_sudah_diblokir">Kartu ini sudah diblokir. Hubungi Halo BCA untuk bantuan.</string>
+    <string name="profil_kartu_verifikasi_kedaluwarsa">Verifikasi PIN kedaluwarsa. Masukkan PIN lagi.</string>
+
+    <!-- Tier nasabah: field `tier` di GET /account/profile -->
+    <string name="akun_tier_prioritas">Prioritas</string>
+    <string name="akun_tier_solitaire">Solitaire</string>
+
+    <!-- Bagian Kartu Debit di Rekening &amp; Kartu -->
+    <string name="rekening_kartu_debit">Kartu Debit</string>
+    <string name="rekening_kartu_valid_thru">Berlaku hingga %1$s</string>
+    <string name="rekening_kartu_status_aktif">Aktif</string>
+    <string name="rekening_kartu_status_diblokir">Diblokir</string>
+    <string name="rekening_kartu_status_kedaluwarsa">Kedaluwarsa</string>
+
+    <!-- Filter periode Riwayat: query `period` di GET /transactions/history -->
+    <string name="period_semua_waktu">Semua Waktu</string>
+    <string name="period_30_hari_terakhir">30 Hari Terakhir</string>
+    <string name="riwayat_rentang_format">%1$s \u2013 %2$s</string>
+
+    <!-- Pusat Bantuan dan Hubungi CS: GET /content/* -->
+    <string name="bantuan_title">Pusat Bantuan</string>
+    <string name="bantuan_kosong">Belum ada artikel bantuan.</string>
+    <string name="bantuan_hubungi_cs">Hubungi Halo BCA</string>
+    <string name="hubungi_cs_title">Hubungi Halo BCA</string>
+    <string name="hubungi_cs_jam">Jam layanan: %1$s</string>
+    <string name="hubungi_cs_telepon">Telepon</string>
+    <string name="hubungi_cs_telepon_bebas_pulsa">Dari luar negeri</string>
+    <string name="hubungi_cs_whatsapp">WhatsApp</string>
+    <string name="hubungi_cs_email">Email</string>
+    <string name="hubungi_cs_chat">Live chat</string>
+
+    <!-- Hubungi CS: elemen dari artefak Stitch "Hubungi CS". -->
+    <string name="hubungi_cs_header_judul">Halo BCA</string>
+    <string name="hubungi_cs_header_subjudul">Kami siap membantu Anda 24/7</string>
+    <string name="hubungi_cs_telepon_aksi">Telepon Sekarang</string>
+    <string name="hubungi_cs_whatsapp_desc">Chat dengan Halo BCA</string>
+    <string name="hubungi_cs_chat_desc">Terhubung di aplikasi</string>
+    <string name="hubungi_cs_jam_judul">Jam Operasional</string>
+
+    <!-- Unduh struk PDF: GET /transactions/{id}/receipt/pdf -->
+    <string name="bukti_transaksi_tersimpan">Struk tersimpan di folder Unduhan sebagai %1$s.</string>
+    <string name="bukti_transaksi_gagal_simpan">Struk terunduh tetapi gagal disimpan ke perangkat.</string>
+    <string name="bukti_transaksi_gagal_unduh">Struk gagal diunduh. Coba lagi.</string>
+
+    <!--
+      Push notification (FCM). Id channel bukan teks yang dibaca nasabah, tapi
+      ditaruh di sini karena AndroidManifest merujuknya juga lewat meta-data
+      `default_notification_channel_id` — satu sumber untuk dua tempat.
+    -->
+    <string name="push_channel_keamanan_id" translatable="false">bca_keamanan</string>
+    <string name="push_channel_keamanan_nama">Keamanan</string>
+    <string name="push_channel_keamanan_deskripsi">Peringatan saat kode akses, PIN, kartu, atau sesi Anda berubah.</string>
+    <string name="push_channel_umum_id" translatable="false">bca_umum</string>
+    <string name="push_channel_umum_nama">Transaksi &amp; Info</string>
+    <string name="push_channel_umum_deskripsi">Pemberitahuan transaksi berhasil, promo, dan informasi lain.</string>
 </resources>

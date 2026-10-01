@@ -3,6 +3,9 @@ package id.bca.bcamobile.data.onboarding.mapper
 import id.bca.bcamobile.data.onboarding.remote.dto.AccountDto
 import id.bca.bcamobile.data.onboarding.remote.dto.AlamatKtpDto
 import id.bca.bcamobile.data.onboarding.remote.dto.BiometricResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.CardCatalogResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.CardDto
+import id.bca.bcamobile.data.onboarding.remote.dto.SessionCardDto
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.GetSessionResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.JoinQueueResponse
@@ -18,6 +21,20 @@ import id.bca.bcamobile.data.onboarding.remote.dto.StepsCompletedDto
 import id.bca.bcamobile.data.onboarding.remote.dto.VerifyOtpResponse
 import id.bca.bcamobile.domain.onboarding.model.AlamatKtp
 import id.bca.bcamobile.domain.onboarding.model.BiometricResult
+import id.bca.bcamobile.domain.onboarding.model.CardAvailability
+import id.bca.bcamobile.domain.onboarding.model.CardAvailabilityStatus
+import id.bca.bcamobile.domain.onboarding.model.CardBadge
+import id.bca.bcamobile.domain.onboarding.model.CardCatalog
+import id.bca.bcamobile.domain.onboarding.model.CardDelivery
+import id.bca.bcamobile.domain.onboarding.model.CardEligibility
+import id.bca.bcamobile.domain.onboarding.model.CardFees
+import id.bca.bcamobile.domain.onboarding.model.CardLimits
+import id.bca.bcamobile.domain.onboarding.model.CardStyle
+import id.bca.bcamobile.domain.onboarding.model.CardTier
+import id.bca.bcamobile.domain.onboarding.model.CardUnavailableReason
+import id.bca.bcamobile.domain.onboarding.model.PasporCard
+import id.bca.bcamobile.domain.onboarding.model.PasporCardType
+import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.CreatedAccount
 import id.bca.bcamobile.domain.onboarding.model.CredentialResult
 import id.bca.bcamobile.domain.onboarding.model.KtpData
@@ -25,6 +42,7 @@ import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
 import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
+import id.bca.bcamobile.domain.onboarding.model.IceServer
 import id.bca.bcamobile.domain.onboarding.model.OperatingHours
 import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
 import id.bca.bcamobile.domain.onboarding.model.OtpVerification
@@ -58,6 +76,7 @@ fun ProductDto.toDomain(): Product? {
 
 fun StepsCompletedDto.toDomain(): StepsCompleted = StepsCompleted(
     tncAccepted = tncAccepted,
+    cardSelected = cardSelected,
     ocrVerified = ocrVerified,
     personalDataSaved = personalDataSaved,
     otpVerified = otpVerified,
@@ -70,6 +89,7 @@ fun StepsCompletedDto.toDomain(): StepsCompleted = StepsCompleted(
 fun CreateSessionResponse.toDomain(): OnboardingSession = OnboardingSession(
     sessionId = sessionId,
     product = product?.toDomain(),
+    card = card?.toDomain(),
     currentStep = stepOf(currentStep, OnboardingStep.OCR),
     expiresAt = expiresAt,
 )
@@ -77,10 +97,67 @@ fun CreateSessionResponse.toDomain(): OnboardingSession = OnboardingSession(
 fun GetSessionResponse.toDomain(): OnboardingSession = OnboardingSession(
     sessionId = sessionId,
     product = product?.toDomain(),
+    card = card?.toDomain(),
     currentStep = stepOf(currentStep, OnboardingStep.OCR),
     stepsCompleted = stepsCompleted?.toDomain() ?: StepsCompleted(),
     expiresAt = expiresAt,
 )
+
+fun SessionCardDto.toDomain(): SelectedCard = SelectedCard(
+    cardType = PasporCardType.fromWire(cardType),
+    name = name,
+    style = CardStyle.fromWire(style),
+    monthlyAdminFee = fees?.monthlyAdmin ?: 0L,
+    catalogVersion = catalogVersion?.takeIf(String::isNotBlank),
+)
+
+/** Kartu tanpa `card_type` yang dikenal dibuang: tidak ada gunanya menampilkan pilihan yang tidak bisa dikirim. */
+fun CardCatalogResponse.toDomain(): CardCatalog = CardCatalog(
+    catalogVersion = catalogVersion,
+    productType = ProductType.fromWire(productType),
+    defaultCardType = PasporCardType.fromWire(defaultCardType),
+    currency = currency,
+    cards = cards.mapNotNull { it.toDomain() },
+)
+
+fun CardDto.toDomain(): PasporCard? {
+    val type = PasporCardType.fromWire(cardType) ?: return null
+    return PasporCard(
+        cardType = type,
+        name = name,
+        network = network,
+        tier = CardTier.fromWire(tierKey),
+        style = CardStyle.fromWire(style),
+        badge = CardBadge.fromWire(badgeKey),
+        isPopular = isPopular,
+        displayOrder = displayOrder,
+        fees = CardFees(
+            monthlyAdmin = fees?.monthlyAdmin ?: 0L,
+            cardIssuance = fees?.cardIssuance ?: 0L,
+            cardReplacement = fees?.cardReplacement ?: 0L,
+        ),
+        limits = CardLimits(
+            cashWithdrawal = limits?.cashWithdrawal ?: 0L,
+            transferBca = limits?.transferBca ?: 0L,
+            transferInterbank = limits?.transferInterbank ?: 0L,
+            debitPurchase = limits?.debitPurchase ?: 0L,
+        ),
+        availability = CardAvailability(
+            status = CardAvailabilityStatus.fromWire(availability?.status),
+            reason = CardUnavailableReason.fromWire(availability?.reasonKey),
+        ),
+        delivery = CardDelivery(
+            physicalCardAvailable = delivery?.physicalCardAvailable ?: false,
+            estimatedDaysMin = delivery?.estimatedDaysMin,
+            estimatedDaysMax = delivery?.estimatedDaysMax,
+            branchPickupAvailable = delivery?.branchPickupAvailable ?: false,
+        ),
+        eligibility = CardEligibility(
+            minAge = eligibility?.minAge ?: 0,
+            minInitialDeposit = eligibility?.minInitialDeposit ?: 0L,
+        ),
+    )
+}
 
 fun OcrResponse.toDomain(): KtpOcrResult = KtpOcrResult(
     ocrId = ocrId,
@@ -140,6 +217,10 @@ fun JoinQueueResponse.toDomain(): QueueTicket = QueueTicket(
         OperatingHours(start = it.start, end = it.end, timezone = it.timezone)
     },
     signalingUrl = signalingUrl,
+    signalingExpiresInSeconds = signalingExpiresIn,
+    iceServers = iceServers.map {
+        IceServer(urls = it.urls, username = it.username, credential = it.credential)
+    },
 )
 
 fun PublicKeyResponse.toDomain(): PublicKeyMaterial = PublicKeyMaterial(

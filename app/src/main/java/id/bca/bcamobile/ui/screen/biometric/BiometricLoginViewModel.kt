@@ -108,6 +108,18 @@ class BiometricLoginViewModel @Inject constructor(
                 is DataResult.Failure -> return@launch fail(result.error.messageOrNull())
             }
 
+            // Kontraknya dibaca dari response, bukan dari konstanta di kode ini.
+            // Kalau backend berpindah algoritma, build ini berhenti di sini dan
+            // menawarkan kode akses — jauh lebih jelas daripada mengirim tanda
+            // tangan EC yang pasti ditolak lalu tampil sebagai "biometrik gagal".
+            // Algoritma kosong berarti server belum mengirimkannya; nilai lama
+            // tetap dipakai supaya build ini jalan di server versi sebelumnya.
+            if (challenge.algorithm.isNotBlank() &&
+                !challenge.algorithm.equals(BiometricKeyManager.WIRE_ALGORITHM, ignoreCase = true)
+            ) {
+                return@launch fallback(FallbackReason.TEMPORARILY_UNAVAILABLE)
+            }
+
             // getKey + initSign juga menyentuh Keystore; alasan yang sama.
             // BiometricPrompt sendiri tetap dipanggil dari Main setelah blok ini.
             val keyResult = withContext(Dispatchers.IO) { keyManager.signatureForSigning() }

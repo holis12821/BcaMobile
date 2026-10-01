@@ -2,6 +2,7 @@ package id.bca.bcamobile.data.onboarding.remote
 
 import id.bca.bcamobile.core.network.ApiEnvelope
 import id.bca.bcamobile.data.onboarding.remote.dto.BiometricResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.CardCatalogResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.DeleteResponse
@@ -14,6 +15,8 @@ import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.SetCardRequest
+import id.bca.bcamobile.data.onboarding.remote.dto.SetCardResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SubmitRequest
@@ -29,6 +32,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 
@@ -42,6 +46,24 @@ import retrofit2.http.Path
  * Kontrak lengkap: docs/backend/06-BUKA-REKENING-API-SPEC.md
  */
 interface OnboardingApi {
+
+    // -- Katalog kartu ---------------------------------------------------------
+
+    /**
+     * Katalog kartu Paspor per produk. **Tanpa `session_id`**: layar Pilih Kartu
+     * tampil sebelum sesi dibuat (`docs/backend/08-PILIH-KARTU-API-SPEC.md` §2).
+     */
+    @GET("products/{product_type}/cards")
+    suspend fun cardCatalog(
+        @Path("product_type") productType: String,
+    ): Response<ApiEnvelope<CardCatalogResponse>>
+
+    /** Ubah kartu pada sesi yang sudah ada — Back dari S&K, lanjut draf, atau dari Ringkasan. */
+    @PUT("sessions/{session_id}/card")
+    suspend fun setCard(
+        @Path("session_id") sessionId: String,
+        @Body request: SetCardRequest,
+    ): Response<ApiEnvelope<SetCardResponse>>
 
     // -- Session ---------------------------------------------------------------
 

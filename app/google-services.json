@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "635095837033",
+    "project_id": "id-bca-bcamobile",
+    "storage_bucket": "id-bca-bcamobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635095837033:android:9928ca313a0f83cc80f5f8",
+        "android_client_info": {
+          "package_name": "id.bca.bcamobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFXEVijQAzqPawmO6EyZ8UUhsaVt2y1Oc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

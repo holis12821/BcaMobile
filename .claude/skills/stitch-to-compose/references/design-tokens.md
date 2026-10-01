@@ -61,6 +61,47 @@ angka mentah boleh muncul.
 | 400 | `#BBBBBB` | 900 | `#4A4A4A` |
 | 500 | `#A4A4A4` | 1000 | `#333333` |
 
+### NEUTRAL COOL (abu bersemu biru) — artefak Notifikasi
+
+Ramp kedua untuk netral, dipakai desain kartu Notifikasi supaya garis dan teks
+sekunder menyatu dengan biru primer. **Bukan pengganti** ramp NEUTRAL: layar lain
+tetap memakai NEUTRAL.
+
+| Step | Hex | Step | Hex |
+|---|---|---|---|
+| 50 | `#F4F6F9` | 500 | `#64748B` |
+| 100 | `#F1F5F9` | 600 | `#475569` |
+| 200 | `#E2E8F0` | 700 | `#334155` |
+| 300 | `#CBD5E1` | 800 | `#1E293B` |
+| 400 | `#94A3B8` | 900 | `#0F172A` |
+
+Langkah `100`–`900` diambil apa adanya dari artefak Stitch layar Notifikasi;
+`50` adalah latar halaman, satu tingkat lebih terang dari `100`.
+
+### WARNING (kuning) — artefak Notifikasi
+
+Penanda promo dan hadiah. **Sengaja tidak lengkap** — hanya langkah yang benar-benar
+dipakai desain. Jangan melengkapi enam langkah sisanya dengan nilai tebakan.
+
+| Step | Hex | Dipakai untuk |
+|---|---|---|
+| 50 | `#FEF6E7` | latar lingkaran ikon promo |
+| 100 | `#FEF3C7` | latar badge angka chip Promo |
+| 600 | `#D97706` | ikon promo |
+| 700 | `#B45309` | teks badge angka chip Promo |
+
+### Tint latar ikon (`IconTint`)
+
+Alas lingkaran ikon di kartu notifikasi. **Hanya** untuk itu — bukan permukaan
+layar, teks, atau aksen.
+
+| Token | Nilai |
+|---|---|
+| `IconTint.Success` | `#E8F8ED` |
+| `IconTint.Info` | `#E6F0F8` |
+| `IconTint.Warning` | = `Warning50` |
+| `IconTint.Neutral` | = `NeutralCool100` |
+
 ### Varian alpha (`10` dan `50`)
 
 Di dokumen desain, kolom `10` dan `50` digambar sebagai checkerboard — artinya **transparansi**,
@@ -118,6 +159,32 @@ Penamaan Kotlin sengaja 1:1 dengan desain (`s0`…`s10`) supaya tidak ada ruang 
 
 ---
 
+## 4b. Langkah setengah spacing (`SpacingHalfStep`)
+
+Artefak Notifikasi memakai jarak yang jatuh tepat di tengah skala. Nilainya ada di
+objek tersendiri, **bukan** disisipkan ke `Spacing`, supaya skala resmi tetap utuh.
+
+| Token | dp | Di antara |
+|---|---|---|
+| `h1` | 6 | `s1` (4) dan `s2` (8) |
+| `h2` | 10 | `s2` (8) dan `s3` (12) |
+| `h3` | 14 | `s3` (12) dan `s4` (16) |
+
+---
+
+## 4c. Elevation
+
+Kategori ini lahir dari artefak Notifikasi (`shadow-sm` pada kartu, `shadow-md`
+pada app bar). `shadow-inner` **tidak punya padanan di Compose** dan dilewati.
+
+| Token | dp | Dipakai untuk |
+|---|---|---|
+| `None` | 0 | — |
+| `Card` | 1 | kartu notifikasi |
+| `Bar` | 3 | app bar |
+
+---
+
 ## 5. Tipografi
 
 **Yang didefinisikan desain:**
@@ -144,6 +211,23 @@ karena file font `inter_semibold.ttf` belum tersedia.
 | labelLarge | 14sp | 20sp | SemiBold |
 | labelMedium | 12sp | 16sp | Medium |
 | labelSmall | 10sp | 14sp | Medium |
+
+### Di luar type scale (`AppTextStyle`) — artefak Notifikasi
+
+Artefak kartu Notifikasi menyebut ukuran yang tidak ada di skala. Nilainya dicatat
+terpisah dari `AppTypography` supaya skala resmi tidak ikut bergeser. **Jangan pakai
+gaya ini di layar lain** tanpa desain yang memintanya.
+
+| Token | Size | Line height | Weight | Dipakai untuk |
+|---|---|---|---|---|
+| `TopBarTitle` | 19sp | 28sp | SemiBold | judul app bar Notifikasi |
+| `CardTitle` | 15sp | 20sp | Bold | judul kartu |
+| `CardAmount` | 17sp | 24sp | Bold | nominal |
+| `CardBody` | 13sp | 20sp | Regular | isi pesan |
+| `GroupLabel` | 12sp | 16sp | Bold, `letterSpacing` 0,6sp | header grup tanggal (kapital) |
+
+Tinggi baris `CardBody`: artefak memakai rasio Tailwind `leading-relaxed` (1,625) yang
+pada 13sp menghasilkan 21,1sp. Dibulatkan ke 20sp mengikuti ritme skala.
 
 ---
 
@@ -281,8 +365,20 @@ object AppSize {
     val Icon24 = 24.dp
     val IconLarge = 28.dp
     val Icon32 = 32.dp
+    val Icon40 = 40.dp
+
+    // Alas ikon dan tinggi tombol sebaris — artefak layar Hubungi CS.
+    val IconCircle = 48.dp
+    val IconBox = 56.dp
+    val ButtonCompact = 56.dp
+    val ContactAvatar = 80.dp
 }
 ```
+
+> `IconCircle` (48) dan `IconBox` (56) bernilai sama dengan `MinTouchTarget` dan
+> `Spacing.s10`, tapi **bukan** alias: yang satu batas sentuh, yang satu jarak,
+> yang ini ukuran gambar. Menyamakannya berarti menggeser tiga hal sekaligus
+> saat desain menggeser salah satunya.
 
 > `AppSize` di `Dimens.kt` memuat lebih banyak entri daripada cuplikan di atas
 > (ukuran komponen seperti `DebitCardHeight`, `ScannerFrame`, `SplashLogo`).

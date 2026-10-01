@@ -31,3 +31,27 @@ val AppTypography = Typography(
     labelMedium  = TextStyle(fontFamily = Inter, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
     labelSmall   = TextStyle(fontFamily = Inter, fontSize = 10.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium),
 )
+
+/**
+ * Gaya teks di luar type scale [AppTypography].
+ *
+ * Artefak Stitch layar Notifikasi menyebut ukuran yang tidak ada di skala
+ * (19/17/15/13sp). Nilainya dicatat di sini apa adanya, terpisah dari
+ * [AppTypography], supaya skala resmi tidak ikut bergeser.
+ *
+ * Tinggi baris: artefak memakai rasio Tailwind (`leading-relaxed` = 1,625),
+ * yang pada 13sp menghasilkan 21,1sp. Dibulatkan ke 20sp mengikuti ritme skala
+ * — selisihnya satu piksel dan tidak terlihat.
+ */
+object AppTextStyle {
+    val TopBarTitle = TextStyle(fontFamily = Inter, fontSize = 19.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold)
+    val CardTitle   = TextStyle(fontFamily = Inter, fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Bold)
+    val CardAmount  = TextStyle(fontFamily = Inter, fontSize = 17.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold)
+    val CardBody    = TextStyle(fontFamily = Inter, fontSize = 13.sp, lineHeight = 20.sp, fontWeight = FontWeight.Normal)
+
+    /**
+     * Label pengelompokan tanggal. Ditulis kapital dengan jarak huruf longgar
+     * (`tracking-wider` = 0,05em, jadi 0,6sp pada 12sp).
+     */
+    val GroupLabel  = TextStyle(fontFamily = Inter, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
+}

@@ -17,6 +17,12 @@ data class LoginPinRequest(
     @SerialName("device_id") val deviceId: String,
     @SerialName("pin_encrypted") val pinEncrypted: String,
     @SerialName("device_info") val deviceInfo: DeviceInfoDto,
+    /**
+     * Opsional di server, tapi selalu dikirim: tanpa ini kunci yang sudah basi
+     * terbaca sebagai PIN salah — dan PIN salah punya lockout, jadi nasabah bisa
+     * terkunci karena kesalahan yang bukan miliknya.
+     */
+    @SerialName("encryption_key_id") val encryptionKeyId: String? = null,
 )
 
 @Serializable
@@ -37,11 +43,27 @@ data class LoginResponse(
 
 // -- Biometrik ---------------------------------------------------------------
 
+/**
+ * Balasan `GET /auth/biometric/challenge`.
+ *
+ * Response **membawa kontraknya sendiri**: `algorithm` dan `signature_format`
+ * memberi tahu client persis apa yang harus diproduksi, jadi client membacanya
+ * dari sini dan tidak menyalin konstanta dari prosa dokumen.
+ *
+ * `challenge` berumur 60 detik dan **benar-benar sekali pakai** — server
+ * memakai `GETDEL`, jadi challenge yang sudah dipakai dijawab
+ * `401 AUTH_TOKEN_INVALID`, bukan hanya yang kedaluwarsa. Jangan pernah
+ * mencoba ulang dengan challenge yang sama; ambil yang baru.
+ */
 @Serializable
 data class BiometricChallengeResponse(
     @SerialName("challenge_id") val challengeId: String,
     val challenge: String,
+    @SerialName("expires_in") val expiresIn: Int = 0,
     @SerialName("expires_at") val expiresAt: String? = null,
+    /** Mis. `EC-P256`. Kosong berarti server versi lama yang belum mengirimnya. */
+    val algorithm: String = "",
+    @SerialName("signature_format") val signatureFormat: String = "",
 )
 
 @Serializable
@@ -62,10 +84,20 @@ data class RegisterBiometricRequest(
     val attestation: String? = null,
 )
 
+/**
+ * Balasan `POST /auth/biometric/register`.
+ *
+ * **Pendaftaran ulang MENGGANTI**: sidik jari baru menghanguskan kunci
+ * Keystore, aplikasi mendaftar lagi, dan semua kunci aktif nasabah pada
+ * perangkat itu dicabut. Jumlahnya dilaporkan lewat `replaced_keys`.
+ * Pencabutan dibatasi satu perangkat — beberapa perangkat per nasabah boleh.
+ */
 @Serializable
 data class RegisterBiometricResponse(
     @SerialName("biometric_id") val biometricId: String = "",
+    @SerialName("key_id") val keyId: String = "",
     @SerialName("registered_at") val registeredAt: String? = null,
+    @SerialName("replaced_keys") val replacedKeys: Int = 0,
 )
 
 // -- Token -------------------------------------------------------------------
@@ -100,6 +132,7 @@ data class MessageResponse(
 data class VerifyPinRequest(
     @SerialName("pin_encrypted") val pinEncrypted: String,
     val purpose: String,
+    @SerialName("encryption_key_id") val encryptionKeyId: String? = null,
 )
 
 @Serializable
@@ -112,4 +145,5 @@ data class VerifyPinResponse(
 data class ChangePinRequest(
     @SerialName("old_pin_encrypted") val oldPinEncrypted: String,
     @SerialName("new_pin_encrypted") val newPinEncrypted: String,
+    @SerialName("encryption_key_id") val encryptionKeyId: String? = null,
 )

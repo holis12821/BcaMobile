@@ -1,0 +1,132 @@
+package id.bca.bcamobile.ui.screen.buka_rekening
+
+import id.bca.bcamobile.core.network.ApiFailure
+import id.bca.bcamobile.domain.common.DataResult
+import id.bca.bcamobile.domain.onboarding.OnboardingRepository
+import id.bca.bcamobile.domain.onboarding.model.BiometricResult
+import id.bca.bcamobile.domain.onboarding.model.CardCatalog
+import id.bca.bcamobile.domain.onboarding.model.CreatedAccount
+import id.bca.bcamobile.domain.onboarding.model.CredentialResult
+import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
+import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
+import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
+import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
+import id.bca.bcamobile.domain.onboarding.model.OtpVerification
+import id.bca.bcamobile.domain.onboarding.model.PasporCardType
+import id.bca.bcamobile.domain.onboarding.model.PersonalData
+import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
+import id.bca.bcamobile.domain.onboarding.model.ProductType
+import id.bca.bcamobile.domain.onboarding.model.QueueTicket
+import id.bca.bcamobile.domain.onboarding.model.SelectedCard
+import java.io.File
+
+/**
+ * Pengganti [OnboardingRepository] untuk test ViewModel.
+ *
+ * Setiap hasil bisa diatur per test, dan pemanggilan yang penting ikut dicatat —
+ * beberapa aturan OTP justru soal request yang **tidak boleh** berangkat
+ * (kode belum enam digit, kirim ulang saat terblokir, `resend-otp` setelah
+ * `OTP_EXPIRED`), jadi jumlah panggilan ikut diuji.
+ *
+ * Method yang tidak dipakai jalur OTP sengaja melempar: kalau test menyentuhnya,
+ * itu tanda testnya salah sasaran, bukan sesuatu yang boleh lewat diam-diam.
+ */
+class FakeOnboardingRepository : OnboardingRepository {
+
+    var savedSessionId: String? = null
+
+    var createSessionResult: DataResult<OnboardingSession> = failure()
+    var cardCatalogResult: DataResult<CardCatalog> = failure()
+    var selectCardResult: DataResult<SelectedCard> = failure()
+    var getSessionResult: DataResult<OnboardingSession> = failure()
+    var ocrResult: DataResult<KtpOcrResult> = failure()
+    var personalDataResult: DataResult<PersonalDataResult> = failure()
+    var verifyOtpResult: DataResult<OtpVerification> = failure()
+    var resendOtpResult: DataResult<OtpChallenge> = failure()
+
+    /** Kartu yang ikut terkirim saat sesi dibuat; null berarti client belum memilih. */
+    val createSessionCardTypes = mutableListOf<PasporCardType?>()
+    val verifyOtpCodes = mutableListOf<String>()
+    var resendOtpCount = 0
+    var getSessionCount = 0
+    var clearLocalSessionCount = 0
+
+    override fun savedSessionId(): String? = savedSessionId
+
+    override fun clearLocalSession() {
+        clearLocalSessionCount += 1
+        savedSessionId = null
+    }
+
+    override suspend fun cardCatalog(productType: ProductType): DataResult<CardCatalog> =
+        cardCatalogResult
+
+    override suspend fun createSession(
+        productType: ProductType,
+        acceptedTncVersion: String,
+        cardType: PasporCardType?,
+        cardCatalogVersion: String?,
+    ): DataResult<OnboardingSession> {
+        createSessionCardTypes += cardType
+        return createSessionResult
+    }
+
+    override suspend fun selectCard(
+        cardType: PasporCardType,
+        cardCatalogVersion: String?,
+    ): DataResult<SelectedCard> = selectCardResult
+
+    override suspend fun getSession(sessionId: String): DataResult<OnboardingSession> {
+        getSessionCount += 1
+        return getSessionResult
+    }
+
+    override suspend fun cancelSession(): DataResult<Unit> = DataResult.Success(Unit)
+
+    override suspend fun uploadKtpPhoto(
+        photo: File,
+        flashUsed: Boolean,
+        autoCaptured: Boolean,
+        resolution: String,
+    ): DataResult<KtpOcrResult> = ocrResult
+
+    override suspend fun getOcrResult(): DataResult<KtpOcrResult> = ocrResult
+
+    override suspend fun savePersonalData(
+        ocrId: String,
+        data: PersonalData,
+    ): DataResult<PersonalDataResult> = personalDataResult
+
+    override suspend fun verifyOtp(otpCode: String): DataResult<OtpVerification> {
+        verifyOtpCodes += otpCode
+        return verifyOtpResult
+    }
+
+    override suspend fun resendOtp(): DataResult<OtpChallenge> {
+        resendOtpCount += 1
+        return resendOtpResult
+    }
+
+    override suspend fun uploadBiometric(
+        facePhoto: File,
+        livenessFrames: List<File>,
+        meta: LivenessMeta,
+    ): DataResult<BiometricResult> = error("uploadBiometric tidak dipakai di test OTP")
+
+    override suspend fun joinVideoCallQueue(): DataResult<QueueTicket> =
+        error("joinVideoCallQueue tidak dipakai di test OTP")
+
+    override suspend fun saveCredentials(
+        accessCode: String,
+        pin: String,
+    ): DataResult<CredentialResult> = error("saveCredentials tidak dipakai di test OTP")
+
+    override suspend fun submitApplication(
+        agreementVersion: String,
+        idempotencyKey: String,
+    ): DataResult<CreatedAccount> = error("submitApplication tidak dipakai di test OTP")
+
+    private companion object {
+        fun <T> failure(): DataResult<T> = DataResult.Failure(ApiFailure.Unknown)
+    }
+}

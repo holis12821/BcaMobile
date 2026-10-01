@@ -61,6 +61,8 @@ data class BuktiTransaksiUiState(
     val nominal: String = "",
     val biayaAdmin: String = "",
     val total: String = "",
+    /** True selama struk PDF diunduh; tombol Simpan dikunci agar tidak dobel. */
+    val isSaving: Boolean = false,
 )
 
 // -- Main Screen ---------------------------------------------------------------
@@ -135,6 +137,7 @@ fun BuktiTransaksiScreen(
                     ReceiptCard(state = state)
                     IllustrationBanner()
                     ActionButtons(
+                        isSaving = state.isSaving,
                         onBagikanClick = onBagikanClick,
                         onSimpanClick = onSimpanClick,
                     )
@@ -499,6 +502,7 @@ private fun IllustrationBanner(modifier: Modifier = Modifier) {
 
 @Composable
 private fun ActionButtons(
+    isSaving: Boolean,
     onBagikanClick: () -> Unit,
     onSimpanClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -527,9 +531,10 @@ private fun ActionButtons(
             )
         }
 
-        // Secondary: Simpan
+        // Secondary: Simpan — mengunduh struk PDF dari server.
         Button(
             onClick = onSimpanClick,
+            enabled = !isSaving,
             shape = AppShape.R4,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -537,11 +542,19 @@ private fun ActionButtons(
             ),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_receipt),
-                contentDescription = null,
-                modifier = Modifier.size(Spacing.s5),
-            )
+            if (isSaving) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = StrokeWidth.w1,
+                    modifier = Modifier.size(Spacing.s5),
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.ic_receipt),
+                    contentDescription = null,
+                    modifier = Modifier.size(Spacing.s5),
+                )
+            }
             Spacer(Modifier.width(Spacing.s2))
             Text(
                 text = stringResource(R.string.bukti_transaksi_simpan),

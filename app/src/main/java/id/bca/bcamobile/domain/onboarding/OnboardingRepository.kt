@@ -2,6 +2,7 @@ package id.bca.bcamobile.domain.onboarding
 
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.onboarding.model.BiometricResult
+import id.bca.bcamobile.domain.onboarding.model.CardCatalog
 import id.bca.bcamobile.domain.onboarding.model.CreatedAccount
 import id.bca.bcamobile.domain.onboarding.model.CredentialResult
 import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
@@ -10,8 +11,10 @@ import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
 import id.bca.bcamobile.domain.onboarding.model.OtpVerification
 import id.bca.bcamobile.domain.onboarding.model.PersonalData
+import id.bca.bcamobile.domain.onboarding.model.PasporCardType
 import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.ProductType
+import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
 import java.io.File
 
@@ -29,10 +32,28 @@ interface OnboardingRepository {
     /** Hapus jejak sesi lokal tanpa memanggil server. Dipakai saat sesi expired/not found. */
     fun clearLocalSession()
 
+    /**
+     * Katalog kartu Paspor untuk [productType]. Dipanggil sebelum sesi ada —
+     * endpoint ini tidak butuh `session_id`.
+     */
+    suspend fun cardCatalog(productType: ProductType): DataResult<CardCatalog>
+
+    /**
+     * [cardType] ikut dikirim supaya server langsung menandai `card_selected`.
+     * Kosong berarti server menjawab `current_step: CARD_SELECTION`.
+     */
     suspend fun createSession(
         productType: ProductType,
         acceptedTncVersion: String,
+        cardType: PasporCardType? = null,
+        cardCatalogVersion: String? = null,
     ): DataResult<OnboardingSession>
+
+    /** Ubah kartu pada sesi berjalan — Back dari S&K, lanjut draf, atau dari Ringkasan. */
+    suspend fun selectCard(
+        cardType: PasporCardType,
+        cardCatalogVersion: String? = null,
+    ): DataResult<SelectedCard>
 
     suspend fun getSession(sessionId: String): DataResult<OnboardingSession>
 

@@ -57,41 +57,68 @@ import id.bca.bcamobile.ui.components.CameraPreview
 import id.bca.bcamobile.ui.components.LocalSnackbarHostState
 import id.bca.bcamobile.ui.components.resolve
 import id.bca.bcamobile.ui.components.hasCameraPermission
-import id.bca.bcamobile.ui.screen.buka_rekening.FlashMode
-import id.bca.bcamobile.ui.screen.buka_rekening.toKameraFotoUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toVerifikasiBiometrikUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningFlowViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningSideEffect
-import id.bca.bcamobile.ui.screen.buka_rekening.toAntreanUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toBerhasilDibuatUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toBuatKredensialUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toDataPribadiUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toHasilFotoUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toPilihJenisUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toPilihKartuUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.toRingkasanUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningPilihJenisScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningPilihKartuScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningDataPribadiScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningVerifikasiBiometrikScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningVerifikasiOtpScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.toOtpUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.VerifikasiBiometrikUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningAntreanVideoCallScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningVideoCallScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.VideoCallUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningBuatKredensialScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningRingkasanScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningBerhasilDibuatScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningHasilFotoScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningKameraFotoScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningKameraFotoUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningPanduanFotoScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.BukaRekeningSyaratKetentuanScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.common.FlashMode
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.toKameraFotoUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.toVerifikasiBiometrikUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.toAntreanUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.toBuatKredensialUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.toDataPribadiUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.toHasilFotoUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.toPilihJenisUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.toPilihKartuUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.toRingkasanUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.BukaRekeningPilihJenisScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.BukaRekeningPilihKartuScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.BukaRekeningDataPribadiScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.BukaRekeningVerifikasiBiometrikScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.BukaRekeningVerifikasiOtpScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.toOtpUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.VerifikasiBiometrikUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.BukaRekeningAntreanVideoCallScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.BukaRekeningVideoCallScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.VideoCallUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BukaRekeningBuatKredensialScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.BukaRekeningRingkasanScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.BukaRekeningHasilFotoScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoUiState
 import id.bca.bcamobile.ui.screen.login.LoginScreen
 import id.bca.bcamobile.ui.screen.login.LoginUiState
 import kotlinx.coroutines.launch
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSideEffect
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BukaRekeningBerhasilDibuatScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.toBerhasilDibuatUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.panduan_foto.BukaRekeningPanduanFotoScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.BukaRekeningSyaratKetentuanScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningFlowScopeViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BerhasilDibuatEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BukaRekeningBerhasilDibuatViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.panduan_foto.BukaRekeningPanduanFotoViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.BukaRekeningSyaratKetentuanViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.SyaratKetentuanEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.toSyaratKetentuanUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.BukaRekeningPilihJenisViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.BukaRekeningPilihKartuViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.BukaRekeningHasilFotoViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.BukaRekeningDataPribadiViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.BukaRekeningVerifikasiOtpViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.BukaRekeningVerifikasiBiometrikViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.BukaRekeningAntreanVideoCallViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.BukaRekeningVideoCallViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BukaRekeningBuatKredensialViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.BukaRekeningRingkasanViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.PilihJenisEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.PilihKartuEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.KameraFotoEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.HasilFotoEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.DataPribadiEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.VerifikasiOtpEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.VerifikasiBiometrikEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.AntreanVideoCallEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.VideoCallEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BuatKredensialEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.RingkasanEvent
 
 fun NavGraphBuilder.authGraph(
     navController: NavHostController,
@@ -202,51 +229,65 @@ fun NavGraphBuilder.authGraph(
         }
 
         composable<BukaRekening> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningPilihJenisViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             BukaRekeningPilihJenisScreen(
                 state = state.toPilihJenisUiState(),
                 onJenisSelected = { index ->
-                    viewModel.onEvent(BukaRekeningEvent.ProductSelected(index))
+                    viewModel.onEvent(PilihJenisEvent.ProductSelected(index))
                     navController.navigate(BukaRekeningPilihKartu)
                 },
                 onBackClick = { navController.popBackStack() },
-                onRetry = { viewModel.onEvent(BukaRekeningEvent.ErrorDismissed) },
+                onRetry = { viewModel.onEvent(PilihJenisEvent.ErrorDismissed) },
             )
         }
 
         composable<BukaRekeningPilihKartu> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningPilihKartuViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
-            // Pilihan kartu belum menyentuh API: sesi baru dibuat di layar S&K,
-            // jadi perpindahan di sini boleh dipicu tombol.
+            // Katalog ditarik saat layar dibuka; endpoint-nya tidak butuh sesi.
+            LaunchedEffect(viewModel) {
+                viewModel.onEvent(PilihKartuEvent.CardCatalogRequested)
+            }
+
             BukaRekeningPilihKartuScreen(
                 state = state.toPilihKartuUiState(),
                 onKartuSelected = { index ->
-                    viewModel.onEvent(BukaRekeningEvent.CardTypeSelected(index))
+                    viewModel.onEvent(PilihKartuEvent.CardTypeSelected(index))
                 },
-                onLanjutClick = { navController.navigate(BukaRekeningSyaratKetentuan) },
+                // Tujuan berikutnya dari side effect: kalau sesi sudah ada, kartunya
+                // dikirim dulu lewat PUT dan server yang menentukan langkahnya.
+                onLanjutClick = { viewModel.onEvent(PilihKartuEvent.CardConfirmed) },
                 onBackClick = { navController.popBackStack() },
-                onRetry = { viewModel.onEvent(BukaRekeningEvent.ErrorDismissed) },
+                onRetry = { viewModel.onEvent(PilihKartuEvent.ErrorDismissed) },
             )
         }
 
         composable<BukaRekeningSyaratKetentuan> {
-            val viewModel = bukaRekeningViewModel(navController, it)
-            BukaRekeningSideEffects(viewModel, navController)
+            val viewModel: BukaRekeningSyaratKetentuanViewModel = hiltViewModel()
+            val state by viewModel.state.collectAsState()
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            BukaRekeningSideEffects(flowScope, navController)
 
             // Sesi baru dibuat di sini: server butuh versi S&K yang disetujui.
             BukaRekeningSyaratKetentuanScreen(
-                onAgreeClick = { viewModel.onEvent(BukaRekeningEvent.TncAccepted) },
+                state = state.toSyaratKetentuanUiState(),
+                onAgreeClick = { viewModel.onEvent(SyaratKetentuanEvent.TncAccepted) },
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable<BukaRekeningPanduanFoto> {
+            val viewModel: BukaRekeningPanduanFotoViewModel = hiltViewModel()
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            BukaRekeningSideEffects(flowScope, navController)
+
             BukaRekeningPanduanFotoScreen(
                 onMulaiAmbilFoto = { navController.navigate(BukaRekeningKameraFoto) },
                 onBackClick = { navController.popBackStack() },
@@ -254,9 +295,10 @@ fun NavGraphBuilder.authGraph(
         }
 
         composable<BukaRekeningKameraFoto> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningKameraFotoViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
@@ -276,7 +318,7 @@ fun NavGraphBuilder.authGraph(
                         val photo = CameraCapture.capture(context, active, CACHE_PREFIX_KTP)
                         if (photo != null) {
                             viewModel.onEvent(
-                                BukaRekeningEvent.KtpPhotoCaptured(
+                                KameraFotoEvent.KtpPhotoCaptured(
                                     photo = photo.file,
                                     flashUsed = state.flashMode != FlashMode.OFF,
                                     autoCaptured = autoCaptured,
@@ -312,9 +354,9 @@ fun NavGraphBuilder.authGraph(
                 onShutterClick = { capture(false) },
                 onGalleryClick = {},
                 onHelpClick = {},
-                onFlashToggle = { viewModel.onEvent(BukaRekeningEvent.FlashModeToggled) },
+                onFlashToggle = { viewModel.onEvent(KameraFotoEvent.FlashModeToggled) },
                 onAutoCaptureToggle = {
-                    viewModel.onEvent(BukaRekeningEvent.AutoCaptureToggled(it))
+                    viewModel.onEvent(KameraFotoEvent.AutoCaptureToggled(it))
                 },
                 onBackClick = { navController.popBackStack() },
                 // Gerbang izin dirender tanpa syarat. Sebelumnya slot ini ikut null
@@ -341,24 +383,25 @@ fun NavGraphBuilder.authGraph(
         }
 
         composable<BukaRekeningHasilFoto> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningHasilFotoViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             // Saat melanjutkan draf, hasil OCR sudah ada di server — ambil dari sana.
             LaunchedEffect(state.sessionId, state.ocr, state.ktpPhoto) {
                 // Hanya saat melanjutkan draf: tidak ada foto lokal, tapi server
                 // mungkin sudah menyimpan hasil OCR dari sesi sebelumnya.
                 if (state.sessionId != null && state.ocr == null && state.ktpPhoto == null) {
-                    viewModel.onEvent(BukaRekeningEvent.OcrResultRequested)
+                    viewModel.onEvent(HasilFotoEvent.OcrResultRequested)
                 }
             }
 
             BukaRekeningHasilFotoScreen(
                 state = state.toHasilFotoUiState(),
-                onGunakanFoto = { viewModel.onEvent(BukaRekeningEvent.OcrConfirmed) },
+                onGunakanFoto = { viewModel.onEvent(HasilFotoEvent.OcrConfirmed) },
                 onAmbilUlang = {
-                    viewModel.onEvent(BukaRekeningEvent.PhotoDiscarded)
+                    viewModel.onEvent(HasilFotoEvent.PhotoDiscarded)
                     navController.popBackStack()
                 },
                 onBackClick = { navController.popBackStack() },
@@ -366,52 +409,55 @@ fun NavGraphBuilder.authGraph(
         }
 
         composable<BukaRekeningDataPribadi> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningDataPribadiViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             BukaRekeningDataPribadiScreen(
                 state = state.toDataPribadiUiState(),
                 onJenisKelaminSelect = {
-                    viewModel.onEvent(BukaRekeningEvent.GenderSelected(it))
+                    viewModel.onEvent(DataPribadiEvent.GenderSelected(it))
                 },
                 onAlamatDomisiliToggle = {
-                    viewModel.onEvent(BukaRekeningEvent.DomicileSameToggled(it))
+                    viewModel.onEvent(DataPribadiEvent.DomicileSameToggled(it))
                 },
-                onLanjutClick = { viewModel.onEvent(BukaRekeningEvent.PersonalDataSubmitted) },
-                onSimpanClick = { viewModel.onEvent(BukaRekeningEvent.DraftSaveRequested) },
+                onLanjutClick = { viewModel.onEvent(DataPribadiEvent.PersonalDataSubmitted) },
+                onSimpanClick = { viewModel.onEvent(DataPribadiEvent.DraftSaveRequested) },
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable<BukaRekeningOtp> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningVerifikasiOtpViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             // Kode OTP tidak boleh tertinggal di memory setelah layar ditutup.
             DisposableEffect(viewModel) {
-                onDispose { viewModel.onEvent(BukaRekeningEvent.OtpCodeCleared) }
+                onDispose { viewModel.onEvent(VerifikasiOtpEvent.OtpCodeCleared) }
             }
 
             BukaRekeningVerifikasiOtpScreen(
                 state = state.toOtpUiState(),
                 onKodeChange = { kode ->
-                    viewModel.onEvent(BukaRekeningEvent.OtpCodeChanged(kode))
+                    viewModel.onEvent(VerifikasiOtpEvent.OtpCodeChanged(kode))
                 },
                 // Perpindahan ke biometrik datang dari `current_step` di response
                 // verify-otp, bukan dari callback tombol ini.
-                onVerifikasiClick = { viewModel.onEvent(BukaRekeningEvent.OtpSubmitted) },
-                onKirimUlangClick = { viewModel.onEvent(BukaRekeningEvent.OtpResendRequested) },
+                onVerifikasiClick = { viewModel.onEvent(VerifikasiOtpEvent.OtpSubmitted) },
+                onKirimUlangClick = { viewModel.onEvent(VerifikasiOtpEvent.OtpResendRequested) },
                 // Back kembali ke Data Pribadi supaya nomor HP bisa diperbaiki.
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable<BukaRekeningVerifikasiBiometrik> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningVerifikasiBiometrikViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
@@ -437,13 +483,13 @@ fun NavGraphBuilder.authGraph(
                     context = context,
                     detector = LivenessDetector(),
                     scope = scope,
-                    onProgress = { viewModel.onEvent(BukaRekeningEvent.LivenessProgressed(it)) },
+                    onProgress = { viewModel.onEvent(VerifikasiBiometrikEvent.LivenessProgressed(it)) },
                     onFramesReady = { frames ->
                         scope.launch {
                             val face = CameraCapture.capture(context, active, CACHE_PREFIX_FACE)
                                 ?: return@launch
                             viewModel.onEvent(
-                                BukaRekeningEvent.BiometricCaptured(
+                                VerifikasiBiometrikEvent.BiometricCaptured(
                                     facePhoto = face.file,
                                     livenessFrames = frames,
                                     meta = LivenessMeta(
@@ -468,7 +514,7 @@ fun NavGraphBuilder.authGraph(
 
             BukaRekeningVerifikasiBiometrikScreen(
                 state = state.toVerifikasiBiometrikUiState(),
-                onMulaiClick = { viewModel.onEvent(BukaRekeningEvent.LivenessStarted) },
+                onMulaiClick = { viewModel.onEvent(VerifikasiBiometrikEvent.LivenessStarted) },
                 onTipsClick = {},
                 onBackClick = { navController.popBackStack() },
                 // Gerbang izin dirender tanpa syarat — lihat catatan di layar Kamera Foto.
@@ -493,13 +539,14 @@ fun NavGraphBuilder.authGraph(
         }
 
         composable<BukaRekeningAntreanVideoCall> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningAntreanVideoCallViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             LaunchedEffect(state.sessionId) {
                 if (state.sessionId != null && state.queue == null) {
-                    viewModel.onEvent(BukaRekeningEvent.QueueJoinRequested)
+                    viewModel.onEvent(AntreanVideoCallEvent.QueueJoinRequested)
                 }
             }
 
@@ -512,8 +559,9 @@ fun NavGraphBuilder.authGraph(
         }
 
         composable<BukaRekeningVideoCall> {
-            val viewModel = bukaRekeningViewModel(navController, it)
-            BukaRekeningSideEffects(viewModel, navController)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningVideoCallViewModel = hiltViewModel()
+            BukaRekeningSideEffects(flowScope, navController)
 
             // TODO(webrtc): ganti state statis ini dengan sesi WebRTC dari signaling_url
             //  pada QueueTicket — lihat skill buka-rekening-video-call.
@@ -522,55 +570,59 @@ fun NavGraphBuilder.authGraph(
                 onBack = { navController.popBackStack() },
                 onMuteToggle = {},
                 onSwitchCamera = {},
-                onEndCall = { viewModel.onEvent(BukaRekeningEvent.VideoCallCompleted("")) },
+                onEndCall = { viewModel.onEvent(VideoCallEvent.VideoCallCompleted("")) },
             )
         }
 
         composable<BukaRekeningBuatKredensial> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningBuatKredensialViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             BukaRekeningBuatKredensialScreen(
                 state = state.toBuatKredensialUiState(),
                 onKodeAksesChange = {
-                    viewModel.onEvent(BukaRekeningEvent.AccessCodeChanged(it))
+                    viewModel.onEvent(BuatKredensialEvent.AccessCodeChanged(it))
                 },
                 onKonfirmasiKodeAksesChange = {
-                    viewModel.onEvent(BukaRekeningEvent.ConfirmAccessCodeChanged(it))
+                    viewModel.onEvent(BuatKredensialEvent.ConfirmAccessCodeChanged(it))
                 },
                 onToggleKodeAksesVisibility = {
-                    viewModel.onEvent(BukaRekeningEvent.AccessCodeVisibilityToggled)
+                    viewModel.onEvent(BuatKredensialEvent.AccessCodeVisibilityToggled)
                 },
                 onToggleKonfirmasiVisibility = {
-                    viewModel.onEvent(BukaRekeningEvent.ConfirmAccessCodeVisibilityToggled)
+                    viewModel.onEvent(BuatKredensialEvent.ConfirmAccessCodeVisibilityToggled)
                 },
-                onSimpanClick = { viewModel.onEvent(BukaRekeningEvent.CredentialsSubmitted) },
+                onSimpanClick = { viewModel.onEvent(BuatKredensialEvent.CredentialsSubmitted) },
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable<BukaRekeningRingkasan> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            val viewModel: BukaRekeningRingkasanViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
-            BukaRekeningSideEffects(viewModel, navController)
+            BukaRekeningSideEffects(flowScope, navController)
 
             BukaRekeningRingkasanScreen(
                 state = state.toRingkasanUiState(),
                 onAgreementToggle = {
-                    viewModel.onEvent(BukaRekeningEvent.AgreementToggled(it))
+                    viewModel.onEvent(RingkasanEvent.AgreementToggled(it))
                 },
                 onUbahRekeningClick = { navController.popBackStack(BukaRekening, false) },
                 onUbahNasabahClick = { navController.popBackStack(BukaRekeningDataPribadi, false) },
-                onProsesClick = { viewModel.onEvent(BukaRekeningEvent.ApplicationSubmitted) },
-                onSimpanDrafClick = { viewModel.onEvent(BukaRekeningEvent.DraftSaveRequested) },
+                onProsesClick = { viewModel.onEvent(RingkasanEvent.ApplicationSubmitted) },
+                onSimpanDrafClick = { viewModel.onEvent(RingkasanEvent.DraftSaveRequested) },
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable<BukaRekeningBerhasilDibuat> {
-            val viewModel = bukaRekeningViewModel(navController, it)
+            val viewModel: BukaRekeningBerhasilDibuatViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
+            val flowScope = bukaRekeningFlowScope(navController, it)
+            BukaRekeningSideEffects(flowScope, navController)
 
             BukaRekeningBerhasilDibuatScreen(
                 state = state.toBerhasilDibuatUiState(),
@@ -580,7 +632,9 @@ fun NavGraphBuilder.authGraph(
                     }
                 },
                 onBagikanClick = {},
-                onSalinClick = {},
+                onSalinClick = { nomor ->
+                    viewModel.onEvent(BerhasilDibuatEvent.NomorRekeningDisalin(nomor))
+                },
             )
         }
 
@@ -593,17 +647,21 @@ fun NavGraphBuilder.authGraph(
 }
 
 /**
- * ViewModel bersama seluruh flow buka rekening.
+ * Penanda umur flow buka rekening.
  *
  * Di-scope ke back stack entry [BukaRekening] — layar pertama flow — sehingga
- * dua belas layar sesudahnya memakai instance yang sama, dan instance itu ikut
- * dibuang begitu flow keluar dari back stack.
+ * seluruh layar sesudahnya memakai instance yang sama. Saat flow keluar dari back
+ * stack, instance ini dibuang dan membersihkan `BukaRekeningSessionStore`
+ * berikut seluruh PII di dalamnya.
+ *
+ * ViewModel tiap layar di-resolve dengan `hiltViewModel()` biasa; state bersamanya
+ * datang dari store, bukan dari instance ini.
  */
 @Composable
-private fun bukaRekeningViewModel(
+private fun bukaRekeningFlowScope(
     navController: NavHostController,
     entry: NavBackStackEntry,
-): BukaRekeningFlowViewModel {
+): BukaRekeningFlowScopeViewModel {
     // Dikunci ke entri layar ini sendiri, bukan currentBackStackEntry: saat flow
     // dipop, layar yang sedang keluar masih ter-compose selama animasi transisi.
     // Dengan key lama, remember dievaluasi ulang di saat itu dan
@@ -623,7 +681,7 @@ private fun bukaRekeningViewModel(
  */
 @Composable
 private fun BukaRekeningSideEffects(
-    viewModel: BukaRekeningFlowViewModel,
+    viewModel: BukaRekeningFlowScopeViewModel,
     navController: NavHostController,
 ) {
     val snackbarHostState = LocalSnackbarHostState.current
@@ -662,6 +720,7 @@ private fun BukaRekeningSideEffects(
  */
 private fun OnboardingStep.toRoute(): Any = when (this) {
     OnboardingStep.TNC -> BukaRekeningSyaratKetentuan
+    OnboardingStep.CARD_SELECTION -> BukaRekeningPilihKartu
     OnboardingStep.OCR -> BukaRekeningPanduanFoto
     OnboardingStep.PERSONAL_DATA -> BukaRekeningDataPribadi
     OnboardingStep.OTP_VERIFY -> BukaRekeningOtp

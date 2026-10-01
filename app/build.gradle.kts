@@ -4,6 +4,9 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    // Membaca app/google-services.json. Tanpa berkas itu build gagal —
+    // berkasnya diunduh dari Firebase Console untuk package id.bca.bcamobile.
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -134,7 +137,11 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.text.recognition)
     implementation(libs.mlkit.face.detection)
+    implementation(libs.mlkit.barcode.scanning)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

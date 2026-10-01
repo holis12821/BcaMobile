@@ -15,14 +15,14 @@ import id.bca.bcamobile.domain.account.AccountRepository
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.transaction.TransactionRepository
 import id.bca.bcamobile.domain.transaction.model.Mutation
-import id.bca.bcamobile.domain.transaction.model.MutationPeriod
 import id.bca.bcamobile.domain.transaction.model.MutationType
+import id.bca.bcamobile.domain.transaction.model.TransactionPeriod
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class MutasiViewModel @Inject constructor(
@@ -34,6 +34,8 @@ class MutasiViewModel @Inject constructor(
     val uiState: StateFlow<MutasiUiState> = _uiState.asStateFlow()
 
     private var accountId: String? = null
+    private var customStartDate: String? = null
+    private var customEndDate: String? = null
     private var nextCursor: String? = null
     private var isLoadingPage = false
     private val loaded = mutableListOf<Mutation>()
@@ -54,7 +56,24 @@ class MutasiViewModel @Inject constructor(
 
     fun onPeriodSelected(period: MutasiPeriod) {
         if (period == _uiState.value.selectedPeriod) return
-        _uiState.update { it.copy(selectedPeriod = period) }
+        customStartDate = null
+        customEndDate = null
+        _uiState.update { it.copy(selectedPeriod = period, periodInfo = "") }
+        load()
+    }
+
+    /**
+     * Rentang bebas dari layar Rentang Waktu.
+     *
+     * [startDate] dan [endDate] berformat `yyyy-MM-dd` seperti yang diminta
+     * `GET /transactions/mutations`; keduanya wajib ada saat `period=CUSTOM`.
+     */
+    fun onCustomRangeSelected(startDate: String, endDate: String) {
+        customStartDate = startDate
+        customEndDate = endDate
+        _uiState.update {
+            it.copy(selectedPeriod = MutasiPeriod.CUSTOM, periodInfo = "$startDate - $endDate")
+        }
         load()
     }
 
@@ -97,6 +116,8 @@ class MutasiViewModel @Inject constructor(
         val result = transactionRepository.mutations(
             accountId = id,
             period = _uiState.value.selectedPeriod.toDomain(),
+            startDate = customStartDate,
+            endDate = customEndDate,
             cursor = if (reset) null else nextCursor,
         )
         isLoadingPage = false
@@ -127,11 +148,11 @@ class MutasiViewModel @Inject constructor(
 
 // -- Pemetaan ke bentuk tampilan ----------------------------------------------
 
-private fun MutasiPeriod.toDomain(): MutationPeriod = when (this) {
-    MutasiPeriod.LAST_7_DAYS -> MutationPeriod.LAST_7_DAYS
-    MutasiPeriod.THIS_MONTH -> MutationPeriod.THIS_MONTH
-    MutasiPeriod.LAST_MONTH -> MutationPeriod.LAST_MONTH
-    MutasiPeriod.CUSTOM -> MutationPeriod.CUSTOM
+private fun MutasiPeriod.toDomain(): TransactionPeriod = when (this) {
+    MutasiPeriod.LAST_7_DAYS -> TransactionPeriod.LAST_7_DAYS
+    MutasiPeriod.THIS_MONTH -> TransactionPeriod.THIS_MONTH
+    MutasiPeriod.LAST_MONTH -> TransactionPeriod.LAST_MONTH
+    MutasiPeriod.CUSTOM -> TransactionPeriod.CUSTOM
 }
 
 /** Server sudah mengurutkan dari terbaru, jadi urutan grup mengikuti urutan datang. */

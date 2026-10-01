@@ -62,9 +62,27 @@ data class Receipt(
     val total: Long,
 )
 
-/** Rentang waktu mutasi. `CUSTOM` mewajibkan tanggal mulai dan akhir. */
-enum class MutationPeriod(val wireValue: String) {
+/**
+ * Rentang waktu untuk **Mutasi dan Riwayat**.
+ *
+ * Satu enum untuk dua layar disengaja: keduanya menampilkan "7 hari terakhir"
+ * dan pernah berbeda cara memintanya, yang membuat Riwayat mengembalikan
+ * seluruh data seolah-olah itu hasil rentang yang dipilih. Nilai-nilainya
+ * dibaca dari `resolvePeriod` (`internal/handler/transaction_handler.go`),
+ * yang kini melayani `transactions/mutations` **dan** `transactions/history`.
+ *
+ * Batasnya tanggal WIB dan **kedua ujung inklusif** — transaksi pukul 23.59
+ * hari ini tetap masuk `LAST_7_DAYS`.
+ *
+ * Nilai tak dikenal dijawab `400 VALIDATION_ERROR` berisi
+ * `details.allowed_values`; itu bug client, bukan bahan empty state.
+ *
+ * `CUSTOM` mewajibkan `from` **dan** `to` berformat `YYYY-MM-DD`.
+ */
+enum class TransactionPeriod(val wireValue: String) {
     LAST_7_DAYS("LAST_7_DAYS"),
+    LAST_30_DAYS("LAST_30_DAYS"),
+    LAST_90_DAYS("LAST_90_DAYS"),
     THIS_MONTH("THIS_MONTH"),
     LAST_MONTH("LAST_MONTH"),
     CUSTOM("CUSTOM"),

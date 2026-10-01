@@ -62,6 +62,40 @@ object AppColor {
     val Neutral800 = Color(0xFF606060)
     val Neutral900 = Color(0xFF4A4A4A)
     val Neutral1000 = Color(0xFF333333)
+
+    // NEUTRAL COOL
+    /**
+     * Ramp netral bersemu biru dari artefak Stitch layar Notifikasi.
+     *
+     * Berbeda dari [Neutral100]–[Neutral1000] yang netral murni: ramp ini
+     * dipakai desain untuk kartu, garis, dan teks sekunder supaya menyatu
+     * dengan biru primer. Langkah `100`–`900` diambil apa adanya dari artefak;
+     * `50` adalah latar halaman, satu tingkat lebih terang dari `100`.
+     */
+    val NeutralCool50 = Color(0xFFF4F6F9)
+    val NeutralCool100 = Color(0xFFF1F5F9)
+    val NeutralCool200 = Color(0xFFE2E8F0)
+    val NeutralCool300 = Color(0xFFCBD5E1)
+    val NeutralCool400 = Color(0xFF94A3B8)
+    val NeutralCool500 = Color(0xFF64748B)
+    val NeutralCool600 = Color(0xFF475569)
+    val NeutralCool700 = Color(0xFF334155)
+    val NeutralCool800 = Color(0xFF1E293B)
+    val NeutralCool900 = Color(0xFF0F172A)
+
+    // WARNING
+    /**
+     * Ramp kuning untuk penanda promo dan hadiah.
+     *
+     * **Sengaja tidak lengkap.** Hanya empat langkah yang benar-benar dipakai
+     * artefak yang dicatat di sini; melengkapi enam langkah sisanya berarti
+     * mengarang nilai yang tidak pernah diputuskan desain. Tambahkan langkah
+     * baru hanya kalau desain menyebutnya.
+     */
+    val Warning50 = Color(0xFFFEF6E7)
+    val Warning100 = Color(0xFFFEF3C7)
+    val Warning600 = Color(0xFFD97706)
+    val Warning700 = Color(0xFFB45309)
 }
 
 /**
@@ -103,6 +137,21 @@ object CardArt {
     val OnCardPlatinumMuted = Color(0xFFB0B0B0)
 }
 
+/**
+ * Latar lingkaran ikon di kartu notifikasi.
+ *
+ * Tint yang sangat terang, dipakai **hanya** sebagai alas ikon — bukan untuk
+ * permukaan layar, teks, atau aksen. [Success] dan [Info] adalah nilai kustom
+ * artefak yang tidak ada padanannya di ramp mana pun; dua lainnya merujuk token
+ * yang sudah ada supaya nilainya tidak terduplikasi.
+ */
+object IconTint {
+    val Success = Color(0xFFE8F8ED)
+    val Info = Color(0xFFE6F0F8)
+    val Warning = AppColor.Warning50
+    val Neutral = AppColor.NeutralCool100
+}
+
 object AppAlpha {
     const val A10 = 0.10f
     const val A20 = 0.20f
@@ -125,6 +174,16 @@ object M3Color {
     val PrimaryContainer = Color(0xFF0077C8)
     val OnPrimaryContainer = Color(0xFFFBFBFF)
     val InversePrimary = Color(0xFF9FCAFF)
+
+    /**
+     * Aksen primary terang yang tidak ikut berubah antara skema terang dan gelap.
+     *
+     * Nilainya berasal dari palet Stitch project ini (`primary_fixed`), tapi
+     * sempat tidak ikut dipindahkan ke sini. Dipakai dengan alpha sebagai latar
+     * baris notifikasi yang belum dibaca — jauh lebih lembut daripada
+     * [PrimaryContainer] yang sempat dipakai sebagai gantinya.
+     */
+    val PrimaryFixed = Color(0xFFD2E4FF)
 
     // Secondary
     val Secondary = Color(0xFF2F628C)

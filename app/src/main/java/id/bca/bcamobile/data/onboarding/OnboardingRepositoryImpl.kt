@@ -8,17 +8,20 @@ import id.bca.bcamobile.core.network.ApiEnvelope
 import retrofit2.Response
 import id.bca.bcamobile.core.network.ApiCaller
 import id.bca.bcamobile.core.network.ApiFailure
+import id.bca.bcamobile.core.security.buildPinPayload
 import id.bca.bcamobile.data.onboarding.remote.OnboardingApi
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.JoinQueueRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataRequest
+import id.bca.bcamobile.data.onboarding.remote.dto.SetCardRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SubmitRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.VerifyOtpRequest
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.onboarding.OnboardingRepository
 import id.bca.bcamobile.domain.onboarding.model.BiometricResult
+import id.bca.bcamobile.domain.onboarding.model.CardCatalog
 import id.bca.bcamobile.domain.onboarding.model.CreatedAccount
 import id.bca.bcamobile.domain.onboarding.model.CredentialResult
 import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
@@ -26,10 +29,12 @@ import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
 import id.bca.bcamobile.domain.onboarding.model.OtpVerification
+import id.bca.bcamobile.domain.onboarding.model.PasporCardType
 import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
+import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -53,9 +58,14 @@ class OnboardingRepositoryImpl @Inject constructor(
 
     override fun clearLocalSession() = store.clear()
 
+    override suspend fun cardCatalog(productType: ProductType): DataResult<CardCatalog> =
+        onboardingCall { api.cardCatalog(productType.wireValue) }.mapSuccess { it.toDomain() }
+
     override suspend fun createSession(
         productType: ProductType,
         acceptedTncVersion: String,
+        cardType: PasporCardType?,
+        cardCatalogVersion: String?,
     ): DataResult<OnboardingSession> {
         // Sesi baru berarti idempotency key lama tidak relevan lagi.
         store.clear()
@@ -65,10 +75,32 @@ class OnboardingRepositoryImpl @Inject constructor(
                     productType = productType.wireValue,
                     deviceId = store.deviceId(),
                     acceptedTncVersion = acceptedTncVersion,
+                    cardType = cardType?.wireValue,
+                    cardCatalogVersion = cardCatalogVersion,
                 ),
             )
         }
         return result.mapSuccess { it.toDomain().also { session -> store.sessionId = session.sessionId } }
+    }
+
+    override suspend fun selectCard(
+        cardType: PasporCardType,
+        cardCatalogVersion: String?,
+    ): DataResult<SelectedCard> = withSession { sessionId ->
+        onboardingCall(allowRetry = false) {
+            api.setCard(
+                sessionId = sessionId,
+                request = SetCardRequest(
+                    cardType = cardType.wireValue,
+                    cardCatalogVersion = cardCatalogVersion,
+                ),
+            )
+        }.flatMapSuccess { response ->
+            // Tanpa objek `card`, client tidak tahu kartu mana yang akhirnya tercatat.
+            response.card
+                ?.let { DataResult.Success(it.toDomain()) }
+                ?: DataResult.Failure(ApiFailure.Unknown)
+        }
     }
 
     override suspend fun getSession(sessionId: String): DataResult<OnboardingSession> =
@@ -170,18 +202,23 @@ class OnboardingRepositoryImpl @Inject constructor(
             is DataResult.Success -> keyResult.value
         }
 
-        // Dev mode: server belum punya kunci RSA, kredensial dikirim apa adanya.
+        // Dev mode: server belum punya kunci RSA, kredensial dikirim apa adanya —
+        // `decryptCredential` di backend mengembalikannya tanpa membongkar amplop.
         val accessCodePayload: String
         val pinPayload: String
         if (key.isDevMode) {
             accessCodePayload = accessCode
             pinPayload = pin
         } else {
-            accessCodePayload = encryptor.encrypt(accessCode, key.publicKeyPem)
+            // Yang dienkripsi adalah amplop {pin, nonce, ts}, bukan rahasianya
+            // langsung: `POST /onboarding/credentials` membongkarnya lewat
+            // `DecryptPIN` yang sama dengan endpoint ber-PIN lain, jadi rahasia
+            // polos akan ditolak sebagai CRED_DECRYPTION_FAILED.
+            accessCodePayload = encryptor.encrypt(buildPinPayload(accessCode), key.publicKeyPem)
                 ?: return@withSession DataResult.Failure(
                     ApiFailure.Business(CODE_ENCRYPTION_FAILED, ""),
                 )
-            pinPayload = encryptor.encrypt(pin, key.publicKeyPem)
+            pinPayload = encryptor.encrypt(buildPinPayload(pin), key.publicKeyPem)
                 ?: return@withSession DataResult.Failure(
                     ApiFailure.Business(CODE_ENCRYPTION_FAILED, ""),
                 )

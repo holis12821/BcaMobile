@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- API 33+: tanpa izin ini notifikasi tidak muncul. Diminta setelah login,
+         bukan saat aplikasi pertama dibuka — lihat NotificationPermissionEffect. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
@@ -33,6 +36,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- android:exported="false" bukan formalitas: service yang diekspor bisa
+             dikirimi Intent oleh aplikasi lain. -->
+        <service
+            android:name=".core.push.BcaFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Channel untuk notifikasi yang ditampilkan SDK saat aplikasi di
+             background dan muatannya tidak menyebut channel_id sendiri. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/push_channel_umum_id" />
     </application>
 
 </manifest>

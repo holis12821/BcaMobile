@@ -1,42 +1,43 @@
 package id.bca.bcamobile.core.security
 
-import android.content.Context
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Enkripsi PIN dan kode akses untuk endpoint bernasabah.
  *
- * Kunci publik dibaca dari `assets/pin_public.pem`, berbeda dengan onboarding yang
- * mengambilnya dari `GET /onboarding/credentials/public-key`. Pembedaan ini mengikuti
- * `.claude/skills/bca-mobile-api/SKILL.md` §3.
+ * Yang dienkripsi **bukan** PIN telanjang, melainkan amplop JSON:
  *
- * **Berkas `assets/pin_public.pem` belum ada di repo** — harus disediakan tim backend.
- * Selama belum ada, [encrypt] mengembalikan null dan pemanggil wajib memperlakukannya
- * sebagai kegagalan, bukan mengirim PIN apa adanya.
+ * ```json
+ * {"pin":"123456","nonce":"<uuid-v4>","ts":1790335258}
+ * ```
+ *
+ * `nonce` baru di setiap permintaan (server mengingatnya 120 detik dan menolak
+ * pengulangan) dan `ts` detik Unix dengan toleransi 60 detik. Tanpa keduanya satu
+ * `pin_encrypted` yang tersadap bisa diputar ulang selamanya. Bentuk ini dijaga
+ * test di backend — lihat `internal/pkg/crypto/rsa.go`.
+ *
+ * Kuncinya datang dari [PinKeyProvider], bukan dari asset saja: kunci server
+ * dirotasi, dan APK yang memegang PEM lama akan membuat server membalas "PIN
+ * salah" untuk PIN yang benar.
  */
 @Singleton
 class PinEncryptor @Inject constructor(
-    private val context: Context,
+    private val keyProvider: PinKeyProvider,
     private val rsaEncryptor: RsaEncryptor,
 ) {
 
-    private val publicKeyPem: String? by lazy {
-        runCatching {
-            context.assets.open(ASSET_NAME).bufferedReader().use { it.readText() }
-        }.getOrNull()
+    /**
+     * @return ciphertext base64 beserta `key_id` kunci yang dipakai, atau null
+     *   bila tidak ada kunci sama sekali. Null berarti operasi berbasis PIN
+     *   **gagal** — mengirim PIN apa adanya tidak pernah menjadi pilihan.
+     */
+    suspend fun encrypt(plaintext: String): EncryptedPin? {
+        val key = keyProvider.current() ?: return null
+        val ciphertext = rsaEncryptor.encrypt(buildPinPayload(plaintext), key.pem) ?: return null
+        return EncryptedPin(ciphertext = ciphertext, keyId = key.keyId)
     }
 
-    /** true bila kunci tersedia; false berarti fitur berbasis PIN belum bisa dipakai. */
-    val isAvailable: Boolean get() = !publicKeyPem.isNullOrBlank()
-
-    /** Base64 hasil RSA-OAEP-SHA256, atau null bila kunci tidak tersedia. */
-    fun encrypt(plaintext: String): String? {
-        val pem = publicKeyPem?.takeIf { it.isNotBlank() } ?: return null
-        return rsaEncryptor.encrypt(plaintext, pem)
-    }
-
-    private companion object {
-        const val ASSET_NAME = "pin_public.pem"
-    }
+    /** Dipakai setelah server menolak kunci; pemanggil lalu mengenkripsi ulang. */
+    fun invalidateKey() = keyProvider.invalidate()
 }
