@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.theme.AppAlpha
 import id.bca.bcamobile.ui.theme.AppColor
@@ -139,6 +140,7 @@ fun TopUpEWalletScreen(
                     enabled = state.isFormValid && !state.isLoading,
                     shape = AppShape.R6,
                     modifier = Modifier
+                        .bottomBarSafePadding()
                         .fillMaxWidth()
                         .padding(Spacing.s4),
                 ) {

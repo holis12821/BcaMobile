@@ -15,7 +15,7 @@ Dua hal yang sering dikira satu:
 Skill ini soal yang kedua. Yang pertama sudah selesai dan jangan diubah dari
 sini — `NotificationRepository`, `NotifikasiViewModel`, filter `type`, mark-read.
 
-Kontrak yang mengikat: `docs/backend/01-API-SPECIFICATION.md` §3 (push-token) dan
+Kontrak yang mengikat: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §3 (push-token) dan
 §7 (notifications). Sisi server ada di skill `push-notification-api` pada repo
 `bca-mobile-api`. **Kalau dokumen ini berbeda dengan spec, spec yang menang** —
 laporkan selisihnya, jangan diam-diam ikut dokumen ini.
@@ -438,6 +438,6 @@ Lalu, dengan backend jalan (`make dev` di repo `bca-mobile-api`):
 7. **Perangkat dicabut.** Cabut perangkat di server, lalu daftarkan token →
    `403 AUTH_DEVICE_NOT_RECOGNIZED` dan aplikasi kembali ke layar masuk.
 
-Kalau kontrak API berubah saat mengerjakan ini, `docs/backend/01-API-SPECIFICATION.md`
+Kalau kontrak API berubah saat mengerjakan ini, `bca-mobile-api/docs/01-API-SPECIFICATION.md`
 di repo ini adalah salinan — perubahannya milik repo backend, dan salinan di sini
 ikut diperbarui, bukan diedit sendiri.

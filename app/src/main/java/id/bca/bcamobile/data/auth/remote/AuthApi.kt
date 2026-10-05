@@ -22,7 +22,7 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 /**
- * Endpoint autentikasi. Kontrak: `docs/backend/01-API-SPECIFICATION.md` §2.
+ * Endpoint autentikasi. Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §2.
  *
  * Base URL memuat prefix `v1/`, jadi path di sini relatif terhadap itu.
  */

@@ -1,5 +1,14 @@
 package id.bca.bcamobile.ui.screen.buka_rekening
 
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningFlowState
+import id.bca.bcamobile.ui.screen.buka_rekening.common.groupNik
+import id.bca.bcamobile.ui.screen.buka_rekening.common.isAllSameChar
+import id.bca.bcamobile.ui.screen.buka_rekening.common.isCredentialValid
+import id.bca.bcamobile.ui.screen.buka_rekening.common.isSequential
+import id.bca.bcamobile.ui.screen.buka_rekening.common.isValidAccessCode
+import id.bca.bcamobile.ui.screen.buka_rekening.common.isValidPin
+import id.bca.bcamobile.ui.screen.buka_rekening.common.joinNonBlank
+import id.bca.bcamobile.ui.screen.buka_rekening.common.toKtpDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

@@ -44,14 +44,16 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.components.AppTopBar
+import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.ui.theme.AppAlpha
 import id.bca.bcamobile.ui.theme.AppColor
 import id.bca.bcamobile.ui.theme.AppShape
 import id.bca.bcamobile.ui.theme.AppSize
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
 import id.bca.bcamobile.ui.theme.Spacing
-import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningLangkah
 import id.bca.bcamobile.ui.screen.buka_rekening.common.SelectionIndicator
+import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
 
 // -- Data Model ---------------------------------------------------------------
 
@@ -141,6 +143,7 @@ fun BukaRekeningPilihJenisScreen(
                         onClick = { onJenisSelected(selectedIndex) },
                         shape = AppShape.R6,
                         modifier = Modifier
+                            .bottomBarSafePadding()
                             .fillMaxWidth()
                             .padding(Spacing.s4),
                     ) {
@@ -216,9 +219,7 @@ fun BukaRekeningPilihJenisScreen(
                         ),
                     ) {
                         StepProgressIndicator(
-                            currentStep = 1,
-                            totalSteps = 4,
-                            stepLabel = stringResource(R.string.buka_rekening_pilih_produk),
+                            langkah = BukaRekeningLangkah.PILIH_PRODUK,
                         )
                         Spacer(Modifier.height(Spacing.s3))
                         Text(

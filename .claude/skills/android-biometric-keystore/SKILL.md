@@ -20,7 +20,7 @@ challenge, `KeyPermanentlyInvalidatedException`, atau kegagalan login biometrik.
 | Liveness dan face matching saat buka rekening | `buka-rekening-native-android` |
 | Enkripsi PIN dan kode akses | `RsaEncryptor`, `PinEncryptor` di `core/security/` |
 | Navigasi, batas ViewModel, keamanan sesi | `compose-architecture` |
-| Backend `/auth/biometric/*` | Lihat `docs/backend/01-API-SPECIFICATION.md` §2 |
+| Backend `/auth/biometric/*` | Lihat `bca-mobile-api/docs/01-API-SPECIFICATION.md` §2 |
 
 ---
 
@@ -36,7 +36,7 @@ diselesaikan** sampai tiga hal ini beres. Jangan mulai tanpa memeriksa ulang.
    kelas induknya menyentuh titik masuk aplikasi, jadi perlu disepakati lebih dulu.
 3. **Algoritma tanda tangan belum ditetapkan backend.** Spec tidak menyebut jenis
    kunci, algoritma, maupun format `signed_challenge`. Daftar pertanyaannya ada di
-   `docs/backend/10-HANDOVER-BLOCKER-BACKEND.md` butir 2. Menebak berarti server
+   `bca-mobile-api/docs/10-HANDOVER-BLOCKER-BACKEND.md` butir 2. Menebak berarti server
    akan menolak setiap tanda tangan, dan gejalanya sulit dibedakan dari PIN salah.
 
 Nilai yang dipakai di seluruh dokumen ini adalah **rekomendasi**, bukan kontrak yang

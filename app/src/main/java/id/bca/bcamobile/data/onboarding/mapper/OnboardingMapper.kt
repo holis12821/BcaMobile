@@ -5,7 +5,6 @@ import id.bca.bcamobile.data.onboarding.remote.dto.AlamatKtpDto
 import id.bca.bcamobile.data.onboarding.remote.dto.BiometricResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.CardCatalogResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.CardDto
-import id.bca.bcamobile.data.onboarding.remote.dto.SessionCardDto
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.GetSessionResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.JoinQueueResponse
@@ -16,8 +15,11 @@ import id.bca.bcamobile.data.onboarding.remote.dto.ProductDto
 import id.bca.bcamobile.data.onboarding.remote.dto.PublicKeyResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.SessionCardDto
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.StepsCompletedDto
+import id.bca.bcamobile.data.onboarding.remote.dto.TncResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.TncSectionDto
 import id.bca.bcamobile.data.onboarding.remote.dto.VerifyOtpResponse
 import id.bca.bcamobile.domain.onboarding.model.AlamatKtp
 import id.bca.bcamobile.domain.onboarding.model.BiometricResult
@@ -32,27 +34,31 @@ import id.bca.bcamobile.domain.onboarding.model.CardLimits
 import id.bca.bcamobile.domain.onboarding.model.CardStyle
 import id.bca.bcamobile.domain.onboarding.model.CardTier
 import id.bca.bcamobile.domain.onboarding.model.CardUnavailableReason
-import id.bca.bcamobile.domain.onboarding.model.PasporCard
-import id.bca.bcamobile.domain.onboarding.model.PasporCardType
-import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.CreatedAccount
 import id.bca.bcamobile.domain.onboarding.model.CredentialResult
+import id.bca.bcamobile.domain.onboarding.model.IceServer
 import id.bca.bcamobile.domain.onboarding.model.KtpData
 import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
 import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
-import id.bca.bcamobile.domain.onboarding.model.IceServer
 import id.bca.bcamobile.domain.onboarding.model.OperatingHours
 import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
 import id.bca.bcamobile.domain.onboarding.model.OtpVerification
+import id.bca.bcamobile.domain.onboarding.model.PasporCard
+import id.bca.bcamobile.domain.onboarding.model.PasporCardType
 import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.Product
 import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.domain.onboarding.model.PublicKeyMaterial
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
+import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.StepsCompleted
+import id.bca.bcamobile.domain.onboarding.model.TncConsent
+import id.bca.bcamobile.domain.onboarding.model.TncDocument
+import id.bca.bcamobile.domain.onboarding.model.TncNotice
+import id.bca.bcamobile.domain.onboarding.model.TncSection
 
 // -- DTO -> domain -------------------------------------------------------------
 
@@ -277,4 +283,44 @@ fun LivenessMeta.toDto(): LivenessMetaDto = LivenessMetaDto(
     challengeType = challengeType,
     completedActions = completedActions,
     precisionScore = precisionScore,
+)
+
+// -- Syarat & Ketentuan --------------------------------------------------------
+
+/**
+ * Mengubah respons S&K jadi dokumen domain, atau `null` kalau dokumennya tidak layak
+ * disetujui.
+ *
+ * Dua field tidak boleh jatuh ke "kosong lalu lanjut" seperti field skalar lainnya:
+ * tanpa `version` tidak ada yang bisa dikirim sebagai `accepted_tnc_version`, dan tanpa
+ * `sections` layar akan menawarkan persetujuan atas teks hukum yang tidak terpampang.
+ * Keduanya dilaporkan sebagai kegagalan muat, bukan dokumen setengah jadi.
+ *
+ * `trust_banner`, `notice`, dan `consent` tetap boleh hilang — layar menyembunyikan
+ * bagiannya, dan itu jauh lebih ringan daripada menolak seluruh dokumen.
+ */
+fun TncResponse.toDomain(): TncDocument? {
+    if (version.isBlank() || sections.isEmpty()) return null
+    return TncDocument(
+        version = version,
+        heading = heading,
+        subtitle = subtitle,
+        trustTitle = trustBanner?.title.orEmpty(),
+        trustSubtitle = trustBanner?.subtitle.orEmpty(),
+        // Urutan sudah benar dari server — jangan disortir ulang di client.
+        sections = sections.map { it.toDomain() },
+        notice = notice?.let { TncNotice(label = it.label, body = it.body) },
+        consent = consent?.let {
+            TncConsent(prefix = it.prefix, link = it.link, suffix = it.suffix)
+        },
+        agreeCta = agreeCta,
+        effectiveFrom = effectiveFrom,
+        isActive = isActive,
+    )
+}
+
+private fun TncSectionDto.toDomain(): TncSection = TncSection(
+    iconKey = iconKey,
+    title = title,
+    body = body,
 )

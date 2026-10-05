@@ -9,7 +9,7 @@ import id.bca.bcamobile.domain.auth.model.PinVerification
 import id.bca.bcamobile.domain.common.DataResult
 
 /**
- * Autentikasi nasabah. Kontrak: `docs/backend/01-API-SPECIFICATION.md` §2.
+ * Autentikasi nasabah. Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §2.
  *
  * Implementasi yang menyimpan token; pemanggil tidak pernah menyentuh token langsung.
  * PIN dan kode akses masuk sebagai teks biasa lalu dienkripsi di dalam — pemanggil

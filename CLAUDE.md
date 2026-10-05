@@ -76,7 +76,7 @@ alasan sama. Jangan memindahkannya ke buildType: buildConfigField buildType mena
 flavor, jadi nilainya akan membeku. `INTERNAL_BASE_URL` ada tapi **tidak dipanggil
 aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak boleh ikut APK.
 **URL WebSocket signaling bukan konstanta**: datang sebagai `signaling_url` dari response
-`video-call/queue`, jangan dirakit dari base URL. Peta lengkap: `docs/backend/10-…`.
+`video-call/queue`, jangan dirakit dari base URL. Peta: `bca-mobile-api/docs/10-…`.
 
 - Semua response dibungkus `ApiEnvelope<T>` (`status`/`data`/`error`/`meta`/`pagination`)
 - `ApiCaller` (`core/network/`) memusatkan retry & klasifikasi → `DataResult<T>`: jaringan 3×
@@ -155,12 +155,12 @@ Aturan di dalam skill **jangan disalin ke sini** — cukup rujukan.
 
 ## Dokumen kontrak
 
-| Isi | Berkas |
+| Isi | Berkas — kontrak API hidup di repo `bca-mobile-api`, **tidak** disalin ke sini |
 |---|---|
-| Kontrak API onboarding | `docs/backend/06-BUKA-REKENING-API-SPEC.md` |
-| Base URL & endpoint per lingkungan | `docs/backend/10-BASE-URL-DAN-ENDPOINT.md` |
-| Pilih kartu: kontrak + prompt backend | `docs/backend/08-…-API-SPEC.md`, `09-…-SKILL-PROMPTS.md` |
-| Skill backend OTP onboarding (untuk disalin ke project backend) | `docs/backend-skills/buka-rekening-otp/` |
+| Kontrak API onboarding | `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md` |
+| Base URL & endpoint per lingkungan | repo `bca-mobile-api` → `docs/10-BASE-URL-DAN-ENDPOINT.md` |
+| Pilih kartu: kontrak, lalu prompt | `bca-mobile-api/docs/08-…-API-SPEC.md`, `docs/backend-prompts/09-…` |
+| Skill backend OTP onboarding | `bca-mobile-api/.claude/skills/buka-rekening-otp/` |
 | Playbook integrasi Android | `docs/buka-rekening-android-prompts.md`, `…-pilih-kartu-android-prompts.md` |
 | Inventaris layar & komponen | `.claude/skills/stitch-to-compose/references/screen-inventory.md` |
 | Struktur navigasi (mengikat) | `.claude/skills/compose-architecture/references/navigation.md` |

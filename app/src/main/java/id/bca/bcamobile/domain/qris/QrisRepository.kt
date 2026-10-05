@@ -6,7 +6,7 @@ import id.bca.bcamobile.domain.qris.model.QrisReceipt
 
 /**
  * Pembayaran QRIS.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §8.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §8.
  *
  * Urutannya sama dengan transaksi lain: decode → verifikasi PIN → bayar.
  */

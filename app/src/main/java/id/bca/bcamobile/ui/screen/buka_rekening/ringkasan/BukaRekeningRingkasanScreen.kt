@@ -37,11 +37,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.components.AppTopBar
+import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.ui.theme.AppColor
 import id.bca.bcamobile.ui.theme.AppShape
 import id.bca.bcamobile.ui.theme.AppSize
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
 import id.bca.bcamobile.ui.theme.Spacing
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningLangkah
 import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
 
 // -- Data Model ---------------------------------------------------------------
@@ -88,9 +90,7 @@ fun BukaRekeningRingkasanScreen(
 
             // Step progress
             StepProgressIndicator(
-                currentStep = 6,
-                totalSteps = 7,
-                stepLabel = stringResource(R.string.buka_rekening_ringkasan_step_label),
+                langkah = BukaRekeningLangkah.RINGKASAN,
             )
 
             // Header banner
@@ -691,10 +691,12 @@ private fun RingkasanBottomBar(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(
-                horizontal = Spacing.s4,
-                vertical = Spacing.s3,
-            ),
+            modifier = Modifier
+                .bottomBarSafePadding()
+                .padding(
+                    horizontal = Spacing.s4,
+                    vertical = Spacing.s3,
+                ),
         ) {
             Button(
                 onClick = onProsesClick,

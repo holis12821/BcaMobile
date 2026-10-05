@@ -1,7 +1,10 @@
 package id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningFlowState
+import id.bca.bcamobile.ui.screen.buka_rekening.common.maskedPhoneOrNull
 import id.bca.bcamobile.ui.screen.buka_rekening.common.resolve
 
 /**
@@ -14,8 +17,6 @@ data class BukaRekeningOtpUiState(
     val nomorTersamar: String = "",
     val kode: String = "",
     val detikTersisa: Int = 0,
-    val langkah: Int = 8,
-    val totalLangkah: Int = 14,
     val isLoading: Boolean = false,
     /** `OTP_BLOCKED`: sesi diblokir, input dan kirim ulang sama-sama mati. */
     val isInputDiblokir: Boolean = false,
@@ -38,7 +39,7 @@ data class BukaRekeningOtpUiState(
 @Composable
 fun BukaRekeningFlowState.toOtpUiState(): BukaRekeningOtpUiState =
     BukaRekeningOtpUiState(
-        nomorTersamar = otpSentTo,
+        nomorTersamar = otpSentTo.ifBlank { maskedFormPhone(dataPribadi?.nomorHp) },
         kode = otpCode,
         detikTersisa = otpCountdownSeconds,
         isLoading = isLoading,
@@ -46,3 +47,23 @@ fun BukaRekeningFlowState.toOtpUiState(): BukaRekeningOtpUiState =
         isKirimUlangDiblokir = isOtpResendBlocked,
         error = error?.resolve(),
     )
+
+/**
+ * Nomor tujuan OTP saat server tidak mengirim `otp_sent_to`.
+ *
+ * `personal-data` yang dijawab `OTP_DELIVERY_FAILED` berstatus 503 tanpa `data`, jadi
+ * tidak ada `otp_sent_to` walau langkahnya sudah maju ke OTP. Nomor yang ditampilkan
+ * diambil dari form Data Pribadi — nomor yang sama yang dikirim ke server sebagai
+ * tujuan OTP, bukan tebakan. Hanya kalau form itu pun tidak terbaca (mis. proses mati
+ * lalu draf dilanjutkan) layar jatuh ke keterangan umum.
+ */
+@Composable
+private fun maskedFormPhone(nomorHp: String?): String {
+    val masked = nomorHp?.maskedPhoneOrNull()
+        ?: return stringResource(R.string.buka_rekening_otp_nomor_tidak_tersedia)
+    return stringResource(
+        R.string.buka_rekening_otp_nomor_mask_format,
+        masked.prefix,
+        masked.suffix,
+    )
+}

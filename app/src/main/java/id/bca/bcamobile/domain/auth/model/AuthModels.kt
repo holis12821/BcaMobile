@@ -62,7 +62,7 @@ enum class PinPurpose(val wireValue: String) {
     /**
      * Pembayaran QRIS.
      *
-     * Nilai wire-nya `PAYMENT` mengikuti `docs/backend/01-API-SPECIFICATION.md` §2
+     * Nilai wire-nya `PAYMENT` mengikuti `bca-mobile-api/docs/01-API-SPECIFICATION.md` §2
      * (`TRANSFER, EWALLET_TOPUP, PAYMENT`). Skill `bca-mobile-api` menyebut
      * `QRIS_PAYMENT` dan client sebelumnya mengirim `QRIS` — keduanya tidak ada di
      * spec. Selisih ini dilaporkan, bukan diakali dengan menebak.

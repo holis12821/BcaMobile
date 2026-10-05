@@ -14,7 +14,7 @@ import retrofit2.http.POST
 
 /**
  * Top up e-wallet, pola sama dengan transfer: providers -> inquiry -> PIN -> topup.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §6.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §6.
  *
  * Batas nominal dan preset datang dari [providers] — jangan ditanam di client.
  */

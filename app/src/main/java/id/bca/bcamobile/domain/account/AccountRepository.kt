@@ -8,7 +8,7 @@ import id.bca.bcamobile.domain.account.model.TransactionLimits
 import id.bca.bcamobile.domain.account.model.UserProfile
 import id.bca.bcamobile.domain.common.DataResult
 
-/** Rekening dan profil. Kontrak: `docs/backend/01-API-SPECIFICATION.md` §3. */
+/** Rekening dan profil. Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §3. */
 interface AccountRepository {
 
     suspend fun dashboard(): DataResult<Dashboard>

@@ -42,7 +42,7 @@ import javax.inject.Singleton
  *
  * Menyatukan keduanya membuat `AuthApi` menembak `…/v1/onboarding/auth/login/pin`.
  * Keduanya tetap berbagi [HeaderInterceptor] supaya `X-Device-ID` dan `X-Request-ID`
- * konsisten — lihat `docs/backend/06-BUKA-REKENING-API-SPEC.md` §0.
+ * konsisten — lihat `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md` §0.
  */
 @Module
 @InstallIn(SingletonComponent::class)

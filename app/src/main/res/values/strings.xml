@@ -373,6 +373,10 @@
 
     <!-- Buka Rekening - Syarat &amp; Ketentuan Screen -->
     <string name="buka_rekening_sk_step_label">Syarat &amp; Ketentuan</string>
+    <!-- Tombol pada keadaan gagal memuat S&K dari GET /onboarding/tnc. -->
+    <string name="buka_rekening_coba_lagi">Coba Lagi</string>
+    <!-- Cadangan bila server mengirim 409 TNC_VERSION_OUTDATED tanpa message. -->
+    <string name="buka_rekening_error_tnc_outdated">Syarat &amp; Ketentuan telah diperbarui. Mohon baca dan setujui versi terbaru.</string>
     <string name="buka_rekening_sk_heading">Syarat &amp; Ketentuan Pembukaan Rekening</string>
     <string name="buka_rekening_sk_subtitle">Mohon baca dan pahami syarat dan ketentuan pembukaan rekening digital BCA sebelum melanjutkan.</string>
     <string name="buka_rekening_sk_trust_title">Persetujuan Resmi Nasabah</string>
@@ -450,6 +454,34 @@
     <string name="buka_rekening_dp_jenis_pekerjaan">Jenis Pekerjaan</string>
     <string name="buka_rekening_dp_penghasilan">Penghasilan per Bulan</string>
     <string name="buka_rekening_dp_sumber_dana">Sumber Dana Utama</string>
+    <string name="buka_rekening_dp_section_kontak">Kontak Aktif</string>
+    <string name="buka_rekening_dp_nomor_hp">Nomor Handphone</string>
+    <string name="buka_rekening_dp_email">Alamat Email</string>
+    <string name="buka_rekening_dp_kontak_catatan">Kode OTP verifikasi akan dikirim ke nomor handphone ini.</string>
+    <string name="buka_rekening_dp_hint_tempat_lahir">Kota kelahiran</string>
+    <string name="buka_rekening_dp_hint_tanggal_lahir">Pilih tanggal</string>
+    <string name="buka_rekening_dp_hint_alamat">Nama jalan, nomor rumah</string>
+    <string name="buka_rekening_dp_hint_rt_rw">003/005</string>
+    <string name="buka_rekening_dp_hint_kode_pos">12190</string>
+    <string name="buka_rekening_dp_hint_kelurahan">Kelurahan</string>
+    <string name="buka_rekening_dp_hint_kecamatan">Kecamatan</string>
+    <string name="buka_rekening_dp_hint_kota">Kota / Kabupaten</string>
+    <string name="buka_rekening_dp_hint_provinsi">Provinsi</string>
+    <string name="buka_rekening_dp_hint_nomor_hp">08xxxxxxxxxx</string>
+    <string name="buka_rekening_dp_hint_email">nama@email.com</string>
+    <string name="buka_rekening_dp_kelurahan_label">Kelurahan</string>
+    <string name="buka_rekening_dp_kecamatan_label">Kecamatan</string>
+    <string name="buka_rekening_dp_kota_label">Kota / Kabupaten</string>
+    <string name="buka_rekening_dp_provinsi_label">Provinsi</string>
+    <string name="buka_rekening_dp_pilih">Pilih</string>
+    <string name="buka_rekening_dp_batal">Batal</string>
+    <string name="buka_rekening_dp_error_wajib">Wajib diisi.</string>
+    <string name="buka_rekening_dp_error_rt_rw">Format RT/RW belum sesuai, contoh 003/005.</string>
+    <string name="buka_rekening_dp_error_kode_pos">Kode pos terdiri dari 5 angka.</string>
+    <string name="buka_rekening_dp_error_tanggal">Tanggal lahir belum sesuai.</string>
+    <string name="buka_rekening_dp_error_nomor_hp">Nomor handphone belum sesuai, contoh 081234567890.</string>
+    <string name="buka_rekening_dp_error_email">Alamat email belum sesuai.</string>
+    <string name="buka_rekening_dp_error_form">Lengkapi data yang masih ditandai merah.</string>
     <string name="buka_rekening_dp_security">Data Anda dienkripsi dengan standar perbankan 256-bit dan terdaftar di OJK.</string>
     <string name="buka_rekening_dp_lanjut">Lanjut ke Verifikasi Dokumen</string>
     <string name="buka_rekening_dp_simpan">Simpan Sementara &amp; Keluar</string>
@@ -499,6 +531,10 @@
     <string name="buka_rekening_otp_step_label">Verifikasi OTP</string>
     <string name="buka_rekening_otp_heading">Verifikasi Kode OTP</string>
     <string name="buka_rekening_otp_subtitle">Kode verifikasi 6 digit telah dikirimkan via SMS ke nomor ponsel terdaftar:</string>
+    <!-- Samaran nomor tujuan OTP, bentuknya sama dengan otp_sent_to dari server: 0812****8889. -->
+    <string name="buka_rekening_otp_nomor_mask_format">%1$s****%2$s</string>
+    <!-- Dipakai saat otp_sent_to kosong, mis. pengiriman SMS gagal: chip nomor jangan tampil blank. -->
+    <string name="buka_rekening_otp_nomor_tidak_tersedia">nomor ponsel terdaftar</string>
     <string name="buka_rekening_otp_kirim_ulang_dalam">Kirim ulang kode dalam</string>
     <string name="buka_rekening_otp_hitung_mundur_format">%1$02d:%2$02d</string>
     <string name="buka_rekening_otp_kirim_ulang">Kirim Ulang OTP</string>
@@ -604,6 +640,25 @@
     <string name="buka_rekening_vc_instruksi_langsung">Instruksi Langsung</string>
     <string name="buka_rekening_vc_anda">Anda</string>
     <string name="buka_rekening_vc_petugas_prefix">Petugas:</string>
+    <!-- Keadaan sambungan video call; menggantikan status "Terhubung" yang dulu hardcode. -->
+    <string name="buka_rekening_vc_status_menunggu">Menunggu petugas Halo BCA tersedia…</string>
+    <string name="buka_rekening_vc_status_menghubungkan">Menghubungkan ke petugas…</string>
+    <string name="buka_rekening_vc_status_menyambung_ulang">Sambungan terputus, menyambungkan kembali…</string>
+    <string name="buka_rekening_vc_status_gagal">Sambungan tidak dapat dilanjutkan. Silakan bergabung ke antrean lagi.</string>
+    <string name="buka_rekening_vc_status_selesai">Panggilan selesai.</string>
+    <string name="buka_rekening_vc_antrean_ulang">Gabung Antrean Lagi</string>
+    <!-- Layar video call dicapai tanpa izin kamera/mikrofon, termasuk setelah proses mati. -->
+    <string name="buka_rekening_vc_status_izin">Verifikasi video call memerlukan akses kamera dan mikrofon.</string>
+    <string name="buka_rekening_vc_izinkan">Izinkan Akses</string>
+    <string name="buka_rekening_vc_buka_pengaturan">Buka Pengaturan</string>
+    <!-- Izin dicabut dari Pengaturan di tengah panggilan; panggilan diakhiri. -->
+    <string name="buka_rekening_vc_izin_dicabut">Akses kamera atau mikrofon dicabut, jadi panggilan diakhiri. Mohon izinkan kembali lalu bergabung ke antrean lagi.</string>
+    <!-- Izin ada, tapi kamera/mikrofon tidak bisa diambil (dipakai aplikasi lain, dsb). -->
+    <string name="buka_rekening_vc_media_gagal">Kamera atau mikrofon tidak dapat digunakan. Tutup aplikasi lain yang memakainya, lalu coba lagi.</string>
+    <!-- Layar video call dibuka tanpa tiket antrean: tidak ada signaling_url untuk disambungi. -->
+    <string name="buka_rekening_vc_error_tanpa_antrean">Tiket antrean tidak ditemukan. Silakan bergabung ke antrean video call lagi.</string>
+    <!-- Permission sebelum "Tunggu Panggilan"; video call butuh keduanya, bukan hanya kamera. -->
+    <string name="buka_rekening_antrean_izin_dibutuhkan">Kamera dan mikrofon diperlukan untuk verifikasi video call.</string>
     <string name="buka_rekening_vc_pojk_regulasi">Verifikasi tatap muka digital wajib sesuai regulasi POJK No. 12/POJK.01/2017 tentang e-KYC Perbankan Nasional.</string>
 
     <!-- Buka Rekening - Buat Kredensial Screen -->
@@ -800,6 +855,21 @@
     <string name="buka_rekening_pekerjaan_karyawan_swasta">Karyawan Swasta</string>
     <string name="buka_rekening_penghasilan_10_20_juta">Rp 10.000.000 - Rp 20.000.000</string>
     <string name="buka_rekening_sumber_dana_gaji">Gaji</string>
+    <string name="buka_rekening_pekerjaan_pns">PNS</string>
+    <string name="buka_rekening_pekerjaan_tni_polri">TNI / Polri</string>
+    <string name="buka_rekening_pekerjaan_wiraswasta">Wiraswasta</string>
+    <string name="buka_rekening_pekerjaan_profesional">Profesional</string>
+    <string name="buka_rekening_pekerjaan_pelajar">Pelajar / Mahasiswa</string>
+    <string name="buka_rekening_pekerjaan_irt">Ibu Rumah Tangga</string>
+    <string name="buka_rekening_pekerjaan_lainnya">Lainnya</string>
+    <string name="buka_rekening_penghasilan_dibawah_5_juta">Di bawah Rp 5.000.000</string>
+    <string name="buka_rekening_penghasilan_5_10_juta">Rp 5.000.000 - Rp 10.000.000</string>
+    <string name="buka_rekening_penghasilan_20_50_juta">Rp 20.000.000 - Rp 50.000.000</string>
+    <string name="buka_rekening_penghasilan_diatas_50_juta">Di atas Rp 50.000.000</string>
+    <string name="buka_rekening_sumber_dana_usaha">Hasil Usaha</string>
+    <string name="buka_rekening_sumber_dana_investasi">Hasil Investasi</string>
+    <string name="buka_rekening_sumber_dana_warisan">Warisan</string>
+    <string name="buka_rekening_sumber_dana_lainnya">Lainnya</string>
     <string name="buka_rekening_ringkasan_setoran_format">Rp %1$s</string>
     <!-- Buka Rekening — izin kamera -->
     <string name="buka_rekening_izin_kamera_judul">Izin Kamera Diperlukan</string>

@@ -10,12 +10,13 @@ import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
 import id.bca.bcamobile.domain.onboarding.model.OtpVerification
-import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import id.bca.bcamobile.domain.onboarding.model.PasporCardType
+import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.ProductType
-import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
+import id.bca.bcamobile.domain.onboarding.model.SelectedCard
+import id.bca.bcamobile.domain.onboarding.model.TncDocument
 import java.io.File
 
 /**
@@ -31,6 +32,18 @@ interface OnboardingRepository {
 
     /** Hapus jejak sesi lokal tanpa memanggil server. Dipakai saat sesi expired/not found. */
     fun clearLocalSession()
+
+    /**
+     * Teks Syarat & Ketentuan yang sedang berlaku beserta nomor versinya.
+     *
+     * Dipanggil sebelum sesi ada, dan **wajib** sebelum [createSession]: versi yang
+     * dikirim sebagai `acceptedTncVersion` harus versi dokumen yang benar-benar
+     * terpampang di layar, bukan konstanta. Selisihnya dijawab `409 TNC_VERSION_OUTDATED`.
+     *
+     * `null` di dalam [DataResult.Success] tidak mungkin — dokumen tanpa versi atau tanpa
+     * pasal dilaporkan sebagai [DataResult.Failure], karena tidak ada yang bisa disetujui.
+     */
+    suspend fun tnc(): DataResult<TncDocument>
 
     /**
      * Katalog kartu Paspor untuk [productType]. Dipanggil sebelum sesi ada —

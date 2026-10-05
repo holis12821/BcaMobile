@@ -35,7 +35,7 @@ UI/frontend Android (itu project terpisah dengan skill `buka-rekening-native-and
 > └── video-call-ekyc/
 >     └── SKILL.md                          ← extract dari Prompt 5 jika perlu skill terpisah
 > ```
-> Referensi API spec: `docs/06-BUKA-REKENING-API-SPEC.md`
+> Referensi API spec: `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md`
 
 ---
 
@@ -135,7 +135,7 @@ Side states: EXPIRED | CANCELLED | REJECTED
 
 > Instruksi step-by-step untuk AI agent mengimplementasi backend buka rekening.
 > Jalankan satu prompt per sesi, secara berurutan.
-> AI agent **wajib** membaca skill di atas dan `06-BUKA-REKENING-API-SPEC.md` sebelum mulai.
+> AI agent **wajib** membaca skill di atas dan `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md` sebelum mulai.
 
 ---
 
@@ -179,7 +179,7 @@ Database schema for `onboarding_sessions`:
 
 Use the repository pattern. Service layer handles business logic,
 repository handles SQL queries. Follow project conventions from
-00-ARCHITECTURE-OVERVIEW.md and 04-SECURITY.md.
+bca-mobile-api/docs/00-ARCHITECTURE-OVERVIEW.md and bca-mobile-api/docs/04-SECURITY.md.
 ```
 
 ---

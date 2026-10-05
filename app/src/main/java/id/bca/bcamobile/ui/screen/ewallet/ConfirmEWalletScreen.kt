@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.theme.AppAlpha
 import id.bca.bcamobile.ui.theme.AppShape
@@ -104,6 +105,7 @@ fun ConfirmEWalletScreen(
             Column(
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.background)
+                    .bottomBarSafePadding()
                     .padding(Spacing.s4),
             ) {
                 Button(

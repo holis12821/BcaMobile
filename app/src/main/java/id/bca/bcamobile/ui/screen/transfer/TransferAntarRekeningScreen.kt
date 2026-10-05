@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.theme.AppAlpha
 import id.bca.bcamobile.ui.theme.AppShape
@@ -128,6 +129,7 @@ fun TransferAntarRekeningScreen(
                         vertical = Spacing.s4,
                     ),
                     modifier = Modifier
+                        .bottomBarSafePadding()
                         .fillMaxWidth()
                         .padding(horizontal = Spacing.s4)
                         .padding(bottom = Spacing.s4),

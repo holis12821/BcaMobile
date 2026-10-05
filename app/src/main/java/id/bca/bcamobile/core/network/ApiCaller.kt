@@ -91,6 +91,14 @@ class ApiCaller @Inject constructor(
 
             // 5xx layak diulang; sisanya keputusan final dari server.
             if (code >= 500) {
+                // Kecuali yang membawa kode bisnis di bawah: itu jawaban final
+                // yang kebetulan berstatus 5xx, bukan kegagalan transport.
+                val businessCode = apiError?.code
+                if (businessCode != null && businessCode in FINAL_5XX_CODES) {
+                    return DataResult.Failure(
+                        ApiFailure.Business(businessCode, apiError.message),
+                    )
+                }
                 lastError = ApiFailure.Server
                 if (allowRetry && attempt < SERVER_RETRIES) {
                     delay(BACKOFF_MS[attempt].milliseconds)
@@ -123,7 +131,7 @@ class ApiCaller @Inject constructor(
 
     /** Envelope HTTP 200 tapi `status: "error"`. */
     private fun classifyBody(error: ApiError?): ApiFailure =
-        classifyCode(error?.code, error?.message, retryAfterFrom(error))
+        classifyCode(error?.code, error?.message, retryAfterFrom(error), error)
             ?: ApiFailure.Unknown
 
     private fun classifyHttp(
@@ -133,7 +141,7 @@ class ApiCaller @Inject constructor(
         notFoundAs: ApiFailure,
     ): ApiFailure {
         val retryAfter = retryAfterFrom(error) ?: retryAfterHeader?.toIntOrNull()
-        classifyCode(error?.code, error?.message, retryAfter)?.let { return it }
+        classifyCode(error?.code, error?.message, retryAfter, error)?.let { return it }
 
         return when (httpCode) {
             401 -> ApiFailure.Unauthorized
@@ -145,7 +153,12 @@ class ApiCaller @Inject constructor(
         }
     }
 
-    private fun classifyCode(code: String?, message: String?, retryAfter: Int?): ApiFailure? =
+    private fun classifyCode(
+        code: String?,
+        message: String?,
+        retryAfter: Int?,
+        error: ApiError?,
+    ): ApiFailure? =
         when (code) {
             null, "" -> null
             CODE_SESSION_EXPIRED -> ApiFailure.SessionExpired
@@ -157,9 +170,24 @@ class ApiCaller @Inject constructor(
                 isOtpBlocked = true,
                 message = message.orEmpty(),
             )
+            CODE_TNC_OUTDATED -> ApiFailure.TncOutdated(
+                currentVersion = currentVersionFrom(error).orEmpty(),
+                message = message.orEmpty(),
+            )
             CODE_INTERNAL -> ApiFailure.Server
             else -> ApiFailure.Business(code, message.orEmpty())
         }
+
+    /**
+     * `details.current_version` pada `409 TNC_VERSION_OUTDATED`.
+     *
+     * Dibungkus `runCatching` seperti [retryAfterFrom]: `details` bertipe `JsonElement?`
+     * dan bisa `null` atau bukan objek, dan versi yang tidak terbaca tidak boleh
+     * menggagalkan klasifikasinya — layar tetap bisa memuat ulang tanpa tahu tujuannya.
+     */
+    private fun currentVersionFrom(error: ApiError?): String? = runCatching {
+        error?.details?.jsonObject?.get("current_version")?.jsonPrimitive?.content
+    }.getOrNull()
 
     private fun retryAfterFrom(error: ApiError?): Int? = runCatching {
         error?.details?.jsonObject?.get("retry_after_seconds")?.jsonPrimitive?.content?.toInt()
@@ -178,5 +206,18 @@ class ApiCaller @Inject constructor(
         const val CODE_RATE_LIMIT = "RATE_LIMIT_EXCEEDED"
         const val CODE_OTP_BLOCKED = "OTP_BLOCKED"
         const val CODE_INTERNAL = "INTERNAL_ERROR"
+        const val CODE_TNC_OUTDATED = "TNC_VERSION_OUTDATED"
+        const val CODE_OTP_DELIVERY_FAILED = "OTP_DELIVERY_FAILED"
+
+        /**
+         * Kode 5xx yang **tidak** boleh diulang dan tidak boleh disamarkan jadi
+         * [ApiFailure.Server].
+         *
+         * `OTP_DELIVERY_FAILED` berstatus 503, tapi kodenya tetap terbit dan sah —
+         * yang gagal hanya pengiriman SMS-nya. Mengulang request tidak memperbaiki
+         * apa pun, dan sebagai `Server` layar OTP akan menawarkan "coba lagi"
+         * padahal yang benar adalah "kirim ulang".
+         */
+        val FINAL_5XX_CODES = setOf(CODE_OTP_DELIVERY_FAILED)
     }
 }

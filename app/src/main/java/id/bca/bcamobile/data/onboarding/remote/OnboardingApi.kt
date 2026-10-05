@@ -21,6 +21,7 @@ import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SubmitRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SubmitResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.TncResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.VerifyOtpRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.VerifyOtpResponse
 import okhttp3.MultipartBody
@@ -35,6 +36,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 /**
  * Endpoint onboarding buka rekening.
@@ -43,7 +45,7 @@ import retrofit2.http.Path
  * Semua method mengembalikan [Response] mentah supaya HTTP status masih terbaca
  * saat mengklasifikasi error: 429 butuh header `Retry-After`, 422 butuh error code.
  *
- * Kontrak lengkap: docs/backend/06-BUKA-REKENING-API-SPEC.md
+ * Kontrak lengkap: bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md
  */
 interface OnboardingApi {
 
@@ -51,8 +53,21 @@ interface OnboardingApi {
 
     /**
      * Katalog kartu Paspor per produk. **Tanpa `session_id`**: layar Pilih Kartu
-     * tampil sebelum sesi dibuat (`docs/backend/08-PILIH-KARTU-API-SPEC.md` §2).
+     * tampil sebelum sesi dibuat (`bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md` §2).
      */
+    /**
+     * Teks Syarat & Ketentuan beserta nomor versinya. **Tanpa `session_id` dan tanpa
+     * `Authorization`**: layar S&K tampil sebelum sesi dibuat.
+     *
+     * [version] kosong berarti versi yang sedang berlaku — itu yang dipakai layar. Mengisi
+     * parameternya hanya untuk membuka versi tertentu (termasuk yang sudah dicabut), dan
+     * versi karangan dijawab `422 TNC_VERSION_UNKNOWN`.
+     */
+    @GET("tnc")
+    suspend fun tnc(
+        @Query("version") version: String? = null,
+    ): Response<ApiEnvelope<TncResponse>>
+
     @GET("products/{product_type}/cards")
     suspend fun cardCatalog(
         @Path("product_type") productType: String,

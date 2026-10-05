@@ -8,7 +8,7 @@ import id.bca.bcamobile.domain.transfer.model.TransferType
 
 /**
  * Transfer tiga langkah: inquiry -> verifikasi PIN -> execute.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §5.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §5.
  *
  * `verificationToken` didapat dari `AuthRepository.verifyPin` dan hanya berlaku
  * 120 detik. Implementasi yang mengurus idempotency key, jadi retry [execute]

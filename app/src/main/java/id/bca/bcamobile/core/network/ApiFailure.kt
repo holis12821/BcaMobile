@@ -4,7 +4,7 @@ package id.bca.bcamobile.core.network
  * Kegagalan panggilan API yang sudah diklasifikasi dari HTTP status + error code backend.
  *
  * Dipakai seluruh domain, bukan hanya onboarding. Tabel kode:
- * `docs/backend/01-API-SPECIFICATION.md` dan `docs/backend/06-BUKA-REKENING-API-SPEC.md`.
+ * `bca-mobile-api/docs/01-API-SPECIFICATION.md` dan `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md`.
  */
 sealed interface ApiFailure {
 
@@ -47,6 +47,23 @@ sealed interface ApiFailure {
     data class RateLimited(
         val retryAfterSeconds: Int?,
         val isOtpBlocked: Boolean = false,
+        val message: String = "",
+    ) : ApiFailure
+
+    /**
+     * `TNC_VERSION_OUTDATED` — S&K sudah diperbarui sejak layar itu dibuka.
+     *
+     * [currentVersion] dari `details.current_version`, dan bisa kosong kalau server tidak
+     * mengirimkannya. Sengaja **bukan** [Business]: pemulihannya bukan mengulang request,
+     * tapi memuat ulang teks S&K dan meminta nasabah menyetujui versi baru. Sebagai
+     * `Business`, layar akan menawarkan "coba lagi" yang mengirim versi lama yang sama
+     * dan dijamin gagal — nasabah terkurung di lingkaran itu.
+     *
+     * [message] dari server sudah berbahasa Indonesia dan lebih spesifik daripada teks
+     * cadangan kita, sama seperti [RateLimited].
+     */
+    data class TncOutdated(
+        val currentVersion: String,
         val message: String = "",
     ) : ApiFailure
 

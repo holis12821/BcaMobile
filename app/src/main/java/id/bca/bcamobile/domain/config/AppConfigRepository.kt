@@ -5,7 +5,7 @@ import id.bca.bcamobile.domain.config.model.AppConfig
 
 /**
  * Health check + konfigurasi aplikasi.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §1.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §1.
  *
  * Endpoint ini publik — tidak butuh access token, jadi bisa dipanggil sebelum login.
  */

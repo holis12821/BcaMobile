@@ -10,8 +10,8 @@ import javax.inject.Singleton
 
 /**
  * Header standar untuk semua request, onboarding maupun bernasabah.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §Authentication Header dan
- * `docs/backend/06-BUKA-REKENING-API-SPEC.md` §0.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §Authentication Header dan
+ * `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md` §0.
  *
  * `X-Device-ID` wajib sama dengan `device_id` yang dikirim di body saat sesi
  * onboarding dibuat — keduanya bersumber dari [DeviceIdProvider].

@@ -24,7 +24,9 @@ android {
     }
 
     /**
-     * Alamat server per lingkungan — sumbernya `docs/backend/10-BASE-URL-DAN-ENDPOINT.md`.
+     * Alamat server per lingkungan — sumbernya `bca-mobile-api/docs/10-BASE-URL-DAN-ENDPOINT.md`
+     * di repo backend: §2 alamat per lingkungan, §4a konstanta base URL. Kontrak API
+     * sengaja tidak disalin ke repo ini supaya tidak ada dua versi yang bisa berselisih.
      *
      * Alamat ditaruh di flavor, bukan di buildType, karena yang menentukan alamat
      * adalah **lingkungan server**, bukan apakah build-nya di-minify. Itu juga yang
@@ -128,6 +130,9 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
+    // Signaling-nya memakai WebSocket OkHttp di atas; ini hanya media (PeerConnection,
+    // track, SurfaceViewRenderer).
+    implementation(libs.stream.webrtc.android)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.biometric)

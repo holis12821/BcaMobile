@@ -26,13 +26,22 @@ import id.bca.bcamobile.ui.theme.AppShape
 import id.bca.bcamobile.ui.theme.Spacing
 import id.bca.bcamobile.ui.theme.StrokeWidth
 
+/**
+ * Progress bar langkah buka rekening.
+ *
+ * Nomor, penyebut, dan label sama-sama diturunkan dari [langkah] — tidak ada satu pun
+ * yang boleh dikirim layar sebagai angka lepas. Itu yang dulu membuat lima penyebut
+ * berbeda hidup berbarengan di satu alur; lihat [BukaRekeningLangkah].
+ */
 @Composable
 fun StepProgressIndicator(
-    currentStep: Int,
-    totalSteps: Int,
-    stepLabel: String,
+    langkah: BukaRekeningLangkah,
     modifier: Modifier = Modifier,
 ) {
+    val currentStep = langkah.nomor
+    val totalSteps = BukaRekeningLangkah.total
+    val stepLabel = stringResource(langkah.labelRes)
+
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.s2),
         modifier = modifier,

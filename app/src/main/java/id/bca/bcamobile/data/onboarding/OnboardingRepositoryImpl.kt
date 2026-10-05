@@ -1,14 +1,13 @@
 package id.bca.bcamobile.data.onboarding
 
+import id.bca.bcamobile.core.network.ApiCaller
+import id.bca.bcamobile.core.network.ApiEnvelope
+import id.bca.bcamobile.core.network.ApiFailure
 import id.bca.bcamobile.core.security.RsaEncryptor
+import id.bca.bcamobile.core.security.buildPinPayload
 import id.bca.bcamobile.data.onboarding.local.OnboardingSessionStore
 import id.bca.bcamobile.data.onboarding.mapper.toDomain
 import id.bca.bcamobile.data.onboarding.mapper.toDto
-import id.bca.bcamobile.core.network.ApiEnvelope
-import retrofit2.Response
-import id.bca.bcamobile.core.network.ApiCaller
-import id.bca.bcamobile.core.network.ApiFailure
-import id.bca.bcamobile.core.security.buildPinPayload
 import id.bca.bcamobile.data.onboarding.remote.OnboardingApi
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.JoinQueueRequest
@@ -35,15 +34,17 @@ import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
 import id.bca.bcamobile.domain.onboarding.model.SelectedCard
+import id.bca.bcamobile.domain.onboarding.model.TncDocument
+import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
-import javax.inject.Inject
-import javax.inject.Singleton
+import retrofit2.Response
 
 @Singleton
 class OnboardingRepositoryImpl @Inject constructor(
@@ -57,6 +58,18 @@ class OnboardingRepositoryImpl @Inject constructor(
     override fun savedSessionId(): String? = store.sessionId
 
     override fun clearLocalSession() = store.clear()
+
+    /**
+     * Dokumen cacat (tanpa versi atau tanpa pasal) jadi [ApiFailure.Unknown], bukan
+     * `Success(null)`: layar harus menampilkan keadaan gagal lengkap dengan "Coba Lagi",
+     * bukan kerangka kosong yang tombolnya mati tanpa penjelasan.
+     */
+    override suspend fun tnc(): DataResult<TncDocument> =
+        onboardingCall { api.tnc() }.flatMapSuccess { response ->
+            response.toDomain()
+                ?.let { DataResult.Success(it) }
+                ?: DataResult.Failure(ApiFailure.Unknown)
+        }
 
     override suspend fun cardCatalog(productType: ProductType): DataResult<CardCatalog> =
         onboardingCall { api.cardCatalog(productType.wireValue) }.mapSuccess { it.toDomain() }

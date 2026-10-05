@@ -2,10 +2,7 @@ package id.bca.bcamobile.ui.screen.buka_rekening.common
 
 import id.bca.bcamobile.R
 import id.bca.bcamobile.core.network.ErrorText
-import id.bca.bcamobile.domain.onboarding.model.AlamatKtp
-import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
 import id.bca.bcamobile.core.network.ApiFailure
-import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -37,11 +34,19 @@ fun ApiFailure.toErrorText(): ErrorText = when (this) {
             ErrorText.Res(R.string.buka_rekening_error_otp_blocked, listOf(retryAfterSeconds))
         else -> ErrorText.Res(R.string.buka_rekening_error_rate_limited, listOf(retryAfterSeconds))
     }
+    // Pesan server lebih spesifik daripada teks cadangan kita: ia menyebut S&K sudah
+    // diperbarui dan meminta versi baru dibaca, bukan menyuruh mencoba lagi.
+    is ApiFailure.TncOutdated -> when {
+        message.isNotBlank() -> ErrorText.Raw(message)
+        else -> ErrorText.Res(R.string.buka_rekening_error_tnc_outdated)
+    }
     is ApiFailure.Business -> when {
         message.isNotBlank() -> ErrorText.Raw(message)
-        code == CODE_OTP_INVALID -> ErrorText.Res(R.string.buka_rekening_error_otp_invalid)
-        code == CODE_OTP_EXPIRED -> ErrorText.Res(R.string.buka_rekening_error_otp_expired)
-        code == CODE_OTP_DELIVERY_FAILED ->
+        code == OnboardingErrorCode.OTP_INVALID ->
+            ErrorText.Res(R.string.buka_rekening_error_otp_invalid)
+        code == OnboardingErrorCode.OTP_EXPIRED ->
+            ErrorText.Res(R.string.buka_rekening_error_otp_expired)
+        code == OnboardingErrorCode.OTP_DELIVERY_FAILED ->
             ErrorText.Res(R.string.buka_rekening_error_otp_delivery_failed)
         // Bentuk request yang salah adalah bug client, bukan kesalahan nasabah —
         // jangan tampilkan sebagai kode OTP yang keliru.
@@ -53,13 +58,30 @@ fun ApiFailure.toErrorText(): ErrorText = when (this) {
     ApiFailure.Unknown -> ErrorText.Res(R.string.buka_rekening_error_unknown)
 }
 
-private const val CODE_OTP_INVALID = "OTP_INVALID"
-private const val CODE_OTP_EXPIRED = "OTP_EXPIRED"
-private const val CODE_OTP_DELIVERY_FAILED = "OTP_DELIVERY_FAILED"
 private const val CODE_VALIDATION = "VALIDATION_ERROR"
 private const val CODE_ENCRYPTION_FAILED = "CRED_ENCRYPTION_FAILED"
 
-// -- OCR -> data pribadi -------------------------------------------------------
+/**
+ * Kode bisnis yang dibutuhkan lebih dari satu ViewModel langkah, jadi tidak boleh
+ * hidup sebagai literal privat di masing-masing — dua salinan cepat berbeda ejaan.
+ */
+object OnboardingErrorCode {
+    const val OTP_INVALID = "OTP_INVALID"
+    const val OTP_EXPIRED = "OTP_EXPIRED"
+
+    /**
+     * HTTP 503, tapi bukan kegagalan transport: SMS-nya yang gagal berangkat, sementara
+     * kode OTP tetap terbit dan sah dan **server sudah maju ke langkah berikutnya**.
+     * Lihat `ApiCaller.FINAL_5XX_CODES`.
+     */
+    const val OTP_DELIVERY_FAILED = "OTP_DELIVERY_FAILED"
+}
+
+/** Benar hanya untuk kode bisnis [code] — kegagalan transport tidak ikut cocok. */
+fun ApiFailure.isBusinessCode(code: String): Boolean =
+    this is ApiFailure.Business && this.code == code
+
+// -- Jenis kelamin <-> wire -------------------------------------------------------
 
 fun String.toJenisKelamin(): JenisKelamin? = when (uppercase(Locale.ROOT)) {
     WIRE_LAKI_LAKI -> JenisKelamin.LAKI_LAKI
@@ -74,48 +96,6 @@ fun JenisKelamin.toWire(): String = when (this) {
 
 private const val WIRE_LAKI_LAKI = "LAKI_LAKI"
 private const val WIRE_PEREMPUAN = "PEREMPUAN"
-
-/**
- * Menyusun payload `personal_data` dari hasil OCR.
- *
- * Pekerjaan, penghasilan, dan sumber dana masih memakai nilai default karena
- * layar Data Pribadi belum punya callback untuk tiga dropdown itu — begitu
- * callback-nya ada, ambil dari state alih-alih konstanta di sini.
- */
-fun KtpOcrResult.toPersonalData(
-    jenisKelamin: JenisKelamin?,
-    alamatDomisiliSama: Boolean,
-    nomorHp: String = "",
-    email: String = "",
-    pekerjaan: String = DEFAULT_PEKERJAAN,
-    penghasilanPerBulan: String = DEFAULT_PENGHASILAN,
-    sumberDanaUtama: String = DEFAULT_SUMBER_DANA,
-): PersonalData = PersonalData(
-    nik = extracted.nik,
-    namaLengkap = extracted.namaLengkap,
-    tempatLahir = extracted.tempatLahir,
-    tanggalLahir = extracted.tanggalLahir,
-    jenisKelamin = jenisKelamin?.toWire() ?: extracted.jenisKelamin,
-    alamatKtp = AlamatKtp(
-        alamatLengkap = extracted.alamat,
-        rtRw = extracted.rtRw,
-        kodePos = "",
-        kelurahan = extracted.kelurahan,
-        kecamatan = extracted.kecamatan,
-        kota = extracted.kota,
-        provinsi = extracted.provinsi,
-    ),
-    alamatDomisiliSama = alamatDomisiliSama,
-    pekerjaan = pekerjaan,
-    penghasilanPerBulan = penghasilanPerBulan,
-    sumberDanaUtama = sumberDanaUtama,
-    nomorHp = nomorHp,
-    email = email,
-)
-
-const val DEFAULT_PEKERJAAN = "KARYAWAN_SWASTA"
-const val DEFAULT_PENGHASILAN = "10_20_JUTA"
-const val DEFAULT_SUMBER_DANA = "GAJI"
 
 // -- Validasi kredensial -------------------------------------------------------
 

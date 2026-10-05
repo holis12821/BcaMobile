@@ -60,6 +60,17 @@ data class BukaRekeningFlowState(
     // Step 6: data pribadi
     val jenisKelamin: JenisKelamin? = null,
     val alamatDomisiliSama: Boolean = true,
+    /**
+     * Isian form yang bisa disunting nasabah. `null` berarti belum di-prefill
+     * dari hasil OCR — dipakai [DataPribadiForm.from] saat layar pertama tampil.
+     *
+     * Nilai di sini **mentah**, bukan nilai tampilan: `rt_rw` tersimpan `003/005`
+     * dan tanggal lahir `1995-04-21`, persis seperti yang dikirim ke server.
+     * Mapper layar yang mengubahnya jadi bentuk baca.
+     */
+    val dataPribadi: DataPribadiForm? = null,
+    /** Error per-field baru ditampilkan setelah nasabah menekan Lanjut sekali. */
+    val showDataPribadiErrors: Boolean = false,
 
     // Step 6b: verifikasi OTP
     /** Nomor tujuan yang sudah tersamar server; dipakai apa adanya. */

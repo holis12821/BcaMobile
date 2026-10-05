@@ -7,7 +7,7 @@ import id.bca.bcamobile.domain.ewallet.model.EWalletReceipt
 
 /**
  * Top up e-wallet: providers -> inquiry -> verifikasi PIN -> topup.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §6.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §6.
  */
 interface EWalletRepository {
 

@@ -8,6 +8,8 @@ import id.bca.bcamobile.domain.onboarding.OnboardingRepository
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSessionStore
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSideEffect
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningStepViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.common.OnboardingErrorCode
+import id.bca.bcamobile.ui.screen.buka_rekening.common.isBusinessCode
 import id.bca.bcamobile.ui.screen.buka_rekening.common.toErrorText
 import java.time.Duration
 import java.time.Instant
@@ -42,6 +44,12 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
         // Papan ketik dan autofill SMS bisa membawa spasi atau teks lain.
         val digits = code.filter(Char::isDigit).take(OTP_LENGTH)
         store.update { it.copy(otpCode = digits, error = null) }
+
+        // Digit keenam yang mengirim, bukan tombol. Tombol yang bisa ditekan saat
+        // kode belum lengkap hanya menghasilkan `VALIDATION_ERROR` — kesalahan
+        // client yang tidak pantas ditampilkan sebagai kesalahan nasabah.
+        // Tombolnya tetap ada untuk mencoba lagi setelah gagal jaringan.
+        if (digits.length == OTP_LENGTH) verifyOtp()
     }
 
     /**
@@ -52,6 +60,13 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
         val current = store.current
         val code = current.otpCode
         if (current.isOtpInputBlocked || code.length != OTP_LENGTH) return
+        // Kirim otomatis dan tombol Verifikasi bisa menunjuk kode yang sama;
+        // tanpa penjaga ini satu kode memotong dua jatah percobaan.
+        if (current.isLoading) return
+        // Penandanya dipasang di sini, bukan dibiarkan ke `launchWithLoading`:
+        // di sana nilainya baru tertulis saat coroutine mulai jalan, dan dua
+        // pemicu yang datang dalam satu frame sama-sama lolos.
+        store.update { it.copy(isLoading = true) }
 
         launchWithLoading {
             when (val result = repository.verifyOtp(code)) {
@@ -100,13 +115,21 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
      */
     private suspend fun handleVerifyOtpFailure(error: ApiFailure) {
         when {
-            // Kegagalan ke-3 dijawab OTP_EXPIRED: server sudah menerbitkan dan
-            // mengirim OTP baru. Jangan panggil resend — itu memotong kuota kirim
-            // ulang tanpa perlu. Response ini tidak membawa otp_expires_at, jadi
-            // jendela 5 menit dihitung dari saat jawaban diterima.
-            error.isBusinessCode(CODE_OTP_EXPIRED) -> {
+            // `OTP_EXPIRED` berarti kode yang lama sudah mati, jadi nasabah wajib punya
+            // jalan mendapatkan yang baru: hitung mundur dinolkan supaya tombol kirim
+            // ulang langsung hidup.
+            //
+            // Sebelumnya di sini dipasang hitung mundur satu umur OTP penuh, dengan alasan
+            // server sudah menerbitkan OTP baru sendiri pada kegagalan ke-3. Alasannya
+            // benar untuk kegagalan ke-3 saja, tapi diterapkan ke **semua** `OTP_EXPIRED`
+            // — termasuk yang pertama — dan akibatnya input gagal sementara kirim ulang
+            // mati berbarengan selama 5 menit tanpa jalan keluar. Response ini tidak
+            // membawa `otp_expires_at`, jadi tidak ada cara membedakan keduanya, dan
+            // memboroskan satu dari tiga jatah kirim ulang lebih murah daripada
+            // mengunci nasabah di layar yang tidak bisa diapa-apakan.
+            error.isBusinessCode(OnboardingErrorCode.OTP_EXPIRED) -> {
                 store.update { it.copy(otpCode = "", error = error.toErrorText()) }
-                beginCountdown(OTP_TTL_SECONDS)
+                beginCountdown(0)
             }
 
             // Blokir 30 menit setelah 5 kali gagal: input dan kirim ulang mati.
@@ -118,7 +141,7 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
             }
 
             // Kode salah, jatah masih ada: hitung mundur tetap jalan.
-            error.isBusinessCode(CODE_OTP_INVALID) ->
+            error.isBusinessCode(OnboardingErrorCode.OTP_INVALID) ->
                 store.update { it.copy(otpCode = "", error = error.toErrorText()) }
 
             else -> handleFailure(error)
@@ -142,7 +165,7 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
 
             // SMS gagal berangkat, tapi kodenya tetap terbit dan sah. Tawarkan
             // kirim ulang alih-alih mengusir nasabah ke awal flow.
-            error.isBusinessCode(CODE_OTP_DELIVERY_FAILED) -> {
+            error.isBusinessCode(OnboardingErrorCode.OTP_DELIVERY_FAILED) -> {
                 store.update { it.copy(error = error.toErrorText()) }
                 beginCountdown(0)
             }
@@ -163,7 +186,7 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
      * palsu — kirim ulang langsung tersedia.
      */
     private fun beginOtpWindow(expiresAt: String?) {
-        beginCountdown(expiresAt?.secondsFromNow()?.coerceIn(0, OTP_TTL_SECONDS) ?: 0)
+        beginCountdown(expiresAt?.secondsFromNow()?.coerceIn(0, OTP_MAX_WINDOW_SECONDS) ?: 0)
     }
 
     private fun beginCountdown(seconds: Int) {
@@ -203,12 +226,18 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
         Duration.between(Instant.now(), Instant.parse(this)).seconds.toInt()
     }.getOrNull()
 
-    private fun ApiFailure.isBusinessCode(code: String): Boolean =
-        this is ApiFailure.Business && this.code == code
-
     private companion object {
-        /** Umur OTP menurut kontrak; dipakai saat response tidak membawa `otp_expires_at`. */
-        const val OTP_TTL_SECONDS = 300
+        /**
+         * Plafon kewarasan untuk jendela hitung mundur, bukan umur OTP menurut kontrak.
+         *
+         * Gunanya menjaga jam perangkat yang meleset jauh ke depan agar tidak mematikan
+         * tombol kirim ulang selamanya. Nilainya mengikuti umur terpanjang yang mungkin
+         * dikirim server: model Twilio Verify yang aktif di lingkungan dev memakai jendela
+         * **10 menit**, bukan 5 (skill `frontend-otp-verification` §6.5a). Plafon 5 menit
+         * yang dipakai sebelumnya memotong `otp_expires_at` yang sah jadi setengahnya,
+         * sehingga hitung mundur di layar selesai saat kode sebenarnya masih berlaku.
+         */
+        const val OTP_MAX_WINDOW_SECONDS = 600
         /**
          * `retry_after_seconds` bisa 0 kalau server gagal membaca sisa waktu.
          * Nol akan menghidupkan tombol seketika dan langsung kena 429 lagi.
@@ -216,8 +245,5 @@ class BukaRekeningVerifikasiOtpViewModel @Inject constructor(
         const val RETRY_FALLBACK_SECONDS = 60
         const val TICK_MS = 1_000L
 
-        const val CODE_OTP_INVALID = "OTP_INVALID"
-        const val CODE_OTP_EXPIRED = "OTP_EXPIRED"
-        const val CODE_OTP_DELIVERY_FAILED = "OTP_DELIVERY_FAILED"
     }
 }

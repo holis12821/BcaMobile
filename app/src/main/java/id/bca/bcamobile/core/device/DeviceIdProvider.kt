@@ -15,7 +15,7 @@ import javax.inject.Singleton
  * Nilai yang sama dipakai di dua tempat dan **harus** cocok: header `X-Device-ID`
  * pada setiap request, dan field `device_id` di body `POST /onboarding/sessions`.
  * Server menolak dengan `ONBOARDING_DEVICE_MISMATCH` kalau keduanya berbeda —
- * lihat `docs/backend/06-BUKA-REKENING-API-SPEC.md` §0.
+ * lihat `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md` §0.
  *
  * Jangan membuat generator device id kedua di mana pun.
  *

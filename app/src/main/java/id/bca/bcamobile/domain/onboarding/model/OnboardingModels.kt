@@ -391,3 +391,57 @@ data class SelectedCard(
     val monthlyAdminFee: Long,
     val catalogVersion: String?,
 )
+
+// -- Syarat & Ketentuan --------------------------------------------------------
+
+/** Satu pasal S&K. [iconKey] masih kunci server; pemetaan ke drawable terjadi di layar. */
+data class TncSection(
+    val iconKey: String,
+    val title: String,
+    val body: String,
+)
+
+/** Kotak PENTING di bawah daftar pasal. */
+data class TncNotice(
+    val label: String,
+    val body: String,
+)
+
+/**
+ * Kalimat di samping checkbox, terpotong tiga karena [link] dicetak tebal dan berwarna.
+ * Dibiarkan terpisah sampai ke layar supaya tidak ada pencarian substring.
+ */
+data class TncConsent(
+    val prefix: String,
+    val link: String,
+    val suffix: String,
+)
+
+/**
+ * Dokumen Syarat & Ketentuan yang sedang tayang.
+ *
+ * [version] wajib dikirim kembali apa adanya sebagai `accepted_tnc_version` saat sesi
+ * dibuat, dan harus berasal dari dokumen yang **benar-benar terpampang** saat nasabah
+ * menekan setuju — bukan konstanta, bukan nilai yang di-cache dari pembukaan layar
+ * sebelumnya. Itu yang diperiksa server, dan selisihnya dijawab `409`.
+ *
+ * Umurnya hanya selama layar S&K tampil; langkah berikutnya tidak membacanya, jadi
+ * dokumen ini tidak ikut ke `BukaRekeningFlowState`.
+ */
+data class TncDocument(
+    val version: String,
+    val heading: String,
+    val subtitle: String,
+    val trustTitle: String,
+    val trustSubtitle: String,
+    val sections: List<TncSection>,
+    val notice: TncNotice?,
+    val consent: TncConsent?,
+    val agreeCta: String,
+    val effectiveFrom: String,
+    /**
+     * `false` hanya mungkin pada respons `?version=`. Dokumen yang sudah dicabut tidak
+     * boleh menawarkan tombol setuju — persetujuannya pasti ditolak `409`.
+     */
+    val isActive: Boolean,
+)

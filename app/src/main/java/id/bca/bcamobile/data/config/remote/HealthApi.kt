@@ -7,7 +7,7 @@ import retrofit2.http.GET
 
 /**
  * Health check dan konfigurasi aplikasi — dipakai layar Splash.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §1.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §1.
  */
 interface HealthApi {
 

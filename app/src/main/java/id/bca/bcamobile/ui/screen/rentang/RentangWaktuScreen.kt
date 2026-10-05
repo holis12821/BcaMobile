@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.components.AppTopBar
+import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.ui.theme.AppShape
 import id.bca.bcamobile.ui.theme.AppSize
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
@@ -86,6 +87,7 @@ fun RentangWaktuScreen(
                     enabled = state.isTerapkanAktif,
                     shape = AppShape.R6,
                     modifier = Modifier
+                        .bottomBarSafePadding()
                         .fillMaxWidth()
                         .padding(Spacing.s4)
                         .heightIn(min = AppSize.MinTouchTarget),

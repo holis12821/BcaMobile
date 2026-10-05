@@ -8,7 +8,7 @@ Dokumen ini punya dua bagian yang dipakai berbeda:
    `.claude/skills/buka-rekening-kartu/references/prompts.md`, atau ditempel satu per satu
    ke AI agent saat mengerjakan tiap fase.
 
-Kontrak yang dirujuk keduanya: `08-PILIH-KARTU-API-SPEC.md`.
+Kontrak yang dirujuk keduanya: `bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md`.
 
 ---
 
@@ -145,7 +145,7 @@ Konteks teknis yang sudah pasti dan tidak perlu ditanyakan:
 
 - Sesi onboarding dibuat **setelah** kartu dipilih (client membuatnya di layar S&K), jadi
   endpoint katalog tanpa session.
-- Envelope, error shape, dan `meta.request_id` mengikuti `01-API-SPECIFICATION.md`.
+- Envelope, error shape, dan `meta.request_id` mengikuti `bca-mobile-api/docs/01-API-SPECIFICATION.md`.
 - Client memetakan `style` ke token `CardArt`; hanya `BLUE`, `GOLD`, `PLATINUM` yang dikenal.
 
 ---
@@ -171,7 +171,7 @@ Kerjakan berurutan. Setiap prompt punya *Definition of Done*; jangan lanjut sebe
 
 ```
 Buat migrasi database untuk katalog kartu Paspor sesuai §11 di
-docs/08-PILIH-KARTU-API-SPEC.md.
+bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md.
 
 Yang dibuat:
 1. Tabel card_products — identitas kartu, fee, empat limit, delivery, eligibility,
@@ -243,7 +243,7 @@ Ketentuan:
   details.retry_after_seconds dan header Retry-After.
 - Set ETag: "<catalog_version>" dan Cache-Control: public, max-age=900.
   If-None-Match cocok → 304 tanpa body.
-- Bentuk payload persis §4 docs/08-PILIH-KARTU-API-SPEC.md.
+- Bentuk payload persis §4 bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md.
 - Feature flag onboarding.card_selection.enabled = false → balas CARD_CATALOG_EMPTY.
 
 Tambahkan integration test yang membandingkan JSON hasil dengan contoh di §4,
@@ -263,7 +263,7 @@ Ubah handler/session.go dan service/session_service.go.
 
 1. CreateSessionRequest menerima card_type dan card_catalog_version, keduanya opsional.
 2. Sisipkan CARD_SELECTION ke state machine tepat setelah TNC. Step lain tidak bergeser.
-3. Perilaku sesuai §7 docs/08-PILIH-KARTU-API-SPEC.md:
+3. Perilaku sesuai §7 bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md:
    - card_type valid & AVAILABLE → simpan, card_selected=true, current_step=OCR
    - card_type kosong → current_step=CARD_SELECTION
    - card_type tidak dikenal → 422 CARD_TYPE_INVALID

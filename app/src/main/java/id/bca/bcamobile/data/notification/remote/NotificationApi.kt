@@ -11,7 +11,7 @@ import retrofit2.http.Query
 
 /**
  * Notifikasi nasabah.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §7.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §7.
  */
 interface NotificationApi {
 

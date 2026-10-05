@@ -6,7 +6,7 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Amplop response standar backend onboarding.
- * Kontrak: docs/backend/06-BUKA-REKENING-API-SPEC.md
+ * Kontrak: bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md
  */
 @Serializable
 data class ApiEnvelope<T>(
@@ -38,7 +38,7 @@ data class ApiMeta(
 
 /**
  * Pagination cursor-based. Tampil sebagai saudara `data`, bukan di dalamnya —
- * lihat `docs/backend/01-API-SPECIFICATION.md` §4.
+ * lihat `bca-mobile-api/docs/01-API-SPECIFICATION.md` §4.
  */
 @Serializable
 data class PaginationDto(

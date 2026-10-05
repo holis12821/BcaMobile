@@ -27,9 +27,9 @@ state management flow buka rekening di Android.
 
 > **Referensi kontrak:**
 > ```text
-> docs/backend/06-BUKA-REKENING-API-SPEC.md   -- kontrak API onboarding (request/response/error codes)
-> docs/backend/08-PILIH-KARTU-API-SPEC.md     -- sisipan pilih kartu Paspor (belum tersambung)
-> docs/backend/07-BUKA-REKENING-BACKEND-SKILL-PROMPTS.md  -- definisi skill backend `buka-rekening-onboarding`
+> bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md   -- kontrak API onboarding (request/response/error codes)
+> bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md     -- sisipan pilih kartu Paspor (belum tersambung)
+> docs/backend-prompts/07-BUKA-REKENING-BACKEND-SKILL-PROMPTS.md  -- definisi skill backend `buka-rekening-onboarding`
 > ```
 
 ---
@@ -419,7 +419,13 @@ POST /personal-data
 **Android notes:**
 - Pre-fill form dari data OCR `extracted`
 - NIK dan nama_lengkap read-only (harus match OCR)
-- Validasi format nomor HP di client: regex `^(\+62|62|0)8[0-9]{8,12}$`
+- Validasi format nomor HP di client: **jangan** pakai regex
+  `^(\+62|62|0)8[0-9]{8,12}$` lagi. Pola itu regex lama backend dan sudah dibuang
+  karena berbeda dari gateway SMS: ia menolak `0812-3456-7890` dan `81234567890`
+  yang sah, sekaligus meloloskan nomor 14 digit dan blok `080` yang dijawab
+  `422 PERSONAL_DATA_INVALID_PHONE`. Pakai normalisasi E.164 yang menyalin
+  `internal/pkg/sms.NormalizePhone` — kodenya ada di skill
+  `frontend-otp-verification` §5a
 - Validasi format email di client
 - Dropdown/spinner untuk pekerjaan, penghasilan, sumber_dana
 

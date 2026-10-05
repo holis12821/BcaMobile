@@ -135,28 +135,35 @@ atau code tidak dikenal.
 |---|---|---|---|
 | `VALIDATION_ERROR` | 400 | Bug client (lihat §5) — jangan tampilkan sebagai kesalahan nasabah. **Tidak** memotong jatah percobaan. | "Terjadi kesalahan. Coba lagi." |
 | `ONBOARDING_NOT_FOUND` | 404 | Sesi/device tidak dikenal. Hentikan flow, kembali ke awal buka rekening. | "Sesi tidak ditemukan. Mulai ulang pendaftaran." |
-| `OTP_INVALID` | 422 | Kosongkan input, fokuskan digit pertama, tampilkan pesan inline. Hitung mundur **tetap jalan**. | "Kode OTP tidak valid." |
+| `OTP_INVALID` | 422 | Kosongkan input, fokuskan digit pertama, tampilkan pesan inline. Hitung mundur **tetap jalan**. Juga jawaban untuk kegagalan ke-4 dan untuk kegagalan ke-3 saat batas SMS per nomor habis — lihat §6.1. | "Kode OTP tidak valid." |
 | `OTP_EXPIRED` | 422 | Kode lama mati **dan OTP baru sudah dikirim server** (lihat §6.1). Kosongkan input, mulai hitung mundur 5 menit baru. Jangan panggil `resend-otp`. | "Kode OTP sudah kedaluwarsa. OTP baru telah dikirim." |
 | `ONBOARDING_INVALID_STEP` | 422 | Tarik ulang sesi, navigasi ke `current_step` sebenarnya. | "Sesi sudah berpindah langkah." |
 | `ONBOARDING_SESSION_EXPIRED` | 422 | Sesi 24 jam habis. Tidak bisa diselamatkan — mulai ulang. | "Sesi pendaftaran sudah kedaluwarsa (24 jam)." |
 | `OTP_BLOCKED` | 429 | Matikan input **dan** tombol kirim ulang. Hitung mundur dari `details.retry_after_seconds`. | "Terlalu banyak percobaan OTP. Coba lagi dalam 30 menit." |
-| `RATE_LIMIT_EXCEEDED` | 429 | Matikan tombol kirim ulang selama `details.retry_after_seconds`. Input tetap aktif — kode terakhir masih sah. | "Kirim ulang OTP sudah mencapai batas. Silakan coba lagi nanti." |
+| `RATE_LIMIT_EXCEEDED` | 429 | Matikan tombol kirim ulang selama `details.retry_after_seconds`. Input tetap aktif — kode terakhir masih sah. Bisa juga datang dari `personal-data`, sebelum layar OTP terbuka. | "Kirim ulang OTP sudah mencapai batas. Silakan coba lagi nanti." |
 | `OTP_DELIVERY_FAILED` | 503 | SMS gagal berangkat, tapi **kode tetap terbit dan sah**. Tawarkan kirim ulang, jangan mulai ulang flow. | "Kode OTP gagal dikirim. Silakan coba kirim ulang." |
 
 Code yang tidak ada di tabel ini: tampilkan `error.message`, biarkan nasabah
 mencoba lagi. Jangan pernah memetakan code asing ke "mulai ulang pendaftaran".
 
-### Dua sumber `RATE_LIMIT_EXCEEDED`
+### Tiga sumber `RATE_LIMIT_EXCEEDED`
 
-Code-nya sama untuk dua hal berbeda:
+Code-nya sama untuk tiga hal berbeda:
 
 1. Kuota kirim ulang 3/jam per sesi (dari service).
-2. Batas grup onboarding **60 request per 5 menit per IP** (dari middleware) —
+2. **Batas 10 SMS per jam per NOMOR TUJUAN** (dari service) — dihitung lintas
+   sesi dan **tidak** dinolkan oleh sesi baru. Ini satu-satunya dari ketiganya
+   yang juga bisa muncul di `POST /personal-data`, jadi nasabah bisa ditolak
+   **sebelum** layar OTP terbuka: step bertahan di `PERSONAL_DATA`, tidak ada OTP
+   terbit, dan flow bisa dilanjutkan nanti. Satu sesi penuh = 1 penerbitan + 3
+   kirim ulang = 4 SMS, jadi batas ini hanya kena kalau nomor yang sama dipakai
+   mengulang flow berkali-kali dalam satu jam — biasa terjadi di perangkat tester.
+3. Batas grup onboarding **60 request per 5 menit per IP** (dari middleware) —
    kena kalau client memanggil berlebihan, misalnya polling sesi tiap detik.
 
-Keduanya membawa `details.retry_after_seconds`. Perlakukan sama: hormati angka
+Ketiganya membawa `details.retry_after_seconds`. Perlakukan sama: hormati angka
 itu. Bedanya: yang dari middleware juga mengirim header `Retry-After` dan
-`X-RateLimit-*`; yang dari kuota kirim ulang **hanya** di body. Karena itu
+`X-RateLimit-*`; yang dari service **hanya** di body. Karena itu
 **baca `details.retry_after_seconds` dari body**, jangan bergantung pada header.
 
 `retry_after_seconds` bisa bernilai `0` kalau Redis gagal dibaca saat menghitung
@@ -179,6 +186,90 @@ spasi, dan autofill SMS bisa membawa teks lain).
 Sama untuk `session_id` kosong → `VALIDATION_ERROR`. Kalau layar OTP terbuka
 tanpa `session_id`, itu bug navigasi; jangan kirim request.
 
+### 5a. Dua validasi di layar Data Pribadi yang menentukan OTP bisa terbit
+
+Layar sebelumnya yang menerbitkan OTP, jadi aturannya ikut di sini.
+`DataPribadiForm.kt` masih memakai dua aturan yang sekarang **tidak** sama dengan
+server.
+
+**Nomor HP — `PHONE_PATTERN` sudah usang.** Pola `^(\+62|62|0)8\d{8,12}$` adalah
+regex lama backend, yang dibuang karena berbeda dari gateway SMS dalam lima hal.
+Dua arah salahnya:
+
+| Input | `PHONE_PATTERN` | Server sekarang | Akibat di layar |
+|---|---|---|---|
+| `0812-3456-7890` | tolak | **terima** | Nasabah diblokir client untuk nomor yang sah |
+| `81234567890` (tanpa 0) | tolak | **terima** | Sama — sering terjadi saat tempel dari kontak |
+| `08123456789012` (14 digit) | terima | **tolak** `422 PERSONAL_DATA_INVALID_PHONE` | Error server untuk hal yang bisa ditangkap inline |
+| `0801234567` (blok `080`) | terima | **tolak** `422` | Sama |
+| `+628012345678` | terima | **tolak** `422` | Sama |
+
+Dulu tiga baris terakhir lebih buruk: server menerimanya, step maju ke
+`OTP_VERIFY`, lalu **setiap** pengiriman dijawab `503` selamanya. Sekarang
+ditolak di `personal-data`, tapi client sebaiknya tidak membuang satu panggilan
+untuk itu.
+
+Ganti dengan normalisasi yang sama dengan `internal/pkg/sms.NormalizePhone`:
+
+```kotlin
+/**
+ * Menyalin aturan gateway SMS backend: satu-satunya rujukan yang benar, karena
+ * gateway itulah yang harus merutekan pesannya.
+ *
+ * Mengembalikan bentuk E.164, atau null kalau tidak ada operator Indonesia yang
+ * bisa menerimanya.
+ */
+private fun String.toE164Indonesia(): String? {
+    val digits = filter { it.isDigit() }
+    val national = when {
+        digits.startsWith("62") -> "0" + digits.removePrefix("62")
+        digits.startsWith("0") -> digits
+        digits.startsWith("8") -> "0$digits"
+        else -> return null
+    }
+    // 08 + blok operator + nomor pelanggan. Di luar 10..13 digit berarti
+    // telepon rumah, salah ketik, atau tempelan terpotong.
+    if (national.length !in 10..13) return null
+    // Blok "080" tidak dialokasikan untuk seluler.
+    if (!national.startsWith("08") || national[2] == '0') return null
+    return "+62" + national.drop(1)
+}
+```
+
+Kirim apa yang nasabah ketik — backend menormalkannya sendiri. Fungsi ini untuk
+**validasi**, bukan untuk mengubah isi field.
+
+**Tanggal lahir — `tanggalLahirError()` hanya memeriksa kosong.** Server sekarang
+menolak yang tidak terbaca sebagai ISO `yyyy-MM-dd`, **dan** yang di luar rentang
+wajar: tanggal di masa depan atau lebih dari 120 tahun lalu dijawab
+`400 VALIDATION_ERROR`. `toIsoDate()` sudah menghasilkan format yang benar, jadi
+yang kurang hanya rentangnya:
+
+```kotlin
+fun DataPribadiForm.tanggalLahirError(): Int? {
+    if (tanggalLahir.isBlank()) return R.string.buka_rekening_dp_error_wajib
+    val tanggal = runCatching { LocalDate.parse(tanggalLahir) }.getOrNull()
+        ?: return R.string.buka_rekening_dp_error_tanggal
+    val hariIni = LocalDate.now()
+    // Tanggal di masa depan dulu lolos sampai ke core banking sebagai tanggal
+    // lahir nasabah. Batas 120 tahun adalah pemeriksaan kewajaran, bukan aturan
+    // umur minimum — yang terakhir itu keputusan produk.
+    if (tanggal.isAfter(hariIni) || tanggal.isBefore(hariIni.minusYears(120))) {
+        return R.string.buka_rekening_dp_error_tanggal
+    }
+    return null
+}
+```
+
+Sekalian batasi `DatePicker`-nya ke masa lalu, supaya nasabah tidak bisa memilih
+tanggal yang pasti ditolak.
+
+**Yang TIDAK perlu diubah:** batas panjang teks di client sudah lebih ketat
+daripada kolom server (`MAX_TEXT = 100` lawan 128, `MAX_RT_RW = 7` lawan 16,
+`KODE_POS_LENGTH = 5` lawan 10), dan `JenisKelamin` sudah enum `LAKI_LAKI` /
+`PEREMPUAN`. Validasi server yang baru untuk ketiganya tidak akan pernah kena
+dari client ini.
+
 ---
 
 ## 6. Jebakan nyata
@@ -187,6 +278,19 @@ tanpa `session_id`, itu bug navigasi; jangan kirim request.
 
 Server meregenerasi OTP otomatis setelah **3 kali** salah dan mengirim SMS baru.
 Client menerima `OTP_EXPIRED` walaupun kodenya baru saja salah.
+
+> **Tepat sekali, pada kegagalan ke-3.** Dulu kegagalan ke-4 juga menerbitkan
+> OTP baru, jadi layar ini menerima `OTP_EXPIRED` dua kali berturut-turut dan
+> nasabah dapat dua SMS. Sekarang kegagalan ke-4 dijawab `OTP_INVALID` biasa:
+> tidak ada SMS baru, dan hitung mundur dari kegagalan ke-3 **tetap jalan**.
+> Jangan mereset hitung mundur pada `OTP_INVALID`.
+>
+> **Dan regenerasinya bisa dilewati.** Kalau nomor itu sudah menghabiskan batas
+> 10 SMS/jam (§4 sumber 2), server **tidak** meregenerasi apa pun dan menjawab
+> `OTP_INVALID`. Itu jawaban yang jujur: tebakannya salah, percobaan masih
+> tersisa, dan **kode yang sedang dipegang nasabah masih sah** karena tidak ada
+> yang menimpanya. Perlakukan sama seperti `OTP_INVALID` lain — jangan kosongkan
+> state kode, jangan mulai hitung mundur baru.
 
 Artinya:
 
@@ -229,6 +333,19 @@ menerbitkan OTP pembuka step.
 - Jangan menyimpannya di `SavedStateHandle`, DataStore, atau cache apa pun.
 - Bersihkan state input saat layar ditinggalkan.
 - Jangan pernah ikut sertakan kode di laporan bug — kirim `meta.request_id`.
+
+### 6.5a `otp_debug` bisa kosong meski di development
+
+Backend punya dua model provider, dan dengan **Twilio Verify** kodenya dibuat dan
+disimpan oleh provider — server tidak pernah melihatnya. Jadi `otp_debug` kosong
+apa pun `APP_ENV`-nya. Itu keadaan yang sekarang aktif di lingkungan dev, karena
+akun Twilio-nya masih trial dan Messages API menolak body kustom di sana.
+
+Konsekuensi untuk pengujian FE: **kode harus dibaca dari SMS sungguhan di HP.**
+Jangan membuat alur tes yang bergantung pada `otp_debug` terisi, dan jangan
+memperlakukan `otp_debug` kosong sebagai kegagalan — perlakukan sebagai tidak
+tersedia. `otp_expires_at` juga 10 menit pada model ini, bukan 5, jadi hitung
+mundur harus dibaca dari field itu dan bukan dari konstanta.
 
 ### 6.5 `otp_debug` hanya ada di development
 
@@ -402,6 +519,12 @@ Dua aturan yang mudah terlewat: tombol kirim ulang **tidak** aktif sejak awal
 ---
 
 ## 9. Daftar uji UI
+
+- [ ] `0812-3456-7890` dan `81234567890` **lolos** validasi client (dulu ditolak).
+- [ ] `08123456789012`, `0801234567`, `+628012345678` ditolak **di client**, tanpa panggilan ke server.
+- [ ] Tanggal lahir di masa depan ditolak di client; `DatePicker` tidak mengizinkan memilihnya.
+- [ ] Kegagalan ke-4 menampilkan "kode tidak valid" dan hitung mundur **tidak** direset (dulu dapat `OTP_EXPIRED` + SMS kedua).
+- [ ] `429` di `personal-data` menampilkan sisa waktu dari `details.retry_after_seconds` dan tidak melempar nasabah ke awal flow.
 
 - [ ] Kode benar → navigasi mengikuti `current_step` dari response, bukan rute hardcode.
 - [ ] Kode salah → input kosong, fokus digit pertama, hitung mundur tetap jalan.

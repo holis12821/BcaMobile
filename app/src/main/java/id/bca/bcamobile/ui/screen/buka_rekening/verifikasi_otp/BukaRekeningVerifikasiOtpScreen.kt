@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -51,8 +53,9 @@ import id.bca.bcamobile.ui.theme.AppShape
 import id.bca.bcamobile.ui.theme.AppSize
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
 import id.bca.bcamobile.ui.theme.Spacing
-import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningLangkah
 import id.bca.bcamobile.ui.screen.buka_rekening.common.OtpDigitBoxes
+import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
 
 /** Panjang kode OTP sesuai kontrak `POST /onboarding/verify-otp`. */
 const val OTP_LENGTH = 6
@@ -68,6 +71,13 @@ fun BukaRekeningVerifikasiOtpScreen(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
+        // enableEdgeToEdge() di MainActivity membuat window tidak lagi menyusut saat
+        // papan ketik muncul, jadi windowSoftInputMode="adjustResize" di manifest tidak
+        // berpengaruh dan IME harus diambil dari sini. safeDrawing = gabungan systemBars,
+        // ime, dan displayCutout per sisi dengan nilai terbesar: tanpa bottomBar, Scaffold
+        // meneruskannya sebagai innerPadding.bottom, dan karena padding itu dipasang pada
+        // container gulir, area gulir menyusut dan seluruh isi layar tetap terjangkau.
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.buka_rekening_otp_title),
@@ -83,9 +93,7 @@ fun BukaRekeningVerifikasiOtpScreen(
                 .verticalScroll(rememberScrollState()),
         ) {
             StepProgressIndicator(
-                currentStep = state.langkah,
-                totalSteps = state.totalLangkah,
-                stepLabel = stringResource(R.string.buka_rekening_otp_step_label),
+                langkah = BukaRekeningLangkah.VERIFIKASI_OTP,
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.surfaceContainerLow)
                     .fillMaxWidth()

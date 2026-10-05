@@ -11,9 +11,9 @@
 
 | Isi | Berkas |
 |---|---|
-| Kontrak API seluruh aplikasi | `docs/backend/01-API-SPECIFICATION.md` |
-| Kontrak API onboarding | `docs/backend/06-BUKA-REKENING-API-SPEC.md` |
-| Sisipan pilih kartu Paspor | `docs/backend/08-PILIH-KARTU-API-SPEC.md` |
+| Kontrak API seluruh aplikasi | `bca-mobile-api/docs/01-API-SPECIFICATION.md` |
+| Kontrak API onboarding | `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md` |
+| Sisipan pilih kartu Paspor | `bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md` |
 | Pola client umum: envelope, token, PIN encryption, idempotency | `.claude/skills/bca-mobile-api/SKILL.md` |
 | Pola client onboarding | `.claude/skills/buka-rekening-api/SKILL.md` |
 | Clean Architecture + MVI + Hilt | `.claude/skills/android-architecture-patterns/SKILL.md` |
@@ -598,7 +598,7 @@ Pastikan:
 ```
 Hubungkan semua screen ke backend API via BukaRekeningFlowViewModel.
 
-Baca skill bca-mobile-api dan docs/backend/06-BUKA-REKENING-API-SPEC.md.
+Baca skill bca-mobile-api dan bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md.
 
 Requirements:
 1. Buat OnboardingApiService (Retrofit interface):
@@ -758,7 +758,7 @@ laporkan, jangan diakali sendiri.
 
 ```
 Sambungkan flow masuk ke /v1/auth/*.
-Baca docs/backend/01-API-SPECIFICATION.md bagian 2 dan skill compose-architecture.
+Baca bca-mobile-api/docs/01-API-SPECIFICATION.md bagian 2 dan skill compose-architecture.
 
 1. AuthApi: login/pin, login/biometric, biometric/challenge, biometric/register,
    token/refresh, logout, pin/change, pin/verify.
@@ -907,7 +907,7 @@ Sambungkan BukaRekeningPilihKartuScreen ke katalog kartu.
 
 Instruksi lengkapnya sudah ada di docs/buka-rekening-pilih-kartu-android-prompts.md
 (enam prompt: DTO, domain+repository, ViewModel, UI state, navigasi, uji).
-Kontrak backend: docs/backend/08-PILIH-KARTU-API-SPEC.md.
+Kontrak backend: bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md.
 
 Dua hal yang paling mudah salah:
 - API mengirim style BLUE/GOLD/PLATINUM, bukan warna. Pemetaan ke token CardArt

@@ -1,25 +1,33 @@
 package id.bca.bcamobile.ui.navigation
 
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
-import androidx.camera.core.CameraSelector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
@@ -28,15 +36,89 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import id.bca.bcamobile.R
-import id.bca.bcamobile.ui.screen.biometric.toTouchIdUiState
-import id.bca.bcamobile.ui.screen.biometric.toFaceIdUiState
-import id.bca.bcamobile.ui.screen.biometric.BiometricPromptText
-import id.bca.bcamobile.ui.screen.biometric.BiometricLoginViewModel
-import id.bca.bcamobile.ui.screen.biometric.BiometricLoginEvent
+import id.bca.bcamobile.core.camera.CameraCapture
+import id.bca.bcamobile.core.liveness.LivenessAnalyzer
+import id.bca.bcamobile.core.liveness.LivenessDetector
+import id.bca.bcamobile.core.ocr.KtpAutoCaptureAnalyzer
+import id.bca.bcamobile.core.ocr.KtpTextRecognizer
 import id.bca.bcamobile.domain.auth.model.BiometricType
-import androidx.fragment.app.FragmentActivity
-import android.content.ContextWrapper
-import android.content.Context
+import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
+import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
+import id.bca.bcamobile.ui.components.CameraPermissionGate
+import id.bca.bcamobile.ui.components.CameraPermissionNotice
+import id.bca.bcamobile.ui.components.CameraPreview
+import id.bca.bcamobile.ui.components.LocalSnackbarHostState
+import id.bca.bcamobile.ui.components.hasCameraPermission
+import id.bca.bcamobile.ui.components.hasRequiredVideoCallPermissions
+import id.bca.bcamobile.ui.components.hasVideoCallBluetoothPermission
+import id.bca.bcamobile.ui.components.hasVideoCallPermissions
+import id.bca.bcamobile.ui.components.openAppSettings
+import id.bca.bcamobile.ui.components.resolve
+import id.bca.bcamobile.ui.components.videoCallRequestedPermissions
+import id.bca.bcamobile.ui.screen.biometric.BiometricLoginEvent
+import id.bca.bcamobile.ui.screen.biometric.BiometricLoginViewModel
+import id.bca.bcamobile.ui.screen.biometric.BiometricPromptText
+import id.bca.bcamobile.ui.screen.biometric.toFaceIdUiState
+import id.bca.bcamobile.ui.screen.biometric.toTouchIdUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.AntreanVideoCallEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.BukaRekeningAntreanVideoCallScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.BukaRekeningAntreanVideoCallViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.toAntreanUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BerhasilDibuatEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BukaRekeningBerhasilDibuatScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BukaRekeningBerhasilDibuatViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.toBerhasilDibuatUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BuatKredensialEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BukaRekeningBuatKredensialScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BukaRekeningBuatKredensialViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.toBuatKredensialUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningFlowScopeViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSideEffect
+import id.bca.bcamobile.ui.screen.buka_rekening.common.FlashMode
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.BukaRekeningDataPribadiScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.BukaRekeningDataPribadiViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.DataPribadiEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.toDataPribadiUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.BukaRekeningHasilFotoScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.BukaRekeningHasilFotoViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.HasilFotoEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.toHasilFotoUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.KameraFotoEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.toKameraFotoUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.panduan_foto.BukaRekeningPanduanFotoScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.panduan_foto.BukaRekeningPanduanFotoViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.BukaRekeningPilihJenisScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.BukaRekeningPilihJenisViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.PilihJenisEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.toPilihJenisUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.BukaRekeningPilihKartuScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.BukaRekeningPilihKartuViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.PilihKartuEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.toPilihKartuUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.BukaRekeningRingkasanScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.BukaRekeningRingkasanViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.RingkasanEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.toRingkasanUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.BukaRekeningSyaratKetentuanScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.BukaRekeningSyaratKetentuanViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.SyaratKetentuanEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.toSyaratKetentuanUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.BukaRekeningVerifikasiBiometrikScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.BukaRekeningVerifikasiBiometrikViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.VerifikasiBiometrikEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.VerifikasiBiometrikUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.toVerifikasiBiometrikUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.BukaRekeningVerifikasiOtpScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.BukaRekeningVerifikasiOtpViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.VerifikasiOtpEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.toOtpUiState
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.BukaRekeningVideoCallScreen
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.BukaRekeningVideoCallViewModel
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.VideoCallEvent
+import id.bca.bcamobile.ui.screen.buka_rekening.video_call.VideoCallUiState
 import id.bca.bcamobile.ui.screen.faceid.FaceIdScreen
 import id.bca.bcamobile.ui.screen.faceid.FaceIdUiState
 import id.bca.bcamobile.ui.screen.finger_print.TouchIdScreen
@@ -44,81 +126,9 @@ import id.bca.bcamobile.ui.screen.finger_print.TouchIdUiState
 import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesEvent
 import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesScreen
 import id.bca.bcamobile.ui.screen.kode_akses.KodeAksesViewModel
-import id.bca.bcamobile.core.camera.CameraCapture
-import id.bca.bcamobile.core.liveness.LivenessAnalyzer
-import id.bca.bcamobile.core.liveness.LivenessDetector
-import id.bca.bcamobile.core.ocr.KtpAutoCaptureAnalyzer
-import id.bca.bcamobile.core.ocr.KtpTextRecognizer
-import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
-import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
-import id.bca.bcamobile.ui.components.CameraPermissionGate
-import id.bca.bcamobile.ui.components.CameraPermissionNotice
-import id.bca.bcamobile.ui.components.CameraPreview
-import id.bca.bcamobile.ui.components.LocalSnackbarHostState
-import id.bca.bcamobile.ui.components.resolve
-import id.bca.bcamobile.ui.components.hasCameraPermission
-import id.bca.bcamobile.ui.screen.buka_rekening.common.FlashMode
-import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.toKameraFotoUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.toVerifikasiBiometrikUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.toAntreanUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.toBuatKredensialUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.toDataPribadiUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.toHasilFotoUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.toPilihJenisUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.toPilihKartuUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.toRingkasanUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.BukaRekeningPilihJenisScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.BukaRekeningPilihKartuScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.BukaRekeningDataPribadiScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.BukaRekeningVerifikasiBiometrikScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.BukaRekeningVerifikasiOtpScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.toOtpUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.VerifikasiBiometrikUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.BukaRekeningAntreanVideoCallScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.video_call.BukaRekeningVideoCallScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.video_call.VideoCallUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BukaRekeningBuatKredensialScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.BukaRekeningRingkasanScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.BukaRekeningHasilFotoScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoUiState
 import id.bca.bcamobile.ui.screen.login.LoginScreen
 import id.bca.bcamobile.ui.screen.login.LoginUiState
 import kotlinx.coroutines.launch
-import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSideEffect
-import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BukaRekeningBerhasilDibuatScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.toBerhasilDibuatUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.panduan_foto.BukaRekeningPanduanFotoScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.BukaRekeningSyaratKetentuanScreen
-import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningFlowScopeViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BerhasilDibuatEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.berhasil_dibuat.BukaRekeningBerhasilDibuatViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.panduan_foto.BukaRekeningPanduanFotoViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.BukaRekeningSyaratKetentuanViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.SyaratKetentuanEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.syarat_ketentuan.toSyaratKetentuanUiState
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.BukaRekeningPilihJenisViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.BukaRekeningPilihKartuViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.BukaRekeningKameraFotoViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.BukaRekeningHasilFotoViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.BukaRekeningDataPribadiViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.BukaRekeningVerifikasiOtpViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.BukaRekeningVerifikasiBiometrikViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.BukaRekeningAntreanVideoCallViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.video_call.BukaRekeningVideoCallViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BukaRekeningBuatKredensialViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.BukaRekeningRingkasanViewModel
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis.PilihJenisEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.pilih_kartu.PilihKartuEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto.KameraFotoEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto.HasilFotoEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.data_pribadi.DataPribadiEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_otp.VerifikasiOtpEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik.VerifikasiBiometrikEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.antrean_video_call.AntreanVideoCallEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.video_call.VideoCallEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.buat_kredensial.BuatKredensialEvent
-import id.bca.bcamobile.ui.screen.buka_rekening.ringkasan.RingkasanEvent
 
 fun NavGraphBuilder.authGraph(
     navController: NavHostController,
@@ -272,13 +282,17 @@ fun NavGraphBuilder.authGraph(
         composable<BukaRekeningSyaratKetentuan> {
             val viewModel: BukaRekeningSyaratKetentuanViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
+            // Dokumen S&K di luar state flow bersama: umurnya hanya selama layar ini.
+            val tnc by viewModel.tnc.collectAsState()
             val flowScope = bukaRekeningFlowScope(navController, it)
             BukaRekeningSideEffects(flowScope, navController)
 
-            // Sesi baru dibuat di sini: server butuh versi S&K yang disetujui.
+            // Teksnya datang dari `GET tnc` di `init`; sesi baru dibuat saat tombol
+            // ditekan, dengan versi dari dokumen yang sedang terpampang.
             BukaRekeningSyaratKetentuanScreen(
-                state = state.toSyaratKetentuanUiState(),
+                state = state.toSyaratKetentuanUiState(tnc),
                 onAgreeClick = { viewModel.onEvent(SyaratKetentuanEvent.TncAccepted) },
+                onRetryClick = { viewModel.onEvent(SyaratKetentuanEvent.TncReloadRequested) },
                 onBackClick = { navController.popBackStack() },
             )
         }
@@ -414,13 +428,33 @@ fun NavGraphBuilder.authGraph(
             val state by viewModel.state.collectAsState()
             BukaRekeningSideEffects(flowScope, navController)
 
+            // Prefill dari hasil OCR; ViewModel yang menjaga agar hanya sekali.
+            LaunchedEffect(viewModel) {
+                viewModel.onEvent(DataPribadiEvent.ScreenShown)
+            }
+
             BukaRekeningDataPribadiScreen(
                 state = state.toDataPribadiUiState(),
+                onFieldChange = { field, value ->
+                    viewModel.onEvent(DataPribadiEvent.FieldChanged(field, value))
+                },
+                onBirthDateSelect = {
+                    viewModel.onEvent(DataPribadiEvent.BirthDateSelected(it))
+                },
                 onJenisKelaminSelect = {
                     viewModel.onEvent(DataPribadiEvent.GenderSelected(it))
                 },
                 onAlamatDomisiliToggle = {
                     viewModel.onEvent(DataPribadiEvent.DomicileSameToggled(it))
+                },
+                onPekerjaanSelect = {
+                    viewModel.onEvent(DataPribadiEvent.PekerjaanSelected(it))
+                },
+                onPenghasilanSelect = {
+                    viewModel.onEvent(DataPribadiEvent.PenghasilanSelected(it))
+                },
+                onSumberDanaSelect = {
+                    viewModel.onEvent(DataPribadiEvent.SumberDanaSelected(it))
                 },
                 onLanjutClick = { viewModel.onEvent(DataPribadiEvent.PersonalDataSubmitted) },
                 onSimpanClick = { viewModel.onEvent(DataPribadiEvent.DraftSaveRequested) },
@@ -550,9 +584,56 @@ fun NavGraphBuilder.authGraph(
                 }
             }
 
+            val context = LocalContext.current
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val scope = rememberCoroutineScope()
+            val snackbarHostState = LocalSnackbarHostState.current
+            val izinKurang = stringResource(R.string.buka_rekening_antrean_izin_dibutuhkan)
+            var hasMedia by remember { mutableStateOf(context.hasVideoCallPermissions()) }
+            var sudahDiminta by remember { mutableStateOf(false) }
+
+            // Izin bisa diberikan dari Pengaturan saat aplikasi di latar; kembali dari sana
+            // tidak menyusun ulang komposisi, jadi statusnya dibaca lagi tiap ON_RESUME.
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        hasMedia = context.hasVideoCallPermissions()
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            }
+
+            // Video call butuh kamera **dan** mikrofon. Diminta saat tombol ditekan, bukan
+            // saat layar dibuka: skill `buka-rekening-video-call` §2 — nasabah yang baru
+            // melihat posisi antrean belum perlu menyerahkan keduanya.
+            val izinLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions(),
+            ) { hasil ->
+                sudahDiminta = true
+                hasMedia = hasil.hasRequiredVideoCallPermissions()
+                if (hasMedia) {
+                    navController.navigate(BukaRekeningVideoCall)
+                }
+            }
+
             BukaRekeningAntreanVideoCallScreen(
-                state = state.toAntreanUiState(),
-                onTungguClick = { navController.navigate(BukaRekeningVideoCall) },
+                state = state.toAntreanUiState(isIzinMediaSiap = hasMedia),
+                onTungguClick = {
+                    when {
+                        hasMedia -> navController.navigate(BukaRekeningVideoCall)
+                        // Sudah pernah ditolak: dialog sistem tidak muncul lagi, jadi
+                        // satu-satunya jalan tersisa adalah Pengaturan aplikasi.
+                        sudahDiminta -> {
+                            scope.launch { snackbarHostState.showSnackbar(izinKurang) }
+                            context.openAppSettings()
+                        }
+                        else -> izinLauncher.launch(videoCallRequestedPermissions())
+                    }
+                },
+                // Penjadwalan ulang belum punya endpoint di `06-BUKA-REKENING-API-SPEC.md`;
+                // tombolnya dimatikan di layar alih-alih memanggil lambda kosong yang
+                // membuat nasabah menekan sesuatu yang tidak pernah terjadi.
                 onJadwalkanClick = {},
                 onBackClick = { navController.popBackStack() },
             )
@@ -561,16 +642,89 @@ fun NavGraphBuilder.authGraph(
         composable<BukaRekeningVideoCall> {
             val flowScope = bukaRekeningFlowScope(navController, it)
             val viewModel: BukaRekeningVideoCallViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsState()
             BukaRekeningSideEffects(flowScope, navController)
 
-            // TODO(webrtc): ganti state statis ini dengan sesi WebRTC dari signaling_url
-            //  pada QueueTicket — lihat skill buka-rekening-video-call.
+            val context = LocalContext.current
+            val lifecycleOwner = LocalLifecycleOwner.current
+
+            // Layar ini menjaga izinnya sendiri, tidak menitipkannya ke layar Antrean.
+            // Alasannya bukan kehati-hatian berlebih: Navigation Compose memulihkan back
+            // stack, jadi proses yang mati saat panggilan berlangsung dibangkitkan dengan
+            // layar ini di puncak — melewati gerbang Antrean sepenuhnya, dan izinnya bisa
+            // sudah dicabut OS di sela itu.
+            var hasMedia by remember { mutableStateOf(context.hasVideoCallPermissions()) }
+            var allowBluetooth by remember {
+                mutableStateOf(context.hasVideoCallBluetoothPermission())
+            }
+            var sudahDiminta by remember { mutableStateOf(false) }
+
+            val izinLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions(),
+            ) { hasil ->
+                sudahDiminta = true
+                // Hanya izin wajib yang dinilai: peta hasilnya memuat Bluetooth juga, dan
+                // `values.all { it }` akan menganggap panggilan gagal padahal kamera dan
+                // mikrofon sudah diberikan.
+                hasMedia = hasil.hasRequiredVideoCallPermissions()
+                allowBluetooth = context.hasVideoCallBluetoothPermission()
+            }
+
+            // Satu sumber untuk ViewModel: masuk pertama, pulih dari kematian proses, dan
+            // pencabutan di tengah panggilan semuanya lewat sini.
+            LaunchedEffect(hasMedia, allowBluetooth) {
+                viewModel.onEvent(
+                    VideoCallEvent.MediaPermissionsChanged(
+                        granted = hasMedia,
+                        allowBluetooth = allowBluetooth,
+                    ),
+                )
+            }
+
+            // Kamera dilepas saat aplikasi ke latar, sambungan dibiarkan hidup — skill §10.
+            // PeerConnection sendiri tinggal di ViewModel, jadi rotasi tidak memutusnya.
+            // ON_RESUME juga membaca ulang izin: pencabutan dari Pengaturan tidak menyusun
+            // ulang komposisi, jadi tanpa ini layar tidak pernah tahu.
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    when (event) {
+                        Lifecycle.Event.ON_PAUSE -> viewModel.pauseLocalVideo()
+                        Lifecycle.Event.ON_RESUME -> {
+                            hasMedia = context.hasVideoCallPermissions()
+                            allowBluetooth = context.hasVideoCallBluetoothPermission()
+                            viewModel.resumeLocalVideo()
+                        }
+                        else -> Unit
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            }
+
             BukaRekeningVideoCallScreen(
-                state = VideoCallUiState(),
+                state = uiState,
+                eglBaseContext = viewModel.eglBaseContext,
+                onLocalRendererReady = viewModel::attachLocalRenderer,
+                onRemoteRendererReady = viewModel::attachRemoteRenderer,
                 onBack = { navController.popBackStack() },
-                onMuteToggle = {},
-                onSwitchCamera = {},
-                onEndCall = { viewModel.onEvent(VideoCallEvent.VideoCallCompleted("")) },
+                onMuteToggle = { viewModel.onEvent(VideoCallEvent.MuteToggled) },
+                onSwitchCamera = { viewModel.onEvent(VideoCallEvent.CameraSwitched) },
+                onEndCall = { viewModel.onEvent(VideoCallEvent.EndCallRequested) },
+                // Tiket dibuang lalu kembali ke Antrean, yang mengambil tiket baru begitu
+                // melihat `queue == null`.
+                onRejoin = {
+                    viewModel.onEvent(VideoCallEvent.RejoinRequested)
+                    navController.popBackStack()
+                },
+                onRequestPermissions = {
+                    // Sudah pernah ditolak: dialog sistem tidak muncul lagi, jadi
+                    // satu-satunya jalan tersisa adalah Pengaturan aplikasi.
+                    if (sudahDiminta) {
+                        context.openAppSettings()
+                    } else {
+                        izinLauncher.launch(videoCallRequestedPermissions())
+                    }
+                },
             )
         }
 

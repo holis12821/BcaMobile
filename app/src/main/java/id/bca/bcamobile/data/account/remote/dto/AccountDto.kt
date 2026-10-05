@@ -137,7 +137,7 @@ data class DashboardResponse(
 )
 
 /**
- * Bentuk request mengikuti `docs/backend/01-API-SPECIFICATION.md` §5:
+ * Bentuk request mengikuti `bca-mobile-api/docs/01-API-SPECIFICATION.md` §5:
  * `verification_token` di akar, batas harian dibungkus objek `limits`.
  *
  * Client sebelumnya mengirim `account_id` + `transfer_limit` + `ewallet_limit`,

@@ -14,7 +14,7 @@ import retrofit2.http.POST
 
 /**
  * Transfer mengikuti pola tiga langkah: inquiry -> verifikasi PIN -> execute.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §5 dan skill `bca-mobile-api` §8.1.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §5 dan skill `bca-mobile-api` §8.1.
  *
  * Verifikasi PIN memakai `AuthApi.verifyPin`; token hasilnya dioper ke [execute].
  */

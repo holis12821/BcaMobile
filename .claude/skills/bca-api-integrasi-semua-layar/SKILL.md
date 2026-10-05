@@ -171,7 +171,7 @@ alur registrasi memang di luar lingkup aplikasi nasabah, atau desainnya belum di
 
 Enam langkah. Jangan lompat.
 
-**1. Tentukan kontrak.** Buka `docs/backend/01-API-SPECIFICATION.md` (atau `06-…` untuk
+**1. Tentukan kontrak.** Buka `bca-mobile-api/docs/01-API-SPECIFICATION.md` (atau `06-…` untuk
 onboarding). Catat: path, method, jaringan mana (§5), field request, field response,
 error code yang mungkin.
 
@@ -270,8 +270,8 @@ Skill ini **tidak** memuat kontrak API, pola arsitektur, atau aturan visual. Ruj
 | Login biometrik, AndroidKeyStore | `android-biometric-keystore` |
 | Performa, ANR, recomposition, R8 | `performance-quality` |
 
-Dokumen kontrak: `docs/backend/01-API-SPECIFICATION.md`,
-`docs/backend/06-BUKA-REKENING-API-SPEC.md`, `docs/backend/08-PILIH-KARTU-API-SPEC.md`.
+Dokumen kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md`,
+`bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md`, `bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md`.
 
 ---
 

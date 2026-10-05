@@ -13,12 +13,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.viewinterop.AndroidView
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.components.AppTopBar
 import id.bca.bcamobile.ui.theme.AppAlpha
@@ -46,6 +49,9 @@ import id.bca.bcamobile.ui.theme.AppSize
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
 import id.bca.bcamobile.ui.theme.Spacing
 import id.bca.bcamobile.ui.theme.StrokeWidth
+import org.webrtc.EglBase
+import org.webrtc.RendererCommon
+import org.webrtc.SurfaceViewRenderer
 
 // -- Data Model ---------------------------------------------------------------
 
@@ -55,10 +61,19 @@ import id.bca.bcamobile.ui.theme.StrokeWidth
 @Composable
 fun BukaRekeningVideoCallScreen(
     state: VideoCallUiState,
+    /**
+     * Konteks EGL dari `WebRtcClient`. `null` hanya di preview: tanpa konteks tidak ada
+     * `SurfaceViewRenderer` yang bisa diinisialisasi, dan layar jatuh ke latar polos.
+     */
+    eglBaseContext: EglBase.Context?,
+    onLocalRendererReady: (SurfaceViewRenderer) -> Unit,
+    onRemoteRendererReady: (SurfaceViewRenderer) -> Unit,
     onBack: () -> Unit,
     onMuteToggle: () -> Unit,
     onSwitchCamera: () -> Unit,
     onEndCall: () -> Unit,
+    onRejoin: () -> Unit,
+    onRequestPermissions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -77,6 +92,28 @@ fun BukaRekeningVideoCallScreen(
                 .padding(innerPadding)
                 .background(AppColor.Neutral900),
         ) {
+            // Layer 0: video petugas. Ini yang dulu tidak ada sama sekali — area ini cuma
+            // Neutral900 polos, dan itu sumber "blank"-nya.
+            if (eglBaseContext != null) {
+                VideoRenderer(
+                    eglBaseContext = eglBaseContext,
+                    mirror = false,
+                    onRendererReady = onRemoteRendererReady,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            // Selama belum ada media petugas, katakan apa yang sedang terjadi alih-alih
+            // membiarkan layar hitam mengaku "Terhubung".
+            if (state.connectionState != VideoCallConnectionState.TERHUBUNG) {
+                RemotePlaceholder(
+                    state = state,
+                    onRejoin = onRejoin,
+                    onRequestPermissions = onRequestPermissions,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
+
             // Layer 1: Gradient overlays (top & bottom darkening)
             VideoGradientOverlay()
 
@@ -88,14 +125,18 @@ fun BukaRekeningVideoCallScreen(
                     .align(Alignment.TopStart),
             )
 
-            // Layer 3: Center verification reticle
-            VerificationReticle(
-                modifier = Modifier.align(Alignment.Center),
-            )
+            // Layer 3: reticle hanya berarti kalau ada video untuk dibingkai.
+            if (state.connectionState == VideoCallConnectionState.TERHUBUNG) {
+                VerificationReticle(
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
 
             // Layer 4: Bottom section (instruction, PiP, controls, POJK)
             BottomSection(
                 state = state,
+                eglBaseContext = eglBaseContext,
+                onLocalRendererReady = onLocalRendererReady,
                 onMuteToggle = onMuteToggle,
                 onSwitchCamera = onSwitchCamera,
                 onEndCall = onEndCall,
@@ -103,6 +144,112 @@ fun BukaRekeningVideoCallScreen(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
             )
+        }
+    }
+}
+
+// -- Renderer video ------------------------------------------------------------
+
+/**
+ * `SurfaceViewRenderer` WebRTC di dalam Compose.
+ *
+ * `AndroidView` karena WebRTC merender ke permukaan OpenGL milik View, bukan ke canvas
+ * Compose — tidak ada padanan Compose-native-nya.
+ *
+ * [onRendererReady] dipanggil sekali saat permukaannya siap, dan di situ ViewModel
+ * menyambungkan track. Urutannya tidak dijamin: track bisa datang sebelum permukaan ada,
+ * jadi `WebRtcClient` menyimpan keduanya dan menyambungkan mana pun yang datang terakhir.
+ *
+ * `onRelease` wajib `release()`: tanpa itu permukaan dan buffer EGL-nya menggantung setiap
+ * kali layar dilepas, dan panggilan kedua kehabisan memori grafis.
+ */
+@Composable
+private fun VideoRenderer(
+    eglBaseContext: EglBase.Context,
+    mirror: Boolean,
+    onRendererReady: (SurfaceViewRenderer) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AndroidView(
+        factory = { context ->
+            SurfaceViewRenderer(context).apply {
+                init(eglBaseContext, null)
+                setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+                setEnableHardwareScaler(true)
+                onRendererReady(this)
+            }
+        },
+        update = { it.setMirror(mirror) },
+        onRelease = { it.release() },
+        modifier = modifier,
+    )
+}
+
+/**
+ * Apa yang tampil selama media petugas belum mengalir.
+ *
+ * Ada supaya layar tidak pernah lagi hitam tanpa penjelasan: setiap tahap punya
+ * kalimatnya sendiri, dan keadaan gagal membawa jalan keluarnya.
+ */
+@Composable
+private fun RemotePlaceholder(
+    state: VideoCallUiState,
+    onRejoin: () -> Unit,
+    onRequestPermissions: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.s3),
+        modifier = modifier.padding(Spacing.s6),
+    ) {
+        // Memuat hanya saat memang sedang menunggu sesuatu. Keadaan izin, gagal, dan
+        // selesai menunggu tindakan nasabah, bukan jaringan.
+        if (!state.isPerluAntreanUlang &&
+            !state.isPerluIzin &&
+            state.connectionState != VideoCallConnectionState.SELESAI
+        ) {
+            CircularProgressIndicator(color = AppColor.Neutral100)
+        }
+        Text(
+            text = stringResource(
+                when (state.connectionState) {
+                    VideoCallConnectionState.IZIN_DIBUTUHKAN ->
+                        R.string.buka_rekening_vc_status_izin
+                    VideoCallConnectionState.MENUNGGU_PETUGAS ->
+                        R.string.buka_rekening_vc_status_menunggu
+                    VideoCallConnectionState.MENGHUBUNGKAN ->
+                        R.string.buka_rekening_vc_status_menghubungkan
+                    VideoCallConnectionState.MENYAMBUNG_ULANG ->
+                        R.string.buka_rekening_vc_status_menyambung_ulang
+                    VideoCallConnectionState.GAGAL ->
+                        R.string.buka_rekening_vc_status_gagal
+                    VideoCallConnectionState.SELESAI ->
+                        R.string.buka_rekening_vc_status_selesai
+                    VideoCallConnectionState.TERHUBUNG ->
+                        R.string.buka_rekening_vc_status_menghubungkan
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColor.Neutral100,
+            textAlign = TextAlign.Center,
+        )
+        when {
+            state.isPerluIzin -> TextButton(onClick = onRequestPermissions) {
+                Text(
+                    text = stringResource(R.string.buka_rekening_vc_izinkan),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = AppColor.Primary200,
+                )
+            }
+
+            state.isPerluAntreanUlang -> TextButton(onClick = onRejoin) {
+                Text(
+                    text = stringResource(R.string.buka_rekening_vc_antrean_ulang),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = AppColor.Primary200,
+                )
+            }
         }
     }
 }
@@ -145,14 +292,19 @@ private fun TopStatusOverlay(
             modifier = Modifier.fillMaxWidth(),
         ) {
             EncryptionBadge()
-            TimerBadge(durasiPanggilan = state.durasiPanggilan)
+            // Durasi yang berjalan sebelum media mengalir hanya angka palsu.
+            if (state.isDurasiTampil) {
+                TimerBadge(durasiPanggilan = state.durasiPanggilan)
+            }
         }
 
-        // Row 2: Agent info tag
-        AgentInfoTag(
-            namaPetugas = state.namaPetugas,
-            statusTerhubung = state.statusTerhubung,
-        )
+        // Row 2: tag petugas baru ada setelah `agent_assigned` membawa namanya.
+        if (state.namaPetugas.isNotBlank()) {
+            AgentInfoTag(
+                namaPetugas = state.namaPetugas,
+                statusTerhubung = state.connectionState == VideoCallConnectionState.TERHUBUNG,
+            )
+        }
     }
 }
 
@@ -319,6 +471,8 @@ private fun VerificationReticle(modifier: Modifier = Modifier) {
 @Composable
 private fun BottomSection(
     state: VideoCallUiState,
+    eglBaseContext: EglBase.Context?,
+    onLocalRendererReady: (SurfaceViewRenderer) -> Unit,
     onMuteToggle: () -> Unit,
     onSwitchCamera: () -> Unit,
     onEndCall: () -> Unit,
@@ -343,12 +497,17 @@ private fun BottomSection(
             } else {
                 Spacer(Modifier.weight(1f))
             }
-            PipSelfView()
+            PipSelfView(
+                eglBaseContext = eglBaseContext,
+                isFrontCamera = state.isFrontCamera,
+                onRendererReady = onLocalRendererReady,
+            )
         }
 
         // Floating call controls bar
         FloatingControlsBar(
             isMuted = state.isMuted,
+            isEnabled = state.isKontrolAktif,
             onMuteToggle = onMuteToggle,
             onSwitchCamera = onSwitchCamera,
             onEndCall = onEndCall,
@@ -419,7 +578,12 @@ private fun InstructionBubble(
 // -- PiP Self View ------------------------------------------------------------
 
 @Composable
-private fun PipSelfView(modifier: Modifier = Modifier) {
+private fun PipSelfView(
+    eglBaseContext: EglBase.Context?,
+    isFrontCamera: Boolean,
+    onRendererReady: (SurfaceViewRenderer) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier = modifier
             .width(AppSize.LogoContainer)
@@ -428,15 +592,27 @@ private fun PipSelfView(modifier: Modifier = Modifier) {
             .background(AppColor.Neutral700)
             .border(StrokeWidth.w0, AppColor.Neutral100.copy(alpha = AppAlpha.A30), AppShape.R6),
     ) {
-        // Placeholder icon
-        Icon(
-            painter = painterResource(R.drawable.ic_face),
-            contentDescription = null,
-            tint = AppColor.Neutral500,
-            modifier = Modifier
-                .size(Spacing.s7)
-                .align(Alignment.Center),
-        )
+        if (eglBaseContext != null) {
+            // Kamera sendiri hidup sejak layar dibuka, sebelum petugas datang: itu yang
+            // membuat layar berhenti blank selama menunggu. Dulu di sini hanya ikon statis.
+            VideoRenderer(
+                eglBaseContext = eglBaseContext,
+                // Cermin hanya untuk kamera depan — kamera belakang yang dicermin
+                // membuat tulisan di e-KTP terbalik.
+                mirror = isFrontCamera,
+                onRendererReady = onRendererReady,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.ic_face),
+                contentDescription = null,
+                tint = AppColor.Neutral500,
+                modifier = Modifier
+                    .size(Spacing.s7)
+                    .align(Alignment.Center),
+            )
+        }
 
         // "Anda" label (bottom-start)
         Text(
@@ -473,6 +649,7 @@ private fun PipSelfView(modifier: Modifier = Modifier) {
 @Composable
 private fun FloatingControlsBar(
     isMuted: Boolean,
+    isEnabled: Boolean,
     onMuteToggle: () -> Unit,
     onSwitchCamera: () -> Unit,
     onEndCall: () -> Unit,
@@ -492,6 +669,7 @@ private fun FloatingControlsBar(
         // Mic toggle
         IconButton(
             onClick = onMuteToggle,
+            enabled = isEnabled,
             modifier = Modifier
                 .size(AppSize.MinTouchTarget)
                 .background(
@@ -516,6 +694,7 @@ private fun FloatingControlsBar(
         // Camera switch
         IconButton(
             onClick = onSwitchCamera,
+            enabled = isEnabled,
             modifier = Modifier
                 .size(AppSize.MinTouchTarget)
                 .background(
@@ -531,7 +710,8 @@ private fun FloatingControlsBar(
             )
         }
 
-        // End call
+        // Akhiri panggilan tidak pernah dimatikan: nasabah harus selalu bisa keluar,
+        // termasuk saat antrean masih berjalan dan saat sambungan gagal.
         IconButton(
             onClick = onEndCall,
             modifier = Modifier
@@ -572,32 +752,117 @@ private fun PojkBanner(modifier: Modifier = Modifier) {
 
 // -- Previews -----------------------------------------------------------------
 
-@Preview(showBackground = true)
+/**
+ * `eglBaseContext = null` di seluruh preview: `SurfaceViewRenderer` butuh konteks EGL
+ * sungguhan yang hanya ada saat `WebRtcClient` hidup, jadi preview menampilkan tata
+ * letaknya tanpa video.
+ */
+@Preview(showBackground = true, name = "Terhubung")
 @Composable
-private fun VideoCallVerifikasiPreview() {
+private fun VideoCallTerhubungPreview() {
     BcaMobileTheme {
         BukaRekeningVideoCallScreen(
             state = VideoCallUiState(
-                instruksiPetugas = "Mohon posisikan fisik e-KTP Anda di depan kamera samping wajah.",
+                connectionState = VideoCallConnectionState.TERHUBUNG,
+                namaPetugas = "Sarah Adisti",
+                idPetugas = "CS-1042",
+                durasiPanggilan = "03:15",
+                instruksiPetugas =
+                    "Mohon posisikan fisik e-KTP Anda di depan kamera samping wajah.",
             ),
+            eglBaseContext = null,
+            onLocalRendererReady = {},
+            onRemoteRendererReady = {},
             onBack = {},
             onMuteToggle = {},
             onSwitchCamera = {},
             onEndCall = {},
+            onRejoin = {},
+            onRequestPermissions = {},
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Izin dibutuhkan")
 @Composable
-private fun VideoCallMutedPreview() {
+private fun VideoCallIzinPreview() {
     BcaMobileTheme {
         BukaRekeningVideoCallScreen(
-            state = VideoCallUiState(isMuted = true),
+            state = VideoCallUiState(
+                connectionState = VideoCallConnectionState.IZIN_DIBUTUHKAN,
+            ),
+            eglBaseContext = null,
+            onLocalRendererReady = {},
+            onRemoteRendererReady = {},
             onBack = {},
             onMuteToggle = {},
             onSwitchCamera = {},
             onEndCall = {},
+            onRejoin = {},
+            onRequestPermissions = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Menunggu petugas")
+@Composable
+private fun VideoCallMenungguPreview() {
+    BcaMobileTheme {
+        BukaRekeningVideoCallScreen(
+            state = VideoCallUiState(
+                connectionState = VideoCallConnectionState.MENUNGGU_PETUGAS,
+            ),
+            eglBaseContext = null,
+            onLocalRendererReady = {},
+            onRemoteRendererReady = {},
+            onBack = {},
+            onMuteToggle = {},
+            onSwitchCamera = {},
+            onEndCall = {},
+            onRejoin = {},
+            onRequestPermissions = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Gagal, perlu antrean ulang")
+@Composable
+private fun VideoCallGagalPreview() {
+    BcaMobileTheme {
+        BukaRekeningVideoCallScreen(
+            state = VideoCallUiState(connectionState = VideoCallConnectionState.GAGAL),
+            eglBaseContext = null,
+            onLocalRendererReady = {},
+            onRemoteRendererReady = {},
+            onBack = {},
+            onMuteToggle = {},
+            onSwitchCamera = {},
+            onEndCall = {},
+            onRejoin = {},
+            onRequestPermissions = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Bisu")
+@Composable
+private fun VideoCallMutedPreview() {
+    BcaMobileTheme {
+        BukaRekeningVideoCallScreen(
+            state = VideoCallUiState(
+                connectionState = VideoCallConnectionState.TERHUBUNG,
+                namaPetugas = "Sarah Adisti",
+                isMuted = true,
+            ),
+            eglBaseContext = null,
+            onLocalRendererReady = {},
+            onRemoteRendererReady = {},
+            onBack = {},
+            onMuteToggle = {},
+            onSwitchCamera = {},
+            onEndCall = {},
+            onRejoin = {},
+            onRequestPermissions = {},
         )
     }
 }

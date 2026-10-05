@@ -39,6 +39,7 @@ import id.bca.bcamobile.ui.theme.AppShape
 import id.bca.bcamobile.ui.theme.AppSize
 import id.bca.bcamobile.ui.theme.BcaMobileTheme
 import id.bca.bcamobile.ui.theme.Spacing
+import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningLangkah
 import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
 
 // -- Data Model ---------------------------------------------------------------
@@ -74,9 +75,7 @@ fun BukaRekeningAntreanVideoCallScreen(
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
             ) {
                 StepProgressIndicator(
-                    currentStep = 8,
-                    totalSteps = 11,
-                    stepLabel = stringResource(R.string.buka_rekening_antrean_step_label),
+                    langkah = BukaRekeningLangkah.VIDEO_CALL,
                     modifier = Modifier.padding(
                         start = Spacing.s4,
                         end = Spacing.s4,
@@ -104,6 +103,8 @@ fun BukaRekeningAntreanVideoCallScreen(
 
                 // Bottom actions
                 AntreanBottomActions(
+                    isTungguAktif = state.isTiketSiap,
+                    isJadwalkanAktif = state.isJadwalkanTersedia,
                     onTungguClick = onTungguClick,
                     onJadwalkanClick = onJadwalkanClick,
                 )
@@ -453,7 +454,7 @@ private fun PreparationChecklistCard(
                     iconBgColor = MaterialTheme.colorScheme.primary.copy(alpha = AppAlpha.A10),
                     title = stringResource(R.string.buka_rekening_antrean_ktp_title),
                     description = stringResource(R.string.buka_rekening_antrean_ktp_desc),
-                    isChecked = state.isKtpReady,
+                    isChecked = state.isIzinMediaSiap,
                 )
                 ChecklistItem(
                     iconRes = R.drawable.ic_signal_cellular_alt,
@@ -461,7 +462,9 @@ private fun PreparationChecklistCard(
                     iconBgColor = MaterialTheme.colorScheme.secondary.copy(alpha = AppAlpha.A10),
                     title = stringResource(R.string.buka_rekening_antrean_koneksi_title),
                     description = stringResource(R.string.buka_rekening_antrean_koneksi_desc),
-                    isChecked = state.isKoneksiStabil,
+                    // Tiket terbit hanya kalau `POST video-call/queue` berhasil — itu bukti
+                    // koneksinya memang sampai ke server, bukan tebakan.
+                    isChecked = state.isTiketSiap,
                 )
                 ChecklistItem(
                     iconRes = R.drawable.ic_record_voice_over,
@@ -469,7 +472,9 @@ private fun PreparationChecklistCard(
                     iconBgColor = MaterialTheme.colorScheme.tertiary.copy(alpha = AppAlpha.A10),
                     title = stringResource(R.string.buka_rekening_antrean_ruangan_title),
                     description = stringResource(R.string.buka_rekening_antrean_ruangan_desc),
-                    isChecked = state.isRuanganTenang,
+                    // Tidak ada sinyal teknis apa pun yang bisa membuktikan ruangan tenang;
+                    // ini imbauan, jadi centangnya mengikuti kesiapan izin mikrofon saja.
+                    isChecked = state.isIzinMediaSiap,
                 )
             }
         }
@@ -616,6 +621,8 @@ private fun OperatingHoursCard(modifier: Modifier = Modifier) {
 
 @Composable
 private fun AntreanBottomActions(
+    isTungguAktif: Boolean,
+    isJadwalkanAktif: Boolean,
     onTungguClick: () -> Unit,
     onJadwalkanClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -627,6 +634,7 @@ private fun AntreanBottomActions(
         // Primary: Tunggu Panggilan Sekarang
         Button(
             onClick = onTungguClick,
+            enabled = isTungguAktif,
             shape = AppShape.R6,
             modifier = Modifier
                 .fillMaxWidth()
@@ -647,6 +655,7 @@ private fun AntreanBottomActions(
         // Secondary: Jadwalkan Panggilan Nanti
         OutlinedButton(
             onClick = onJadwalkanClick,
+            enabled = isJadwalkanAktif,
             shape = AppShape.R6,
             modifier = Modifier
                 .fillMaxWidth()

@@ -38,6 +38,9 @@ data class RingkasanUiState(
 @Composable
 fun BukaRekeningFlowState.toRingkasanUiState(): RingkasanUiState {
     val data = ktpData
+    // Yang diringkas adalah data yang benar-benar dikirim ke `personal-data`,
+    // yaitu isian form — hasil OCR cuma nilai awalnya dan bisa sudah dikoreksi.
+    val form = dataPribadi
     return RingkasanUiState(
         produkRekening = product?.name.orEmpty(),
         isPalingPopuler = selectedProductIndex == POPULAR_PRODUCT_INDEX,
@@ -49,14 +52,17 @@ fun BukaRekeningFlowState.toRingkasanUiState(): RingkasanUiState {
         namaLengkap = data?.namaLengkap.orEmpty(),
         nik = data?.nik?.groupNik().orEmpty(),
         isNikVerified = ocr?.dukcapilMatch == true,
-        tempatTanggalLahir = data?.let {
+        tempatTanggalLahir = form?.let {
             joinNonBlank(it.tempatLahir, it.tanggalLahir.toDisplayDate())
-        }.orEmpty(),
-        alamatKtp = data?.let { joinNonBlank(it.alamat, it.kota) }.orEmpty(),
-        pekerjaan = stringResource(R.string.buka_rekening_pekerjaan_karyawan_swasta),
-        nomorHandphone = otpSentTo,
+        } ?: data?.let { joinNonBlank(it.tempatLahir, it.tanggalLahir.toDisplayDate()) }.orEmpty(),
+        alamatKtp = form?.let { joinNonBlank(it.alamatLengkap, it.kota) }
+            ?: data?.let { joinNonBlank(it.alamat, it.kota) }.orEmpty(),
+        pekerjaan = form?.let { stringResource(it.pekerjaan.labelRes) }.orEmpty(),
+        // Nomor tersamar dari server lebih dipercaya daripada yang diketik:
+        // itulah nomor yang benar-benar menerima OTP.
+        nomorHandphone = otpSentTo.ifBlank { form?.nomorHp.orEmpty() },
         isOtpVerified = isOtpVerified,
-        alamatEmail = "",
+        alamatEmail = form?.email.orEmpty(),
         isOcrVerified = isOcrVerified,
         isBiometrikVerified = isBiometrikVerified,
         isVideoCallVerified = isVideoCallVerified,

@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Katalog kartu Paspor per produk.
- * Kontrak: `docs/backend/08-PILIH-KARTU-API-SPEC.md` §4.
+ * Kontrak: `bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md` §4.
  */
 @Serializable
 data class CardFeesDto(

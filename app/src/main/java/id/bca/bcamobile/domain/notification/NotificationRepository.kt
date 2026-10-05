@@ -6,7 +6,7 @@ import id.bca.bcamobile.domain.notification.model.NotificationType
 
 /**
  * Notifikasi nasabah.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §7.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §7.
  */
 interface NotificationRepository {
 

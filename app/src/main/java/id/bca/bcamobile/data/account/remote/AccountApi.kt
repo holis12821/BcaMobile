@@ -17,7 +17,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 
-/** Endpoint rekening dan profil. Kontrak: `docs/backend/01-API-SPECIFICATION.md` §3. */
+/** Endpoint rekening dan profil. Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §3. */
 interface AccountApi {
 
     @GET("account/profile")

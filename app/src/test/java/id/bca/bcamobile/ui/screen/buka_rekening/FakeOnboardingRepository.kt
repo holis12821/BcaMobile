@@ -18,6 +18,7 @@ import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
 import id.bca.bcamobile.domain.onboarding.model.SelectedCard
+import id.bca.bcamobile.domain.onboarding.model.TncDocument
 import java.io.File
 
 /**
@@ -37,6 +38,7 @@ class FakeOnboardingRepository : OnboardingRepository {
 
     var createSessionResult: DataResult<OnboardingSession> = failure()
     var cardCatalogResult: DataResult<CardCatalog> = failure()
+    var tncResult: DataResult<TncDocument> = failure()
     var selectCardResult: DataResult<SelectedCard> = failure()
     var getSessionResult: DataResult<OnboardingSession> = failure()
     var ocrResult: DataResult<KtpOcrResult> = failure()
@@ -46,6 +48,16 @@ class FakeOnboardingRepository : OnboardingRepository {
 
     /** Kartu yang ikut terkirim saat sesi dibuat; null berarti client belum memilih. */
     val createSessionCardTypes = mutableListOf<PasporCardType?>()
+
+    /**
+     * Versi S&K yang ikut setiap `createSession`.
+     *
+     * Dicatat, bukan diabaikan: inti kontrak S&K adalah versi yang terkirim harus berasal
+     * dari dokumen yang sedang terpampang, dan satu-satunya cara menguji itu adalah
+     * memeriksa nilai yang benar-benar sampai ke repository.
+     */
+    val createSessionTncVersions = mutableListOf<String>()
+    var tncCount = 0
     val verifyOtpCodes = mutableListOf<String>()
     var resendOtpCount = 0
     var getSessionCount = 0
@@ -61,6 +73,11 @@ class FakeOnboardingRepository : OnboardingRepository {
     override suspend fun cardCatalog(productType: ProductType): DataResult<CardCatalog> =
         cardCatalogResult
 
+    override suspend fun tnc(): DataResult<TncDocument> {
+        tncCount += 1
+        return tncResult
+    }
+
     override suspend fun createSession(
         productType: ProductType,
         acceptedTncVersion: String,
@@ -68,6 +85,7 @@ class FakeOnboardingRepository : OnboardingRepository {
         cardCatalogVersion: String?,
     ): DataResult<OnboardingSession> {
         createSessionCardTypes += cardType
+        createSessionTncVersions += acceptedTncVersion
         return createSessionResult
     }
 
@@ -113,8 +131,20 @@ class FakeOnboardingRepository : OnboardingRepository {
         meta: LivenessMeta,
     ): DataResult<BiometricResult> = error("uploadBiometric tidak dipakai di test OTP")
 
-    override suspend fun joinVideoCallQueue(): DataResult<QueueTicket> =
-        error("joinVideoCallQueue tidak dipakai di test OTP")
+    var joinQueueResult: DataResult<QueueTicket> = failure()
+
+    /**
+     * Berapa kali antrean diminta.
+     *
+     * Dihitung karena penyambungan ulang signaling **wajib** mengambil tiket baru: token di
+     * `signaling_url` sekali pakai, jadi memakai URL yang sama dijamin `401`.
+     */
+    var joinQueueCount = 0
+
+    override suspend fun joinVideoCallQueue(): DataResult<QueueTicket> {
+        joinQueueCount += 1
+        return joinQueueResult
+    }
 
     override suspend fun saveCredentials(
         accessCode: String,

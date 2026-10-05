@@ -91,8 +91,14 @@ abstract class BukaRekeningStepViewModel(
     }
 
     protected companion object {
-        /** Versi S&K dan persetujuan yang sedang tayang; harus ikut berubah saat dokumen diperbarui. */
-        const val TNC_VERSION = "2026-09-01"
+        /**
+         * Versi dokumen persetujuan data pribadi di layar Ringkasan — **bukan** versi S&K.
+         *
+         * Pasangannya `TNC_VERSION` sudah dihapus: versi S&K sekarang datang dari
+         * `GET /onboarding/tnc` dan harus berasal dari dokumen yang benar-benar terpampang
+         * saat nasabah menyetujuinya. Sebagai konstanta, nilainya membeku saat server
+         * pindah versi, dan server menjawab `409 TNC_VERSION_OUTDATED`.
+         */
         const val AGREEMENT_VERSION = "2026-09-01"
     }
 }

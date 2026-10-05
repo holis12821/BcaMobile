@@ -6,6 +6,17 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Video call e-KYC: suara petugas harus keluar dari speaker, bukan earpiece —
+         nasabah memegang HP sejauh wajah plus e-KTP. Izin install-time, tanpa dialog. -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Routing audio video call ke headset Bluetooth. Runtime di API 31+, dan sengaja
+         TIDAK memblokir panggilan kalau ditolak: speaker tetap jalan tanpa ini. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Padanan install-time untuk API 26..30, tempat BLUETOOTH_CONNECT belum ada. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+
     <!-- API 33+: tanpa izin ini notifikasi tidak muncul. Diminta setelah login,
          bukan saat aplikasi pertama dibuka — lihat NotificationPermissionEffect. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

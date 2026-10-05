@@ -13,7 +13,7 @@ import retrofit2.http.Streaming
 
 /**
  * Mutasi rekening dan riwayat transaksi.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §4.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §4.
  *
  * Halaman berikutnya ditentukan `pagination.cursor` di envelope, bukan nomor halaman.
  *

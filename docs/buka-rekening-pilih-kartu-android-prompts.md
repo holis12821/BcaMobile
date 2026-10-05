@@ -3,8 +3,8 @@
 Sisipan langkah **Pilih Kartu Paspor** di antara *Pilih Jenis Rekening* dan
 *Syarat & Ketentuan*, dari sisi client Android.
 
-Kontrak backend: `docs/backend/08-PILIH-KARTU-API-SPEC.md`.
-Skill & prompt backend: `docs/backend/09-PILIH-KARTU-SKILL-PROMPTS.md`.
+Kontrak backend: `bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md`.
+Skill & prompt backend: `docs/backend-prompts/09-PILIH-KARTU-SKILL-PROMPTS.md`.
 
 ---
 

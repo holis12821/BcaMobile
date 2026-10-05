@@ -8,7 +8,7 @@ import id.bca.bcamobile.domain.transaction.model.Receipt
 import id.bca.bcamobile.domain.transaction.model.TransactionPeriod
 
 /**
- * Mutasi dan riwayat. Kontrak: `docs/backend/01-API-SPECIFICATION.md` §4.
+ * Mutasi dan riwayat. Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §4.
  *
  * Paginasi memakai cursor: kirim `cursor` dari halaman sebelumnya, bukan nomor halaman.
  */

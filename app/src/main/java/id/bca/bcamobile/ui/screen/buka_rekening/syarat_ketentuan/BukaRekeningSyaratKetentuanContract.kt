@@ -10,4 +10,13 @@ sealed interface SyaratKetentuanEvent {
      * kartu yang sudah dipilih ikut terkirim pada request yang sama.
      */
     data object TncAccepted : SyaratKetentuanEvent
+
+    /**
+     * Muat ulang teks S&K — tombol "Coba Lagi" pada keadaan gagal.
+     *
+     * Muatan pertama terjadi di `init`, bukan lewat event: nasabah harus bisa membaca
+     * teksnya sebelum menyetujui, dan memuatnya saat tombol ditekan berarti dia
+     * menyetujui teks yang belum diunduh.
+     */
+    data object TncReloadRequested : SyaratKetentuanEvent
 }

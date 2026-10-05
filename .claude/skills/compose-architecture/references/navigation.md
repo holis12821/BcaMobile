@@ -440,7 +440,7 @@ TNC → OCR → PERSONAL_DATA → OTP_VERIFY → BIOMETRIC → VIDEO_CALL → CR
 | `toOtpUiState()` | `BukaRekeningUiStates.kt` |
 | Pemetaan error → teks | `BukaRekeningFlowMappers.kt` |
 
-Kontrak API-nya: `docs/backend/06-BUKA-REKENING-API-SPEC.md` §3b, §3c, dan skill
+Kontrak API-nya: `bca-mobile-api/docs/06-BUKA-REKENING-API-SPEC.md` §3b, §3c, dan skill
 `frontend-otp-verification` untuk perilaku UI per error code.
 
 ### Layar penuh, bukan dialog

@@ -12,7 +12,7 @@ import retrofit2.http.POST
 
 /**
  * QRIS: decode QR lalu bayar.
- * Kontrak: `docs/backend/01-API-SPECIFICATION.md` §8.
+ * Kontrak: `bca-mobile-api/docs/01-API-SPECIFICATION.md` §8.
  *
  * Idempotency dikirim lewat header `X-Idempotency-Key`, sama seperti
  * `transfer/execute` dan `ewallet/topup`. Spec memuat juga field `idempotency_key`
