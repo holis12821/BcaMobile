@@ -48,6 +48,15 @@ fun ApiFailure.toErrorText(): ErrorText = when (this) {
             ErrorText.Res(R.string.buka_rekening_error_otp_expired)
         code == OnboardingErrorCode.OTP_DELIVERY_FAILED ->
             ErrorText.Res(R.string.buka_rekening_error_otp_delivery_failed)
+        // Nonce yang sudah dipakai bukan kesalahan nasabah dan bukan hal yang bisa
+        // diperbaiki dengan mengirim payload yang sama: verifikasi harus dimulai ulang.
+        code == OnboardingErrorCode.LIVENESS_CHALLENGE_INVALID ->
+            ErrorText.Res(R.string.buka_rekening_error_liveness_replay)
+        code == OnboardingErrorCode.LIVENESS_INTEGRITY_FAILED ->
+            ErrorText.Res(R.string.buka_rekening_error_liveness_integrity)
+        code == OnboardingErrorCode.LIVENESS_BLOCKED ||
+            code == OnboardingErrorCode.LIVENESS_ESCALATED ->
+            ErrorText.Res(R.string.buka_rekening_biometrik_blocked)
         // Bentuk request yang salah adalah bug client, bukan kesalahan nasabah —
         // jangan tampilkan sebagai kode OTP yang keliru.
         code == CODE_VALIDATION -> ErrorText.Res(R.string.buka_rekening_error_validation)
@@ -75,6 +84,21 @@ object OnboardingErrorCode {
      * Lihat `ApiCaller.FINAL_5XX_CODES`.
      */
     const val OTP_DELIVERY_FAILED = "OTP_DELIVERY_FAILED"
+
+    /** Nonce sudah dipakai, kedaluwarsa, atau bukan milik perangkat ini. */
+    const val LIVENESS_CHALLENGE_INVALID = "LIVENESS_CHALLENGE_INVALID"
+
+    /** Verdict Play Integrity tidak memenuhi kebijakan produksi. */
+    const val LIVENESS_INTEGRITY_FAILED = "LIVENESS_INTEGRITY_FAILED"
+
+    /**
+     * Liveness mandiri dihentikan untuk sesi ini (6 kegagalan dalam 24 jam).
+     * Pemulihannya bukan mencoba lagi, jadi tombol coba lagi harus mati.
+     */
+    const val LIVENESS_BLOCKED = "LIVENESS_BLOCKED"
+
+    /** Sama seperti [LIVENESS_BLOCKED], tapi server sudah mengarahkan ke video call. */
+    const val LIVENESS_ESCALATED = "LIVENESS_ESCALATED_TO_VIDEO_CALL"
 }
 
 /** Benar hanya untuk kode bisnis [code] — kegagalan transport tidak ikut cocok. */

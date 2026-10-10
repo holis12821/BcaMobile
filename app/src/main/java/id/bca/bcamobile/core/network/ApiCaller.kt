@@ -208,6 +208,7 @@ class ApiCaller @Inject constructor(
         const val CODE_INTERNAL = "INTERNAL_ERROR"
         const val CODE_TNC_OUTDATED = "TNC_VERSION_OUTDATED"
         const val CODE_OTP_DELIVERY_FAILED = "OTP_DELIVERY_FAILED"
+        const val CODE_CATALOG_UNAVAILABLE = "ONBOARDING_CATALOG_UNAVAILABLE"
 
         /**
          * Kode 5xx yang **tidak** boleh diulang dan tidak boleh disamarkan jadi
@@ -217,7 +218,13 @@ class ApiCaller @Inject constructor(
          * yang gagal hanya pengiriman SMS-nya. Mengulang request tidak memperbaiki
          * apa pun, dan sebagai `Server` layar OTP akan menawarkan "coba lagi"
          * padahal yang benar adalah "kirim ulang".
+         *
+         * `ONBOARDING_CATALOG_UNAVAILABLE` juga 503, dan juga jawaban final: itu yang
+         * server balas saat katalog jenis rekening dimatikan `FEATURE_ONBOARDING_PRODUCT_CATALOG`
+         * atau tidak ada produk aktif. Tanpa baris ini layar **pertama** buka rekening
+         * menahan loading ±4 detik (1s + 3s) sebelum menampilkan daftar bawaan yang sejak
+         * awal sudah ada di APK — menunggu dua kali untuk jawaban yang tidak akan berubah.
          */
-        val FINAL_5XX_CODES = setOf(CODE_OTP_DELIVERY_FAILED)
+        val FINAL_5XX_CODES = setOf(CODE_OTP_DELIVERY_FAILED, CODE_CATALOG_UNAVAILABLE)
     }
 }

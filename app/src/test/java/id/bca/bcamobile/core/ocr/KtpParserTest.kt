@@ -120,4 +120,27 @@ class KtpParserTest {
         assertEquals("BOGOR", hasil.data.kota)
         assertEquals("JAWA BARAT", hasil.data.provinsi)
     }
+
+    /**
+     * Teks mentahnya harus terbawa di hasil, bukan dibuang.
+     *
+     * Inilah yang dikirim ke server sebagai sumber bacaan. Sebelumnya hasil
+     * pengenalan ini ditampilkan di layar lalu hilang, sementara server menjawab
+     * dari teks hardcoded — jadi identitas yang masuk ke form data pribadi
+     * adalah milik orang lain, bukan milik kartu yang difoto.
+     */
+    @Test
+    fun `teks mentah terbawa di hasil scan`() {
+        val hasil = KtpParser.parse(teksBersih)
+
+        assertEquals(teksBersih, hasil.rawText)
+    }
+
+    @Test
+    fun `teks kosong tetap menghasilkan rawText kosong, bukan null`() {
+        val hasil = KtpParser.parse("")
+
+        assertEquals("", hasil.rawText)
+        assertTrue(hasil.data.nik.isEmpty())
+    }
 }

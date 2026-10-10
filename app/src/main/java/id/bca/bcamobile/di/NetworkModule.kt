@@ -11,6 +11,8 @@ import id.bca.bcamobile.BuildConfig
 import id.bca.bcamobile.core.network.AppNetwork
 import id.bca.bcamobile.core.network.AuthInterceptor
 import id.bca.bcamobile.core.network.HeaderInterceptor
+import id.bca.bcamobile.core.network.NetworkCallWatcher
+import id.bca.bcamobile.core.network.NetworkStatusConfig
 import id.bca.bcamobile.core.network.OnboardingNetwork
 import id.bca.bcamobile.data.card.remote.CardApi
 import id.bca.bcamobile.data.content.remote.ContentApi
@@ -61,7 +63,8 @@ object NetworkModule {
     @OnboardingNetwork
     fun provideOnboardingClient(
         headerInterceptor: HeaderInterceptor,
-    ): OkHttpClient = baseClientBuilder(headerInterceptor).build()
+        callWatcher: NetworkCallWatcher,
+    ): OkHttpClient = baseClientBuilder(headerInterceptor, callWatcher).build()
 
     @Provides
     @Singleton
@@ -70,7 +73,8 @@ object NetworkModule {
         headerInterceptor: HeaderInterceptor,
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
-    ): OkHttpClient = baseClientBuilder(headerInterceptor)
+        callWatcher: NetworkCallWatcher,
+    ): OkHttpClient = baseClientBuilder(headerInterceptor, callWatcher)
         .addInterceptor(authInterceptor)
         .authenticator(tokenAuthenticator)
         .build()
@@ -160,9 +164,29 @@ object NetworkModule {
     @Singleton
     fun provideApplicationContext(@ApplicationContext context: Context): Context = context
 
-    private fun baseClientBuilder(headerInterceptor: HeaderInterceptor): OkHttpClient.Builder {
+    /**
+     * Ambang lampu indikator jaringan.
+     *
+     * Disediakan di sini, bukan dibiarkan sebagai nilai bawaan konstruktor:
+     * Dagger tidak membaca nilai bawaan parameter Kotlin, jadi tanpa @Provides
+     * ini graph-nya gagal dirakit. Keuntungan sampingannya, kalibrasi ambangnya
+     * cukup satu baris di tempat ini.
+     */
+    @Provides
+    @Singleton
+    fun provideNetworkStatusConfig(): NetworkStatusConfig = NetworkStatusConfig()
+
+    private fun baseClientBuilder(
+        headerInterceptor: HeaderInterceptor,
+        callWatcher: NetworkCallWatcher,
+    ): OkHttpClient.Builder {
         val builder = OkHttpClient.Builder()
             .addInterceptor(headerInterceptor)
+            // Dipasang di sini, bukan per-client: kedua jaringan lewat builder
+            // ini, jadi lampu indikator melihat SELURUH lalu lintas aplikasi.
+            // Satu client yang terlewat berarti lampunya hijau sementara jalur
+            // yang dipakai nasabah sedang gagal.
+            .eventListener(callWatcher)
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)

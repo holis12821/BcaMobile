@@ -1,7 +1,6 @@
 package id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -25,10 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +32,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import id.bca.bcamobile.R
+import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.ui.components.AppTopBar
 import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.ui.theme.AppAlpha
@@ -57,23 +55,61 @@ import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
 
 // -- Data Model ---------------------------------------------------------------
 
+/** Gaya visual kartu produk; pemetaan ke token warna ada di [JenisRekeningGaya.warna]. */
+enum class JenisRekeningGaya { PRIMARY, SECONDARY, NEUTRAL }
+
 data class JenisRekening(
+    /**
+     * Identitas produk, ikut di dalam item — termasuk pada daftar bawaan.
+     *
+     * Inilah yang dikirim kembali saat nasabah menekan Lanjut. Posisi baris tidak pernah
+     * dipakai untuk menyimpulkan produk: urutannya milik server.
+     */
+    val productType: ProductType,
     val nama: String,
     val deskripsi: String,
     val setoranAwalMinimum: String,
     val fitur: List<String>,
     val iconRes: Int,
-    val iconBackgroundColor: Color,
-    val iconTintColor: Color,
-    val isPalingPopuler: Boolean = false,
+    val gaya: JenisRekeningGaya,
+    /**
+     * Teks badge dari `badge_key`; kosong berarti server tidak mengirim badge.
+     *
+     * Tidak ada `isPalingPopuler` di sini: yang perlu layar hanya teksnya, dan `is_popular`
+     * sendiri dibaca layar Ringkasan langsung dari katalog.
+     */
+    val badge: String = "",
+    /** `availability.status` dari server; produk yang tutup tidak bisa dipilih. */
+    val isTersedia: Boolean = true,
+    /** Alasan singkat saat [isTersedia] false, dari `availability_reason_key`. */
+    val keteranganTidakTersedia: String? = null,
 )
 
+/** Kunci ikon kotak persiapan dokumen saat katalog server tidak tersedia. */
+internal const val ICON_KEY_INFO = "INFO"
+
+/** Kunci asing tetap tampil dengan ikon cadangan — teksnya yang penting. */
+internal fun productIconRes(iconKey: String): Int = when (iconKey) {
+    "WALLET" -> R.drawable.ic_account_balance_wallet
+    "CARD" -> R.drawable.ic_credit_card
+    "SAVINGS" -> R.drawable.ic_savings
+    "INFO" -> R.drawable.ic_info
+    else -> R.drawable.ic_savings
+}
 
 // -- Default Data (from string resources) -------------------------------------
 
+/**
+ * Daftar bawaan, dipakai saat katalog server tidak tersedia — bukan pratinjau.
+ *
+ * Tiap entri menyebut [ProductType]-nya sendiri, jadi jalur ini pun tidak bergantung pada
+ * urutan baris. Angkanya sengaja sama dengan isi katalog server: nilai yang tampil itulah
+ * yang dicatat sebagai "yang dilihat nasabah".
+ */
 @Composable
 fun defaultJenisRekeningList(): List<JenisRekening> = listOf(
     JenisRekening(
+        productType = ProductType.TAHAPAN_BCA,
         nama = stringResource(R.string.buka_rekening_tahapan_bca),
         deskripsi = stringResource(R.string.buka_rekening_tahapan_bca_desc),
         setoranAwalMinimum = stringResource(R.string.buka_rekening_tahapan_bca_setoran),
@@ -83,11 +119,11 @@ fun defaultJenisRekeningList(): List<JenisRekening> = listOf(
             stringResource(R.string.buka_rekening_tahapan_bca_fitur_3),
         ),
         iconRes = R.drawable.ic_account_balance_wallet,
-        iconBackgroundColor = AppColor.Primary100,
-        iconTintColor = AppColor.Primary900,
-        isPalingPopuler = true,
+        gaya = JenisRekeningGaya.PRIMARY,
+        badge = stringResource(R.string.buka_rekening_paling_populer),
     ),
     JenisRekening(
+        productType = ProductType.TAHAPAN_XPRESI,
         nama = stringResource(R.string.buka_rekening_tahapan_xpresi),
         deskripsi = stringResource(R.string.buka_rekening_tahapan_xpresi_desc),
         setoranAwalMinimum = stringResource(R.string.buka_rekening_tahapan_xpresi_setoran),
@@ -97,10 +133,10 @@ fun defaultJenisRekeningList(): List<JenisRekening> = listOf(
             stringResource(R.string.buka_rekening_tahapan_xpresi_fitur_3),
         ),
         iconRes = R.drawable.ic_credit_card,
-        iconBackgroundColor = AppColor.Secondary100,
-        iconTintColor = AppColor.Secondary900,
+        gaya = JenisRekeningGaya.SECONDARY,
     ),
     JenisRekening(
+        productType = ProductType.TABUNGANKU,
         nama = stringResource(R.string.buka_rekening_tabunganku),
         deskripsi = stringResource(R.string.buka_rekening_tabunganku_desc),
         setoranAwalMinimum = stringResource(R.string.buka_rekening_tabunganku_setoran),
@@ -109,8 +145,7 @@ fun defaultJenisRekeningList(): List<JenisRekening> = listOf(
             stringResource(R.string.buka_rekening_tabunganku_fitur_2),
         ),
         iconRes = R.drawable.ic_savings,
-        iconBackgroundColor = AppColor.Neutral200,
-        iconTintColor = AppColor.Neutral900,
+        gaya = JenisRekeningGaya.NEUTRAL,
     ),
 )
 
@@ -119,12 +154,16 @@ fun defaultJenisRekeningList(): List<JenisRekening> = listOf(
 @Composable
 fun BukaRekeningPilihJenisScreen(
     state: BukaRekeningPilihJenisUiState,
-    onJenisSelected: (Int) -> Unit,
+    onJenisSelected: (ProductType) -> Unit,
+    onLanjutClick: () -> Unit,
+    onReloadClick: () -> Unit,
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selectedIndex by remember { mutableIntStateOf(0) }
+    // Pilihan tinggal di state bersama, bukan di `remember` layar: layar S&K dan layar
+    // Pilih Kartu membaca produk yang sama, dan salinan lokal akan melenceng dari keduanya.
+    val selected = state.jenisRekeningList.getOrNull(state.selectedIndex)
 
     Scaffold(
         topBar = {
@@ -140,7 +179,10 @@ fun BukaRekeningPilihJenisScreen(
                     color = MaterialTheme.colorScheme.surface,
                 ) {
                     Button(
-                        onClick = { onJenisSelected(selectedIndex) },
+                        onClick = onLanjutClick,
+                        // Produk yang sedang tutup tidak diteruskan: server akan
+                        // menolaknya dengan 422 dua layar kemudian.
+                        enabled = selected?.isTersedia == true,
                         shape = AppShape.R6,
                         modifier = Modifier
                             .bottomBarSafePadding()
@@ -148,7 +190,7 @@ fun BukaRekeningPilihJenisScreen(
                             .padding(Spacing.s4),
                     ) {
                         Text(
-                            text = stringResource(R.string.buka_rekening_lanjut),
+                            text = state.ctaLabel,
                             style = MaterialTheme.typography.labelLarge,
                         )
                         Spacer(Modifier.width(Spacing.s2))
@@ -223,15 +265,27 @@ fun BukaRekeningPilihJenisScreen(
                         )
                         Spacer(Modifier.height(Spacing.s3))
                         Text(
-                            text = stringResource(R.string.buka_rekening_pilih_jenis_heading),
+                            text = state.heading,
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.height(Spacing.s1))
                         Text(
-                            text = stringResource(R.string.buka_rekening_pilih_subtitle),
+                            text = state.subtitle,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    // Penanda daftar bawaan + jalan untuk mencoba katalog lagi.
+                    if (state.isShowingFallback) {
+                        FallbackNotice(
+                            isRefreshing = state.isRefreshing,
+                            onReloadClick = onReloadClick,
+                            modifier = Modifier.padding(
+                                horizontal = Spacing.s4,
+                                vertical = Spacing.s1,
+                            ),
                         )
                     }
 
@@ -246,20 +300,24 @@ fun BukaRekeningPilihJenisScreen(
                         state.jenisRekeningList.forEachIndexed { index, jenis ->
                             JenisRekeningCard(
                                 jenis = jenis,
-                                isSelected = selectedIndex == index,
-                                onClick = { selectedIndex = index },
+                                depositLabel = state.depositLabel,
+                                isSelected = state.selectedIndex == index,
+                                onClick = { onJenisSelected(jenis.productType) },
                             )
                         }
 
                         // Info box
-                        InfoBox()
+                        state.notice?.let { InfoBox(notice = it) }
 
                         // Terms text
-                        TermsText(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = Spacing.s2),
-                        )
+                        state.consent?.let {
+                            TermsText(
+                                consent = it,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = Spacing.s2),
+                            )
+                        }
                     }
                 }
             }
@@ -272,6 +330,7 @@ fun BukaRekeningPilihJenisScreen(
 @Composable
 private fun JenisRekeningCard(
     jenis: JenisRekening,
+    depositLabel: String,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -281,15 +340,19 @@ private fun JenisRekeningCard(
     } else {
         MaterialTheme.colorScheme.surfaceContainerLowest
     }
-    val elevation = if (isSelected) Spacing.s1 else Spacing.s0
+    val (iconBackgroundColor, iconTintColor) = jenis.gaya.warna()
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(elevation, AppShape.R6)
             .clip(AppShape.R6)
             .background(cardBackground)
-            .clickable(onClick = onClick),
+            .selectable(
+                selected = isSelected,
+                enabled = jenis.isTersedia,
+                role = Role.RadioButton,
+                onClick = onClick,
+            ),
     ) {
         Column(modifier = Modifier.padding(Spacing.s4)) {
             // Header: Icon + Name + Selection indicator
@@ -303,12 +366,12 @@ private fun JenisRekeningCard(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(Spacing.s8)
-                        .background(jenis.iconBackgroundColor, AppShape.R6),
+                        .background(iconBackgroundColor, AppShape.R6),
                 ) {
                     Icon(
                         painter = painterResource(jenis.iconRes),
                         contentDescription = null,
-                        tint = jenis.iconTintColor,
+                        tint = iconTintColor,
                         modifier = Modifier.size(Spacing.s6),
                     )
                 }
@@ -318,7 +381,7 @@ private fun JenisRekeningCard(
                     modifier = Modifier
                         .weight(1f)
                         .padding(
-                            end = if (jenis.isPalingPopuler) Spacing.s10 else Spacing.s0,
+                            end = if (jenis.badge.isNotEmpty()) Spacing.s10 else Spacing.s0,
                         ),
                 ) {
                     Text(
@@ -338,6 +401,18 @@ private fun JenisRekeningCard(
                 SelectionIndicator(isSelected = isSelected)
             }
 
+            // Produk yang tutup tetap ditampilkan beserta setoran awalnya, tapi alasannya
+            // disebut di sini supaya penolakan tidak muncul belakangan sebagai error saat
+            // sesi dibuat.
+            if (!jenis.isTersedia && jenis.keteranganTidakTersedia != null) {
+                Spacer(Modifier.height(Spacing.s2))
+                Text(
+                    text = jenis.keteranganTidakTersedia,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
             Spacer(Modifier.height(Spacing.s4))
 
             // Setoran Awal Minimum row
@@ -347,13 +422,13 @@ private fun JenisRekeningCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        MaterialTheme.colorScheme.surfaceContainerLow,
+                        cardBackground,
                         AppShape.R6,
                     )
                     .padding(Spacing.s3),
             ) {
                 Text(
-                    text = stringResource(R.string.buka_rekening_setoran_awal),
+                    text = depositLabel,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -370,10 +445,10 @@ private fun JenisRekeningCard(
             FeaturesGrid(fitur = jenis.fitur)
         }
 
-        // "Paling Populer" badge
-        if (jenis.isPalingPopuler) {
+        // Badge dari server (`badge_key`), mis. "Paling Populer"
+        if (jenis.badge.isNotEmpty()) {
             Text(
-                text = stringResource(R.string.buka_rekening_paling_populer),
+                text = jenis.badge,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
@@ -386,6 +461,13 @@ private fun JenisRekeningCard(
             )
         }
     }
+}
+
+/** Satu-satunya tempat gaya produk jadi warna, dan selalu lewat token. */
+private fun JenisRekeningGaya.warna(): Pair<Color, Color> = when (this) {
+    JenisRekeningGaya.PRIMARY -> AppColor.Primary100 to AppColor.Primary900
+    JenisRekeningGaya.SECONDARY -> AppColor.Secondary100 to AppColor.Secondary900
+    JenisRekeningGaya.NEUTRAL -> AppColor.Neutral200 to AppColor.Neutral900
 }
 
 // -- Features Grid (2-col with col-span) --------------------------------------
@@ -455,10 +537,48 @@ private fun FeatureItem(
     }
 }
 
+// -- Penanda daftar bawaan ----------------------------------------------------
+
+/**
+ * Baris halus, bukan layar error: daftar di bawahnya tampil penuh dan tombol Lanjut tetap
+ * aktif. Yang disampaikan hanya "angka ini mungkin bukan yang terbaru", beserta satu jalan
+ * memperbaikinya — tanpa itu tidak ada cara meminta katalog lagi dalam satu sesi layar.
+ */
+@Composable
+private fun FallbackNotice(
+    isRefreshing: Boolean,
+    onReloadClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = stringResource(R.string.buka_rekening_jenis_daftar_bawaan),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(
+            onClick = onReloadClick,
+            enabled = !isRefreshing,
+        ) {
+            Text(
+                text = stringResource(R.string.buka_rekening_jenis_muat_ulang),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
+}
+
 // -- Info Box -----------------------------------------------------------------
 
 @Composable
-private fun InfoBox(modifier: Modifier = Modifier) {
+private fun InfoBox(
+    notice: JenisRekeningNotice,
+    modifier: Modifier = Modifier,
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(Spacing.s3),
         modifier = modifier
@@ -470,19 +590,19 @@ private fun InfoBox(modifier: Modifier = Modifier) {
             .padding(Spacing.s4),
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_info),
+            painter = painterResource(productIconRes(notice.iconKey)),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(Spacing.s5),
         )
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.s0)) {
             Text(
-                text = stringResource(R.string.buka_rekening_persiapan_dokumen),
+                text = notice.title,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Text(
-                text = stringResource(R.string.buka_rekening_persiapan_dokumen_desc),
+                text = notice.body,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -493,23 +613,22 @@ private fun InfoBox(modifier: Modifier = Modifier) {
 // -- Terms Text ---------------------------------------------------------------
 
 @Composable
-private fun TermsText(modifier: Modifier = Modifier) {
-    val prefix = stringResource(R.string.buka_rekening_syarat_prefix)
-    val link = stringResource(R.string.buka_rekening_syarat_link)
-    val suffix = stringResource(R.string.buka_rekening_syarat_suffix)
-
+private fun TermsText(
+    consent: JenisRekeningConsent,
+    modifier: Modifier = Modifier,
+) {
     Text(
         text = buildAnnotatedString {
-            append(prefix)
+            append(consent.prefix)
             withStyle(
                 SpanStyle(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 ),
             ) {
-                append(link)
+                append(consent.link)
             }
-            append(suffix)
+            append(consent.suffix)
         },
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -520,37 +639,29 @@ private fun TermsText(modifier: Modifier = Modifier) {
 
 // -- Previews ------------------------------------------------------------------
 
-private val previewState = BukaRekeningPilihJenisUiState(
-    jenisRekeningList = listOf(
-        JenisRekening(
-            nama = "Tahapan BCA",
-            deskripsi = "Tabungan utama untuk kemudahan transaksi harian dan proteksi finansial keluarga.",
-            setoranAwalMinimum = "Rp 500.000",
-            fitur = listOf("Debit Mastercard", "m-BCA & KlikBCA", "Bebas tarik tunai di ribuan ATM"),
-            iconRes = R.drawable.ic_account_balance_wallet,
-            iconBackgroundColor = AppColor.Primary100,
-            iconTintColor = AppColor.Primary900,
-            isPalingPopuler = true,
-        ),
-        JenisRekening(
-            nama = "Tahapan Xpresi",
-            deskripsi = "Tabungan digital untuk anak muda, serba praktis tanpa ribet buku tabungan.",
-            setoranAwalMinimum = "Rp 50.000",
-            fitur = listOf("Desain Kartu Custom", "m-Banking 24/7", "Biaya admin bulanan sangat ringan"),
-            iconRes = R.drawable.ic_credit_card,
-            iconBackgroundColor = AppColor.Secondary100,
-            iconTintColor = AppColor.Secondary900,
-        ),
-        JenisRekening(
-            nama = "TabunganKu",
-            deskripsi = "Tabungan perorangan dengan persyaratan sangat mudah, terjangkau, dan hemat.",
-            setoranAwalMinimum = "Rp 20.000",
-            fitur = listOf("Tanpa biaya administrasi bulanan", "Bunga tabungan kompetitif"),
-            iconRes = R.drawable.ic_savings,
-            iconBackgroundColor = AppColor.Neutral200,
-            iconTintColor = AppColor.Neutral900,
-        ),
+@Composable
+private fun previewState(
+    isLoading: Boolean = false,
+    error: String? = null,
+    items: List<JenisRekening>? = null,
+): BukaRekeningPilihJenisUiState = BukaRekeningPilihJenisUiState(
+    isLoading = isLoading,
+    error = error,
+    heading = stringResource(R.string.buka_rekening_pilih_jenis_heading),
+    subtitle = stringResource(R.string.buka_rekening_pilih_subtitle),
+    depositLabel = stringResource(R.string.buka_rekening_setoran_awal),
+    ctaLabel = stringResource(R.string.buka_rekening_lanjut),
+    notice = JenisRekeningNotice(
+        iconKey = ICON_KEY_INFO,
+        title = stringResource(R.string.buka_rekening_persiapan_dokumen),
+        body = stringResource(R.string.buka_rekening_persiapan_dokumen_desc),
     ),
+    consent = JenisRekeningConsent(
+        prefix = stringResource(R.string.buka_rekening_syarat_prefix),
+        link = stringResource(R.string.buka_rekening_syarat_link),
+        suffix = stringResource(R.string.buka_rekening_syarat_suffix),
+    ),
+    jenisRekeningList = items ?: defaultJenisRekeningList(),
 )
 
 @Preview(showBackground = true, name = "Light")
@@ -558,8 +669,10 @@ private val previewState = BukaRekeningPilihJenisUiState(
 private fun BukaRekeningPilihJenisScreenPreview() {
     BcaMobileTheme {
         BukaRekeningPilihJenisScreen(
-            state = previewState,
+            state = previewState(),
             onJenisSelected = {},
+            onLanjutClick = {},
+            onReloadClick = {},
             onBackClick = {},
             onRetry = {},
         )
@@ -571,8 +684,47 @@ private fun BukaRekeningPilihJenisScreenPreview() {
 private fun BukaRekeningPilihJenisScreenDarkPreview() {
     BcaMobileTheme(darkTheme = true) {
         BukaRekeningPilihJenisScreen(
-            state = previewState,
+            state = previewState(),
             onJenisSelected = {},
+            onLanjutClick = {},
+            onReloadClick = {},
+            onBackClick = {},
+            onRetry = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Produk tutup")
+@Composable
+private fun BukaRekeningPilihJenisScreenUnavailablePreview() {
+    BcaMobileTheme {
+        val items = defaultJenisRekeningList().mapIndexed { index, jenis ->
+            if (index != 2) jenis else jenis.copy(
+                isTersedia = false,
+                keteranganTidakTersedia =
+                    stringResource(R.string.buka_rekening_jenis_tidak_tersedia_perbaikan),
+            )
+        }
+        BukaRekeningPilihJenisScreen(
+            state = previewState(items = items).copy(selectedIndex = 2),
+            onJenisSelected = {},
+            onLanjutClick = {},
+            onReloadClick = {},
+            onBackClick = {},
+            onRetry = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Daftar bawaan")
+@Composable
+private fun BukaRekeningPilihJenisScreenFallbackPreview() {
+    BcaMobileTheme {
+        BukaRekeningPilihJenisScreen(
+            state = previewState().copy(isShowingFallback = true),
+            onJenisSelected = {},
+            onLanjutClick = {},
+            onReloadClick = {},
             onBackClick = {},
             onRetry = {},
         )
@@ -584,8 +736,10 @@ private fun BukaRekeningPilihJenisScreenDarkPreview() {
 private fun BukaRekeningPilihJenisScreenLoadingPreview() {
     BcaMobileTheme {
         BukaRekeningPilihJenisScreen(
-            state = BukaRekeningPilihJenisUiState(isLoading = true),
+            state = previewState(isLoading = true),
             onJenisSelected = {},
+            onLanjutClick = {},
+            onReloadClick = {},
             onBackClick = {},
             onRetry = {},
         )
@@ -597,10 +751,10 @@ private fun BukaRekeningPilihJenisScreenLoadingPreview() {
 private fun BukaRekeningPilihJenisScreenErrorPreview() {
     BcaMobileTheme {
         BukaRekeningPilihJenisScreen(
-            state = BukaRekeningPilihJenisUiState(
-                error = "Terjadi kesalahan. Silakan coba lagi.",
-            ),
+            state = previewState(error = "Terjadi kesalahan. Silakan coba lagi."),
             onJenisSelected = {},
+            onLanjutClick = {},
+            onReloadClick = {},
             onBackClick = {},
             onRetry = {},
         )

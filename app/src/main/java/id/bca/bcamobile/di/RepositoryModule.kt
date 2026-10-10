@@ -5,6 +5,8 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import id.bca.bcamobile.data.account.AccountRepositoryImpl
+import id.bca.bcamobile.core.security.AndroidLivenessAttestor
+import id.bca.bcamobile.core.security.LivenessAttestor
 import id.bca.bcamobile.core.security.PinKeySource
 import id.bca.bcamobile.data.auth.AuthRepositoryImpl
 import id.bca.bcamobile.data.auth.RemotePinKeySource
@@ -39,6 +41,10 @@ abstract class RepositoryModule {
     abstract fun bindOnboardingRepository(
         impl: OnboardingRepositoryImpl,
     ): OnboardingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLivenessAttestor(impl: AndroidLivenessAttestor): LivenessAttestor
 
     @Binds
     @Singleton

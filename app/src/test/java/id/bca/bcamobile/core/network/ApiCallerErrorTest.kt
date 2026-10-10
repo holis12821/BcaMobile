@@ -40,6 +40,31 @@ class ApiCallerErrorTest {
     }
 
     @Test
+    fun `503 ONBOARDING_CATALOG_UNAVAILABLE tidak diulang`() = runTest {
+        var attempts = 0
+        val result = caller.call<Unit> {
+            attempts += 1
+            errorResponse(
+                503,
+                "ONBOARDING_CATALOG_UNAVAILABLE",
+                "Katalog produk belum tersedia.",
+            )
+        }
+
+        assertEquals(
+            ApiFailure.Business(
+                "ONBOARDING_CATALOG_UNAVAILABLE",
+                "Katalog produk belum tersedia.",
+            ),
+            (result as DataResult.Failure).error,
+        )
+        // Katalog yang dimatikan feature flag tidak akan menyala karena diulang, dan
+        // layar PERTAMA buka rekening-lah yang menunggu: 1s + 3s sebelum menampilkan
+        // daftar bawaan yang sejak awal ada di APK.
+        assertEquals(1, attempts)
+    }
+
+    @Test
     fun `503 tanpa kode final tetap diperlakukan sebagai kegagalan server`() = runTest {
         val result = caller.call<Unit>(allowRetry = false) {
             errorResponse(503, "PROVIDER_NOT_CONFIGURED", "Layanan belum tersedia.")

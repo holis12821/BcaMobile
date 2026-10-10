@@ -34,6 +34,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import id.bca.bcamobile.R
+import id.bca.bcamobile.core.network.NetworkStatus
+import id.bca.bcamobile.ui.components.networkStatusColor
 import id.bca.bcamobile.ui.theme.AppAlpha
 import id.bca.bcamobile.ui.theme.AppColor
 import id.bca.bcamobile.ui.theme.AppShape
@@ -49,6 +51,16 @@ data class LoginUiState(
     val userName: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    /**
+     * Keadaan jaringan untuk titik indikator di tombol mBCA.
+     *
+     * Titik itu sebelumnya **selalu hijau** — warnanya ter-hardcode
+     * `AppColor.Success500` — jadi ia tetap hijau di pesawat terbang. Sekarang
+     * ia membaca keadaan yang sama dengan lampu di kanan atas, supaya dua
+     * indikator di satu layar tidak pernah menampilkan dua warna berbeda untuk
+     * satu keadaan.
+     */
+    val networkStatus: NetworkStatus = NetworkStatus.ONLINE,
 )
 
 // ── Main Screen ──────────────────────────────────────────────────────────
@@ -91,6 +103,7 @@ fun LoginScreen(
             }
 
             LoginActionsSection(
+                networkStatus = state.networkStatus,
                 isLoading = state.isLoading,
                 onMbcaLoginClick = onMbcaLoginClick,
                 onFingerprintClick = onFingerprintClick,
@@ -172,6 +185,7 @@ private fun GreetingSection(modifier: Modifier = Modifier) {
 
 @Composable
 private fun LoginActionsSection(
+    networkStatus: NetworkStatus,
     isLoading: Boolean,
     onMbcaLoginClick: () -> Unit,
     onFingerprintClick: () -> Unit,
@@ -186,6 +200,7 @@ private fun LoginActionsSection(
         modifier = modifier.fillMaxWidth(),
     ) {
         PrimaryLoginButton(
+            networkStatus = networkStatus,
             isLoading = isLoading,
             onLoginClick = onMbcaLoginClick,
             onFingerprintClick = onFingerprintClick,
@@ -208,6 +223,7 @@ private fun LoginActionsSection(
 
 @Composable
 private fun PrimaryLoginButton(
+    networkStatus: NetworkStatus,
     isLoading: Boolean,
     onLoginClick: () -> Unit,
     onFingerprintClick: () -> Unit,
@@ -226,11 +242,16 @@ private fun PrimaryLoginButton(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = Spacing.s4, horizontal = Spacing.s6),
         ) {
-            // Green status indicator
+            // Indikator status jaringan.
+            //
+            // Warnanya datang dari networkStatusColor — sumber yang sama dengan
+            // lampu tingkat aplikasi. Dulu di sini ada AppColor.Success500 yang
+            // ter-hardcode, yang berarti tombol ini menjanjikan "siap" bahkan
+            // ketika tidak ada koneksi sama sekali.
             Box(
                 modifier = Modifier
                     .size(Spacing.s2)
-                    .background(AppColor.Success500, AppShape.Full),
+                    .background(networkStatusColor(networkStatus), AppShape.Full),
             )
 
             Spacer(Modifier.width(Spacing.s3))

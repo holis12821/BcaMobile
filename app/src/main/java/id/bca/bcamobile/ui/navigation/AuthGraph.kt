@@ -3,7 +3,9 @@ package id.bca.bcamobile.ui.navigation
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
 import androidx.camera.core.CameraSelector
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,12 +39,10 @@ import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import id.bca.bcamobile.R
 import id.bca.bcamobile.core.camera.CameraCapture
-import id.bca.bcamobile.core.liveness.LivenessAnalyzer
-import id.bca.bcamobile.core.liveness.LivenessDetector
+import id.bca.bcamobile.core.liveness.LivenessFaceAnalyzer
 import id.bca.bcamobile.core.ocr.KtpAutoCaptureAnalyzer
 import id.bca.bcamobile.core.ocr.KtpTextRecognizer
 import id.bca.bcamobile.domain.auth.model.BiometricType
-import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
 import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
 import id.bca.bcamobile.ui.components.CameraPermissionGate
 import id.bca.bcamobile.ui.components.CameraPermissionNotice
@@ -137,8 +137,13 @@ fun NavGraphBuilder.authGraph(
     navigation<GraphAuth>(startDestination = Login) {
 
         composable<Login> {
+            // Titik di tombol mBCA ikut keadaan jaringan yang sama dengan lampu
+            // tingkat aplikasi — satu sumber, dua tempat tampil.
+            val networkViewModel: NetworkStatusViewModel = hiltViewModel()
+            val networkStatus by networkViewModel.status.collectAsState()
+
             LoginScreen(
-                state = LoginUiState(),
+                state = LoginUiState(networkStatus = networkStatus),
                 onMbcaLoginClick = { navController.navigate(KodeAkses) },
                 onFaceIdClick = { navController.navigate(FaceId) },
                 onFingerprintClick = { navController.navigate(TouchId) },
@@ -244,11 +249,25 @@ fun NavGraphBuilder.authGraph(
             val state by viewModel.state.collectAsState()
             BukaRekeningSideEffects(flowScope, navController)
 
+            // Katalog ditarik saat layar dibuka; endpoint-nya tidak butuh sesi. Gagal
+            // memuatnya tidak menghentikan apa pun — layar memakai daftar bawaan.
+            LaunchedEffect(viewModel) {
+                viewModel.onEvent(PilihJenisEvent.ProductCatalogRequested)
+            }
+
             BukaRekeningPilihJenisScreen(
                 state = state.toPilihJenisUiState(),
-                onJenisSelected = { index ->
-                    viewModel.onEvent(PilihJenisEvent.ProductSelected(index))
-                    navController.navigate(BukaRekeningPilihKartu)
+                // Yang dikirim kode produknya, bukan posisi barisnya.
+                onJenisSelected = { type ->
+                    viewModel.onEvent(PilihJenisEvent.ProductSelected(type))
+                },
+                // Perpindahan ke Pilih Kartu murni UI — tidak menyentuh server, jadi
+                // tetap boleh navigate() langsung.
+                onLanjutClick = { navController.navigate(BukaRekeningPilihKartu) },
+                // Satu-satunya jalan meminta katalog lagi dalam satu sesi layar; tampil
+                // hanya saat daftar bawaan yang terpajang.
+                onReloadClick = {
+                    viewModel.onEvent(PilihJenisEvent.ProductCatalogReloadRequested)
                 },
                 onBackClick = { navController.popBackStack() },
                 onRetry = { viewModel.onEvent(PilihJenisEvent.ErrorDismissed) },
@@ -344,6 +363,36 @@ fun NavGraphBuilder.authGraph(
                 }
             }
 
+            // "Dari Galeri" mengalir ke event yang sama dengan hasil jepretan,
+            // supaya OCR di perangkat, gerbang kualitas, dan validasi server
+            // berlaku sama untuk keduanya. Sebelumnya tombolnya terhubung ke
+            // lambda kosong: ada di layar, tidak melakukan apa pun.
+            val galleryPicker = rememberLauncherForActivityResult(
+                ActivityResultContracts.PickVisualMedia(),
+            ) { uri: Uri? ->
+                if (uri != null) {
+                    scope.launch {
+                        val photo = CameraCapture.importFromUri(context, uri, CACHE_PREFIX_KTP)
+                        if (photo != null) {
+                            viewModel.onEvent(
+                                KameraFotoEvent.KtpPhotoCaptured(
+                                    photo = photo.file,
+                                    // Tidak ada flash dan tidak ada auto-capture
+                                    // pada gambar yang dipilih dari galeri;
+                                    // melaporkannya apa adanya menjaga metadata
+                                    // kualitas di server tetap bermakna.
+                                    flashUsed = false,
+                                    autoCaptured = false,
+                                    resolution = photo.resolution,
+                                ),
+                            )
+                        } else {
+                            viewModel.onEvent(KameraFotoEvent.GalleryImportFailed)
+                        }
+                    }
+                }
+            }
+
             // Auto-capture: ML Kit membaca frame preview dan menjepret sendiri
             // begitu NIK 16 digit terbaca. Dilepas saat toggle dimatikan.
             DisposableEffect(controller, state.isAutoCaptureEnabled, state.ktpPhoto) {
@@ -366,7 +415,11 @@ fun NavGraphBuilder.authGraph(
             BukaRekeningKameraFotoScreen(
                 state = state.toKameraFotoUiState(),
                 onShutterClick = { capture(false) },
-                onGalleryClick = {},
+                onGalleryClick = {
+                    galleryPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
                 onHelpClick = {},
                 onFlashToggle = { viewModel.onEvent(KameraFotoEvent.FlashModeToggled) },
                 onAutoCaptureToggle = {
@@ -505,50 +558,43 @@ fun NavGraphBuilder.authGraph(
             }
 
             // Tantangan liveness berjalan di atas aliran frame kamera depan.
-            // Analyzer baru dipasang setelah pengguna menekan Mulai, supaya
-            // ML Kit tidak bekerja saat layar hanya dilihat sekilas.
-            DisposableEffect(controller, state.isLivenessRunning) {
-                val active = controller
-                if (active == null || !state.isLivenessRunning) {
-                    return@DisposableEffect onDispose { }
-                }
+            //
+            // Analyzer dipasang begitu kamera siap, bukan setelah tombol ditekan:
+            // gerbang kualitas wajah yang memutuskan kapan tantangan dimulai, dan itu
+            // hanya bisa dinilai kalau frame sudah mengalir. Mesin statusnya dipegang
+            // ViewModel, jadi DisposableEffect yang dijalankan ulang tidak menghapus
+            // tantangan yang sedang berjalan bersama nonce-nya.
+            DisposableEffect(controller) {
+                val active = controller ?: return@DisposableEffect onDispose { }
 
-                val analyzer = LivenessAnalyzer(
-                    context = context,
-                    detector = LivenessDetector(),
+                val analyzer = LivenessFaceAnalyzer(
+                    machine = viewModel.machine,
                     scope = scope,
-                    onProgress = { viewModel.onEvent(VerifikasiBiometrikEvent.LivenessProgressed(it)) },
-                    onFramesReady = { frames ->
-                        scope.launch {
-                            val face = CameraCapture.capture(context, active, CACHE_PREFIX_FACE)
-                                ?: return@launch
-                            viewModel.onEvent(
-                                VerifikasiBiometrikEvent.BiometricCaptured(
-                                    facePhoto = face.file,
-                                    livenessFrames = frames,
-                                    meta = LivenessMeta(
-                                        challengeType = CHALLENGE_BLINK,
-                                        completedActions = LivenessDetector.TOTAL_CHALLENGES,
-                                        precisionScore =
-                                            viewModel.state.value.liveness.precisionPercent
-                                                .toDouble(),
-                                    ),
-                                ),
-                            )
-                        }
+                    config = viewModel.config,
+                    onState = {
+                        viewModel.onEvent(VerifikasiBiometrikEvent.LivenessStateChanged(it))
+                    },
+                    onChallengeNeeded = {
+                        viewModel.onEvent(VerifikasiBiometrikEvent.ChallengeNeeded)
+                    },
+                    onReadyToSubmit = { frames ->
+                        viewModel.onEvent(VerifikasiBiometrikEvent.FramesReady(frames))
                     },
                 )
                 active.setImageAnalysisAnalyzer(CameraCapture.analysisExecutor, analyzer)
+                viewModel.onEvent(VerifikasiBiometrikEvent.CameraReady)
 
                 onDispose {
                     active.clearImageAnalysisAnalyzer()
+                    // close() menimpa frame bukti yang belum terkirim dengan nol —
+                    // piksel wajah tidak boleh bertahan setelah layar ditutup.
                     analyzer.close()
                 }
             }
 
             BukaRekeningVerifikasiBiometrikScreen(
                 state = state.toVerifikasiBiometrikUiState(),
-                onMulaiClick = { viewModel.onEvent(VerifikasiBiometrikEvent.LivenessStarted) },
+                onRetryClick = { viewModel.onEvent(VerifikasiBiometrikEvent.RetryRequested) },
                 onTipsClick = {},
                 onBackClick = { navController.popBackStack() },
                 // Gerbang izin dirender tanpa syarat — lihat catatan di layar Kamera Foto.
@@ -886,8 +932,6 @@ private fun OnboardingStep.toRoute(): Any = when (this) {
 }
 
 private const val CACHE_PREFIX_KTP = "ktp_"
-private const val CACHE_PREFIX_FACE = "face_"
-private const val CHALLENGE_BLINK = "BLINK"
 
 /**
  * Hasil login biometrik: sukses diteruskan ke sesi, sisanya jatuh ke kode akses.

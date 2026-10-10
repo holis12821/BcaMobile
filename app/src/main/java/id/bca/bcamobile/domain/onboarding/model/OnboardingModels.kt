@@ -1,5 +1,8 @@
 package id.bca.bcamobile.domain.onboarding.model
 
+import id.bca.bcamobile.core.liveness.LivenessStepFrame
+import id.bca.bcamobile.core.security.DeviceRiskSignals
+
 /** Jenis produk rekening. Nilai wire-nya dipakai di request `product_type`. */
 enum class ProductType(val wireValue: String) {
     TAHAPAN_BCA("TAHAPAN_BCA"),
@@ -8,9 +11,13 @@ enum class ProductType(val wireValue: String) {
     ;
 
     companion object {
-        /** Urutan ini harus sama dengan urutan kartu di layar Pilih Jenis Rekening. */
-        fun fromIndex(index: Int): ProductType? = entries.getOrNull(index)
-
+        /**
+         * Tidak ada `fromIndex`. Pemetaan posisi layar ke ordinal enum pernah ada di sini
+         * dan harus tetap tidak ada: urutan tampil ditentukan server lewat `display_order`
+         * dan produk bisa disembunyikan, jadi indeks ke-N tidak berarti produk ke-N.
+         * Identitas selalu ikut di dalam item sebagai [ProductType], tidak pernah
+         * disimpulkan dari tempatnya.
+         */
         fun fromWire(value: String?): ProductType? = entries.firstOrNull { it.wireValue == value }
     }
 }
@@ -46,6 +53,141 @@ data class Product(
     val features: List<String>,
 )
 
+// -- Katalog jenis rekening ----------------------------------------------------
+
+/** Gaya visual kartu produk; pemetaan ke token warna terjadi di layer UI, bukan di sini. */
+enum class ProductStyle(val wireValue: String) {
+    PRIMARY("PRIMARY"),
+    SECONDARY("SECONDARY"),
+    NEUTRAL("NEUTRAL"),
+    ;
+
+    companion object {
+        /** Gaya asing jatuh ke [NEUTRAL] — netral tidak menonjolkan produk yang salah. */
+        fun fromWire(value: String?): ProductStyle =
+            entries.firstOrNull { it.wireValue == value?.uppercase() } ?: NEUTRAL
+    }
+}
+
+/** Label promosi dari server; teksnya sendiri ada di `strings.xml`. */
+enum class ProductBadge(val wireValue: String) {
+    MOST_POPULAR("MOST_POPULAR"),
+    NONE(""),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): ProductBadge =
+            entries.firstOrNull { it.wireValue == value?.uppercase() } ?: NONE
+    }
+}
+
+enum class ProductAvailabilityStatus(val wireValue: String) {
+    AVAILABLE("AVAILABLE"),
+    DISABLED("DISABLED"),
+    COMING_SOON("COMING_SOON"),
+    ;
+
+    companion object {
+        /**
+         * Status yang tidak dikenal diperlakukan sebagai tidak tersedia, sama seperti
+         * [CardAvailabilityStatus]: menebak "tersedia" berarti nasabah memilih produk yang
+         * lalu ditolak `422 ONBOARDING_PRODUCT_UNAVAILABLE` saat sesi dibuat — dua layar
+         * setelah pilihannya.
+         */
+        fun fromWire(value: String?): ProductAvailabilityStatus =
+            entries.firstOrNull { it.wireValue == value?.uppercase() } ?: DISABLED
+    }
+}
+
+enum class ProductUnavailableReason(val wireValue: String) {
+    TEMPORARILY_DISABLED("TEMPORARILY_DISABLED"),
+    MAINTENANCE("MAINTENANCE"),
+    COMING_SOON("COMING_SOON"),
+    UNKNOWN(""),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): ProductUnavailableReason? {
+            if (value.isNullOrBlank()) return null
+            return entries.firstOrNull { it.wireValue == value.uppercase() } ?: UNKNOWN
+        }
+    }
+}
+
+data class ProductAvailability(
+    val status: ProductAvailabilityStatus,
+    val reason: ProductUnavailableReason?,
+) {
+    val isSelectable: Boolean get() = status == ProductAvailabilityStatus.AVAILABLE
+}
+
+/**
+ * Satu jenis rekening di katalog.
+ *
+ * [type] adalah identitasnya; [displayOrder] hanya urutan tampil. [iconKey] masih kunci
+ * server — pemetaan ke drawable terjadi di layar, seperti [TncSection.iconKey].
+ */
+data class SavingsProduct(
+    val type: ProductType,
+    val name: String,
+    val description: String,
+    val minInitialDeposit: Long,
+    val currency: String,
+    val iconKey: String,
+    val style: ProductStyle,
+    val features: List<String>,
+    val isPopular: Boolean,
+    val badge: ProductBadge,
+    val isDefault: Boolean,
+    val displayOrder: Int,
+    val availability: ProductAvailability,
+)
+
+/** Kotak persiapan dokumen di bawah daftar produk. */
+data class ProductNotice(
+    val iconKey: String,
+    val title: String,
+    val body: String,
+)
+
+/**
+ * Kalimat S&K di bawah kotak persiapan, terpotong tiga karena [link] dicetak tebal dan
+ * berwarna. Dibiarkan terpisah sampai ke layar supaya tidak ada pencarian substring.
+ */
+data class ProductConsent(
+    val prefix: String,
+    val link: String,
+    val suffix: String,
+)
+
+/** Copy layar Pilih Jenis Rekening; bagian yang kosong disembunyikan layar. */
+data class ProductPage(
+    val heading: String,
+    val subtitle: String,
+    val depositLabel: String,
+    val ctaLabel: String,
+    val notice: ProductNotice?,
+    val consent: ProductConsent?,
+)
+
+/**
+ * Katalog jenis rekening.
+ *
+ * [catalogVersion] **tidak** dikirim kembali saat sesi dibuat — berbeda dari
+ * `card_catalog_version`. Server mencatatnya sendiri beserta setoran awal yang tampil.
+ */
+data class SavingsProductCatalog(
+    val catalogVersion: String,
+    val page: ProductPage?,
+    val products: List<SavingsProduct>,
+) {
+    /** Urutan tampil ditentukan server lewat `display_order`. */
+    val sortedProducts: List<SavingsProduct> get() = products.sortedBy { it.displayOrder }
+
+    fun find(type: ProductType?): SavingsProduct? =
+        type?.let { wanted -> products.firstOrNull { it.type == wanted } }
+}
+
 data class StepsCompleted(
     val tncAccepted: Boolean = false,
     val cardSelected: Boolean = false,
@@ -70,15 +212,28 @@ data class OnboardingSession(
 /**
  * Hasil OCR yang dijalankan di perangkat lewat ML Kit.
  *
- * Bukan pengganti OCR server: dipakai untuk menampilkan hasil seketika dan
- * menolak foto buruk sebelum diunggah. Yang berwenang tetap [KtpOcrResult]
- * dari backend, karena hanya server yang mencocokkan ke Dukcapil.
+ * Dipakai untuk dua hal: menampilkan hasil seketika sebelum unggahan, dan — lewat
+ * [rawText] — **menjadi sumber teks yang dibaca server**. Yang berwenang atas
+ * hasil akhir tetap [KtpOcrResult] dari backend: server yang memvalidasi tata
+ * letak e-KTP, bentuk NIK, dan kecocokan NIK dengan tanggal lahir serta jenis
+ * kelamin. Client tidak pernah memutuskan kartunya sah.
  */
 data class LocalKtpScan(
     val data: KtpData,
     val accuracyPercent: Double,
     /** Field wajib yang gagal terbaca; jadi alasan saat foto disarankan diulang. */
     val missingFields: List<String> = emptyList(),
+    /**
+     * Teks mentah hasil ML Kit, dikirim bersama foto.
+     *
+     * Dulu hasil pengenalan ini ditampilkan lalu dibuang, sementara server
+     * menjawab dari teks hardcoded — jadi identitas yang masuk ke form data
+     * pribadi adalah milik orang lain, bukan milik kartu yang difoto.
+     *
+     * Tidak pernah ditulis ke disk dan tidak masuk state yang dipersistensi:
+     * isinya NIK, nama, dan alamat.
+     */
+    val rawText: String = "",
 )
 
 /** Hasil OCR e-KTP beserta metrik kualitas foto. */
@@ -87,6 +242,8 @@ data class KtpOcrResult(
     val accuracyPercent: Double,
     val extracted: KtpData,
     val dukcapilMatch: Boolean,
+    /** Registri kependudukan dihubungi. [dukcapilMatch] hanya berarti bila ini true. */
+    val dukcapilChecked: Boolean,
     val sharpness: String?,
     val glareDetected: Boolean,
     val allCornersVisible: Boolean,
@@ -158,11 +315,55 @@ data class OtpVerification(
     val currentStep: OnboardingStep,
 )
 
-data class LivenessMeta(
-    val challengeType: String,
-    val completedActions: Int,
-    val precisionScore: Double,
-)
+/**
+ * Bukti satu percobaan liveness, siap dikirim ke server.
+ *
+ * Penggantinya yang lama, `LivenessMeta`, hanya berisi `challenge_type`,
+ * `completed_actions`, dan `precision_score` — ketiganya diisi konstanta oleh client
+ * dan dipercaya server sebagai bukti kelulusan. Yang dikirim sekarang adalah bahan
+ * mentah untuk diverifikasi ulang: nonce yang diterbitkan server, frame per langkah
+ * beserta waktunya, tanda tangan kunci perangkat atas isi frame, dan token
+ * integritas. Tidak ada satu pun field di sini yang menyatakan "lulus".
+ *
+ * [neutralFrame] dan [stepFrames] hidup **hanya di memori** dan wajib ditimpa nol
+ * oleh pemanggil setelah unggahan, berhasil maupun gagal.
+ */
+data class LivenessSubmission(
+    val challengeId: String,
+    val nonce: String,
+    val neutralFrame: ByteArray,
+    val stepFrames: List<LivenessStepFrame>,
+    /** String kanonis yang ditandatangani; server merekonstruksinya sendiri. */
+    val signedPayload: String,
+    val signature: String,
+    val signatureAlgorithm: String,
+    val deviceKeyId: String,
+    val devicePublicKey: String,
+    /** Null bila `PLAY_INTEGRITY_CLOUD_PROJECT` belum dikonfigurasi. */
+    val integrityToken: String?,
+    val riskSignals: DeviceRiskSignals,
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is LivenessSubmission) return false
+        return challengeId == other.challengeId &&
+            nonce == other.nonce &&
+            neutralFrame.contentEquals(other.neutralFrame) &&
+            stepFrames == other.stepFrames &&
+            signedPayload == other.signedPayload &&
+            signature == other.signature
+    }
+
+    override fun hashCode(): Int {
+        var result = challengeId.hashCode()
+        result = 31 * result + nonce.hashCode()
+        result = 31 * result + neutralFrame.contentHashCode()
+        result = 31 * result + stepFrames.hashCode()
+        result = 31 * result + signedPayload.hashCode()
+        result = 31 * result + signature.hashCode()
+        return result
+    }
+}
 
 data class BiometricResult(
     val biometricId: String,

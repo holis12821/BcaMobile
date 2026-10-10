@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.media.ExifInterface
+import android.net.Uri
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -93,6 +95,84 @@ object CameraCapture {
         }
     }
 
+    /**
+     * Menyalin gambar pilihan dari galeri jadi berkas cache yang tegak.
+     *
+     * Dipakai tombol "Dari Galeri" pada layar kamera e-KTP, yang sebelumnya
+     * terhubung ke lambda kosong — tombolnya ada, menekannya tidak melakukan
+     * apa pun. Hasilnya dialirkan ke jalur yang sama persis dengan hasil
+     * jepretan, jadi OCR di perangkat, gerbang kualitas, dan validasi server
+     * berlaku sama untuk keduanya.
+     *
+     * **Orientasi EXIF diterapkan lalu ditulis ulang**, bukan dibiarkan. Foto
+     * galeri umumnya menyimpan rotasinya di EXIF sementara piksel-nya tetap
+     * mendatar, dan `BitmapFactory` mengabaikan EXIF — jadi e-KTP yang difoto
+     * tegak akan dibaca OCR dalam keadaan miring 90° dan tidak terbaca sama
+     * sekali. Setelah ditulis ulang, seluruh jalur di hilir melihat JPEG tegak.
+     *
+     * Berkasnya di `cacheDir` dan wajib dihapus lewat [discard] setelah
+     * terunggah, sama seperti hasil jepretan: foto e-KTP tidak boleh menetap.
+     */
+    suspend fun importFromUri(
+        context: Context,
+        uri: Uri,
+        fileNamePrefix: String,
+        quality: Int = JPEG_QUALITY,
+    ): CapturedPhoto? = withContext(Dispatchers.IO) {
+        runCatching {
+            val rotation = exifRotationOf(context, uri)
+
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, bounds)
+            } ?: return@runCatching null
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+
+            // Dibatasi seperti jalur dekode OCR: gambar galeri bisa jauh lebih
+            // besar daripada hasil kamera, dan bitmap seukuran itu memicu OOM.
+            val options = BitmapFactory.Options().apply {
+                inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight, IMPORT_MAX_DIMENSION)
+            }
+            val decoded = context.contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            } ?: return@runCatching null
+
+            val upright = decoded.rotated(rotation)
+
+            val target = File.createTempFile(fileNamePrefix, JPEG_SUFFIX, context.cacheDir)
+            FileOutputStream(target).use { out ->
+                upright.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            }
+
+            CapturedPhoto(target, upright.width, upright.height)
+                .also { upright.recycle() }
+        }.getOrNull()
+    }
+
+    /**
+     * Derajat rotasi yang harus diterapkan supaya gambarnya tegak.
+     *
+     * `android.media.ExifInterface` dipakai, bukan androidx — fungsinya cukup
+     * untuk membaca satu tag dan tidak menambah dependency.
+     */
+    private fun exifRotationOf(context: Context, uri: Uri): Int {
+        val orientation = runCatching {
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                ExifInterface(stream).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL,
+                )
+            }
+        }.getOrNull() ?: ExifInterface.ORIENTATION_NORMAL
+
+        return when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270
+            else -> 0
+        }
+    }
+
     /** Hapus berkas sementara. Panggil setelah unggah selesai, sukses maupun gagal. */
     fun discard(file: File?) {
         if (file == null) return
@@ -171,4 +251,14 @@ object CameraCapture {
 
     /** Sisi terpanjang bitmap yang dipakai OCR di perangkat. */
     private const val OCR_MAX_DIMENSION = 1920
+
+    /**
+     * Sisi terpanjang gambar yang diimpor dari galeri.
+     *
+     * Sama dengan [OCR_MAX_DIMENSION] dan bukan kebetulan: berkas inilah yang
+     * dibaca OCR **dan** diunggah, jadi menyimpannya lebih besar hanya menambah
+     * ukuran unggahan tanpa menambah yang bisa dibaca. Tetap jauh di atas batas
+     * minimum 640×480 yang diperiksa server.
+     */
+    private const val IMPORT_MAX_DIMENSION = 1920
 }

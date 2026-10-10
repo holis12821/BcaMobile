@@ -7,6 +7,7 @@ import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningFlowState
 import id.bca.bcamobile.ui.screen.buka_rekening.common.formatAmount
 import id.bca.bcamobile.ui.screen.buka_rekening.common.groupNik
 import id.bca.bcamobile.ui.screen.buka_rekening.common.joinNonBlank
+import id.bca.bcamobile.ui.screen.buka_rekening.common.selectedProduct
 import id.bca.bcamobile.ui.screen.buka_rekening.common.toDisplayDate
 
 data class RingkasanUiState(
@@ -43,7 +44,10 @@ fun BukaRekeningFlowState.toRingkasanUiState(): RingkasanUiState {
     val form = dataPribadi
     return RingkasanUiState(
         produkRekening = product?.name.orEmpty(),
-        isPalingPopuler = selectedProductIndex == POPULAR_PRODUCT_INDEX,
+        // `is_popular` milik data produk. Dulu dibandingkan dengan indeks baris nol —
+        // yang berarti badge berpindah produk begitu server mengubah urutan tampil.
+        // Katalog yang tidak termuat berarti badge tidak ditampilkan, bukan ditebak.
+        isPalingPopuler = selectedProduct()?.isPopular == true,
         mataUang = product?.currency.orEmpty(),
         setoranAwalMinimum = product?.minInitialDeposit?.let {
             stringResource(R.string.buka_rekening_ringkasan_setoran_format, formatAmount(it))
@@ -72,5 +76,3 @@ fun BukaRekeningFlowState.toRingkasanUiState(): RingkasanUiState {
 }
 
 // -- Format --------------------------------------------------------------------
-
-private const val POPULAR_PRODUCT_INDEX = 0

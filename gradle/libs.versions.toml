@@ -36,6 +36,10 @@ googleServices = "4.5.0"
 # harga per menit Twilio/Agora tidak masuk untuk volume perbankan. Lihat skill
 # `buka-rekening-video-call` §1. Membawa .so native per ABI — itu sumber kenaikan APK.
 streamWebrtc = "1.3.1"
+# Play Integrity: verdict perangkat diverifikasi di server (keputusan Q3), bukan
+# dipercaya dari client. Token diminta dengan nonce tantangan liveness supaya satu
+# token tidak bisa dipakai ulang untuk percobaan lain.
+playIntegrity = "1.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -76,6 +80,7 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
 mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", version.ref = "mlkitFaceDetection" }
 mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcodeScanning" }
+play-integrity = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 

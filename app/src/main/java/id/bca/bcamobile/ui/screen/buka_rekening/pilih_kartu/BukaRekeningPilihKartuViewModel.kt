@@ -4,7 +4,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.onboarding.OnboardingRepository
 import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
-import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSessionStore
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningStepViewModel
 import id.bca.bcamobile.ui.screen.buka_rekening.common.selectedCardType
@@ -33,7 +32,7 @@ class BukaRekeningPilihKartuViewModel @Inject constructor(
     private fun loadCardCatalog() {
         val current = store.current
         if (current.cardCatalog != null) return
-        val productType = current.selectedProductIndex?.let(ProductType::fromIndex) ?: return
+        val productType = current.selectedProductType ?: return
 
         launchWithLoading {
             when (val result = repository.cardCatalog(productType)) {

@@ -46,6 +46,9 @@
     <string name="daftar_transaksi">Daftar Transaksi</string>
     <string name="tampilkan_lebih_banyak">Tampilkan Lebih Banyak</string>
     <string name="cd_notifikasi">Notifikasi</string>
+    <string name="cd_jaringan_online">Jaringan tersambung</string>
+    <string name="cd_jaringan_lemah">Jaringan lemah</string>
+    <string name="cd_jaringan_terputus">Tidak ada koneksi ke layanan BCA</string>
     <string name="cd_pilih_rekening">Pilih rekening</string>
     <!-- Rekening & Kartu (GET /account/profile + /account/balance) -->
     <!-- Ubah kode akses (POST /auth/pin/change) -->
@@ -347,6 +350,16 @@
     <string name="buka_rekening_syarat_suffix"> pembukaan rekening BCA.</string>
     <string name="buka_rekening_lanjut">Lanjut</string>
     <string name="cd_buka_rekening_pilih_jenis">Pilih %1$s</string>
+    <!-- Setoran awal dari katalog server: nominalnya integer, pemformatan di client -->
+    <string name="buka_rekening_jenis_setoran_format">Rp %1$s</string>
+    <!-- availability_reason_key dari GET /onboarding/products -->
+    <string name="buka_rekening_jenis_tidak_tersedia_nonaktif">Produk ini sedang tidak dibuka</string>
+    <string name="buka_rekening_jenis_tidak_tersedia_perbaikan">Produk ini sedang dalam perbaikan</string>
+    <string name="buka_rekening_jenis_tidak_tersedia_segera">Segera hadir</string>
+    <string name="buka_rekening_jenis_tidak_tersedia_umum">Produk ini belum bisa dipilih</string>
+    <!-- Penanda daftar bawaan saat katalog server tidak terbaca - bukan pesan error -->
+    <string name="buka_rekening_jenis_daftar_bawaan">Menampilkan daftar bawaan</string>
+    <string name="buka_rekening_jenis_muat_ulang">Muat ulang</string>
 
     <!-- Buka Rekening - Tahapan BCA -->
     <string name="buka_rekening_tahapan_bca">Tahapan BCA</string>
@@ -422,7 +435,7 @@
     <string name="buka_rekening_foto_salah_title">Silau &amp; Terpotong</string>
     <string name="buka_rekening_foto_salah_desc">Pantulan kilau, buram</string>
     <string name="buka_rekening_foto_keamanan_title">Keamanan Terjamin</string>
-    <string name="buka_rekening_foto_keamanan_desc">Data Anda dienkripsi aman 256-bit dan diawasi Otoritas Jasa Keuangan (OJK).</string>
+    <string name="buka_rekening_foto_keamanan_desc">Foto KTP Anda dikirim melalui koneksi terenkripsi dan hanya dipakai untuk verifikasi identitas.</string>
     <string name="buka_rekening_foto_mulai">Mulai Ambil Foto KTP</string>
     <string name="buka_rekening_foto_tips">Tips Pencahayaan &amp; Bantuan</string>
 
@@ -482,7 +495,7 @@
     <string name="buka_rekening_dp_error_nomor_hp">Nomor handphone belum sesuai, contoh 081234567890.</string>
     <string name="buka_rekening_dp_error_email">Alamat email belum sesuai.</string>
     <string name="buka_rekening_dp_error_form">Lengkapi data yang masih ditandai merah.</string>
-    <string name="buka_rekening_dp_security">Data Anda dienkripsi dengan standar perbankan 256-bit dan terdaftar di OJK.</string>
+    <string name="buka_rekening_dp_security">Data Anda dikirim melalui koneksi terenkripsi dan hanya dipakai untuk pembukaan rekening ini.</string>
     <string name="buka_rekening_dp_lanjut">Lanjut ke Verifikasi Dokumen</string>
     <string name="buka_rekening_dp_simpan">Simpan Sementara &amp; Keluar</string>
 
@@ -502,7 +515,7 @@
     <string name="buka_rekening_hasil_agama_label">AGAMA</string>
     <string name="buka_rekening_hasil_status_label">STATUS PERKAWINAN</string>
     <string name="buka_rekening_hasil_notice">Jika data berbeda dengan fisik KTP, Anda dapat menyuntingnya secara manual pada formulir tahap berikutnya.</string>
-    <string name="buka_rekening_hasil_security">Enkripsi End-to-End standar OJK &amp; Dukcapil</string>
+    <string name="buka_rekening_hasil_security">Dikirim terenkripsi, dicocokkan dengan data Dukcapil</string>
     <string name="buka_rekening_hasil_gunakan">Gunakan Foto Ini &amp; Lanjut</string>
     <string name="buka_rekening_hasil_ambil_ulang">Ambil Foto Ulang</string>
 
@@ -566,7 +579,7 @@
     <string name="buka_rekening_ekyc_face_req_2">Lepas kacamata hitam, topi, atau masker</string>
     <string name="buka_rekening_ekyc_face_req_3">Posisikan wajah tepat di tengah bingkai oval</string>
     <string name="buka_rekening_ekyc_security_title">Data Terenkripsi 256-bit</string>
-    <string name="buka_rekening_ekyc_security_desc">Sesuai regulasi Otoritas Jasa Keuangan (OJK)</string>
+    <string name="buka_rekening_ekyc_security_desc">Dikirim melalui koneksi terenkripsi</string>
     <string name="buka_rekening_ekyc_lanjut">Lanjut ke Verifikasi Video</string>
     <string name="buka_rekening_ekyc_ambil_ulang">Ambil Ulang Foto</string>
 
@@ -582,11 +595,48 @@
     <string name="buka_rekening_biometrik_panduan_1">Lepas kacamata hitam, topi, atau masker medis</string>
     <string name="buka_rekening_biometrik_panduan_2">Pastikan pencahayaan cukup terang dan merata tanpa bayangan tajam</string>
     <string name="buka_rekening_biometrik_panduan_3">Tatap lurus ke kamera ponsel setinggi mata</string>
-    <string name="buka_rekening_biometrik_security">Deteksi Biometrik Liveness Berstandar ISO 30107-3 &amp; Diawasi OJK untuk mencegah pemalsuan identitas.</string>
-    <string name="buka_rekening_biometrik_security_iso">ISO 30107-3</string>
-    <string name="buka_rekening_biometrik_security_ojk">OJK</string>
+    <string name="buka_rekening_biometrik_security">Verifikasi wajah untuk memastikan Anda adalah pemilik rekening. Gerakan yang diminta diverifikasi di server BCA.</string>
     <string name="buka_rekening_biometrik_mulai">Mulai Perekaman Biometrik</string>
     <string name="buka_rekening_biometrik_tips">Tips Pencahayaan &amp; Bantuan</string>
+
+    <!-- Buka Rekening - Liveness aktif: panduan posisi wajah -->
+    <string name="buka_rekening_biometrik_guide_no_face">Posisikan wajah Anda di dalam oval</string>
+    <string name="buka_rekening_biometrik_guide_multiple_faces">Pastikan hanya wajah Anda yang terlihat</string>
+    <string name="buka_rekening_biometrik_guide_move_closer">Dekatkan wajah ke kamera</string>
+    <string name="buka_rekening_biometrik_guide_move_away">Jauhkan sedikit wajah dari kamera</string>
+    <string name="buka_rekening_biometrik_guide_center_face">Posisikan wajah di tengah oval</string>
+    <string name="buka_rekening_biometrik_guide_look_straight">Tatap lurus ke kamera</string>
+    <string name="buka_rekening_biometrik_guide_open_eyes">Buka kedua mata Anda</string>
+    <string name="buka_rekening_biometrik_guide_ready">Wajah siap, ikuti instruksi berikut</string>
+    <string name="buka_rekening_biometrik_face_ready">Wajah Terdeteksi</string>
+
+    <!-- Buka Rekening - Liveness aktif: instruksi gerakan, urutannya dari server -->
+    <string name="buka_rekening_biometrik_action_turn_left">Tolehkan kepala ke kiri</string>
+    <string name="buka_rekening_biometrik_action_turn_right">Tolehkan kepala ke kanan</string>
+    <string name="buka_rekening_biometrik_action_look_up">Angkat kepala ke atas</string>
+    <string name="buka_rekening_biometrik_action_look_down">Tundukkan kepala ke bawah</string>
+    <string name="buka_rekening_biometrik_action_blink">Kedipkan kedua mata Anda</string>
+    <string name="buka_rekening_biometrik_action_neutral">Kembali tatap lurus ke kamera</string>
+
+    <!-- Buka Rekening - Liveness aktif: status dan kegagalan -->
+    <string name="buka_rekening_biometrik_status_preparing">Menyiapkan verifikasi wajah</string>
+    <string name="buka_rekening_biometrik_status_verifying">Memverifikasi di server BCA\u2026</string>
+    <string name="buka_rekening_biometrik_status_success">Verifikasi wajah berhasil</string>
+    <string name="buka_rekening_biometrik_fail_step_timeout">Waktu untuk gerakan ini habis. Silakan coba lagi.</string>
+    <string name="buka_rekening_biometrik_fail_total_timeout">Waktu verifikasi habis. Silakan coba lagi.</string>
+    <string name="buka_rekening_biometrik_fail_wrong_move">Gerakan tidak sesuai instruksi. Silakan coba lagi.</string>
+    <string name="buka_rekening_biometrik_fail_server">Verifikasi wajah belum berhasil. Silakan coba lagi.</string>
+    <string name="buka_rekening_biometrik_fail_incomplete">Rekaman gerakan belum lengkap. Silakan coba lagi.</string>
+    <string name="buka_rekening_biometrik_retry">Coba Lagi</string>
+    <string name="buka_rekening_biometrik_cooldown">Coba lagi dalam %1$d detik</string>
+    <string name="buka_rekening_biometrik_blocked">Verifikasi wajah mandiri dihentikan untuk pengajuan ini. Identitas Anda akan diverifikasi petugas melalui video call.</string>
+    <string name="buka_rekening_biometrik_a11y_progress">Langkah %1$d dari %2$d</string>
+
+    <!-- Buka Rekening - Liveness aktif: pesan kesalahan dari server -->
+    <string name="buka_rekening_error_liveness_challenge">Tidak bisa menyiapkan verifikasi wajah. Periksa koneksi lalu coba lagi.</string>
+    <string name="buka_rekening_error_liveness_replay">Verifikasi ini sudah dipakai. Mulai ulang verifikasi wajah.</string>
+    <string name="buka_rekening_error_liveness_integrity">Perangkat ini belum bisa dipakai untuk verifikasi wajah. Hubungi Halo BCA.</string>
+    <string name="buka_rekening_error_liveness_device_key">Perangkat ini tidak bisa membuat kunci keamanan. Hubungi Halo BCA.</string>
 
     <!-- Buka Rekening - Antrean Video Call CS Screen -->
     <string name="buka_rekening_antrean_title">Antrean Video Call</string>
@@ -720,7 +770,7 @@
     <string name="buka_rekening_ringkasan_belum_verifikasi">Belum Verifikasi</string>
     <string name="buka_rekening_ringkasan_section_persetujuan">Persetujuan Nasabah</string>
     <string name="buka_rekening_ringkasan_persetujuan_text">Saya menyatakan bahwa seluruh data yang saya berikan adalah benar, menyetujui Syarat &amp; Ketentuan, Kebijakan Privasi, dan bersedia data digunakan untuk verifikasi serta layanan perbankan BCA.</string>
-    <string name="buka_rekening_ringkasan_security">Data Anda dilindungi enkripsi 256-bit standar perbankan dan diawasi OJK.</string>
+    <string name="buka_rekening_ringkasan_security">Data Anda dikirim melalui koneksi terenkripsi dan disimpan sesuai kebijakan privasi BCA.</string>
     <string name="buka_rekening_ringkasan_buka">Buka Rekening</string>
     <string name="buka_rekening_ringkasan_kembali">Kembali &amp; Edit Data</string>
     <string name="buka_rekening_ringkasan_enkripsi">Pembukaan Rekening Terenkripsi End-to-End</string>
@@ -844,6 +894,8 @@
     <string name="buka_rekening_error_credential_encryption">Gagal mengamankan kredensial Anda. Silakan coba lagi.</string>
     <string name="buka_rekening_error_no_photo">Foto e-KTP belum tersedia. Silakan ambil foto terlebih dahulu.</string>
     <string name="buka_rekening_error_no_ocr">Data e-KTP belum terbaca. Silakan ulangi pengambilan foto.</string>
+    <string name="buka_rekening_error_galeri_gagal">Gambar tidak bisa dibaca. Pilih foto e-KTP lain atau ambil foto langsung.</string>
+    <string name="buka_rekening_hasil_foto_pratinjau_desc">Pratinjau foto e-KTP yang baru diambil</string>
     <string name="buka_rekening_error_credential_invalid">Kode akses dan PIN belum memenuhi ketentuan.</string>
     <string name="buka_rekening_error_agreement_required">Centang persetujuan terlebih dahulu untuk melanjutkan.</string>
     <string name="buka_rekening_draft_saved">Draf pendaftaran Anda tersimpan.</string>

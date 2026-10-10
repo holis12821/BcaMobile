@@ -13,6 +13,7 @@ import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSideEffect
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningStepViewModel
 import id.bca.bcamobile.ui.screen.buka_rekening.common.FlashMode
 import id.bca.bcamobile.ui.screen.buka_rekening.common.toJenisKelamin
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -56,6 +57,21 @@ class BukaRekeningHasilFotoViewModel @Inject constructor(
     }
 
     /**
+     * Membuang foto lokal setelah terunggah, tapi **mempertahankan** [localScan].
+     *
+     * Dulu `ktpPhoto` dan scan lokalnya ikut hilang bersama-sama. Itu bermasalah
+     * karena `ktpData` memilih `ocr ?: localScan`: begitu scan lokal hilang,
+     * satu-satunya sumber data adalah hasil server, dan tidak ada lagi
+     * pembanding kalau keduanya berbeda. Scan-nya tetap di memory saja — tidak
+     * pernah ditulis ke disk — dan dibersihkan bersama seluruh state flow saat
+     * graph buka rekening ditinggalkan.
+     */
+    private fun discardUploadedPhoto(photo: File) {
+        CameraCapture.discard(photo)
+        store.update { it.copy(ktpPhoto = null) }
+    }
+
+    /**
      * Kalau server sudah punya hasil OCR untuk sesi ini, langsung maju. Kalau
      * belum, fotonya diunggah sekarang.
      */
@@ -70,7 +86,14 @@ class BukaRekeningHasilFotoViewModel @Inject constructor(
         }
     }
 
-    /** Unggah foto ke server untuk OCR resmi dan pencocokan Dukcapil. */
+    /**
+     * Unggah foto ke server untuk divalidasi.
+     *
+     * Pencocokan ke Dukcapil ikut bila server punya registri — `dukcapilChecked`
+     * di hasilnya yang memberi tahu. Yang selalu dijalankan server adalah
+     * pemeriksaan tata letak e-KTP, bentuk NIK, dan kecocokan NIK dengan tanggal
+     * lahir serta jenis kelamin.
+     */
     private fun uploadKtpPhoto() {
         val current = store.current
         val photo = current.ktpPhoto ?: run {
@@ -78,19 +101,24 @@ class BukaRekeningHasilFotoViewModel @Inject constructor(
             return
         }
 
+        // Teks yang dibaca ML Kit di perangkat ikut dikirim: itulah yang dibaca
+        // server selama belum ada mesin OCR di sana. Tanpa ini server menjawab
+        // dari teks hardcoded, dan form data pribadi terisi identitas orang lain.
+        val clientOcrText = current.localScan?.rawText.orEmpty()
+
         launchWithLoading {
             val result = repository.uploadKtpPhoto(
                 photo = photo,
                 flashUsed = current.flashMode != FlashMode.OFF,
                 autoCaptured = current.isAutoCaptureEnabled,
                 resolution = current.captureResolution,
+                clientOcrText = clientOcrText,
             )
             when (result) {
                 is DataResult.Success -> {
                     applyOcr(result.value)
                     // Foto sudah di server; salinan lokalnya tidak boleh tertinggal.
-                    CameraCapture.discard(photo)
-                    store.update { it.copy(ktpPhoto = null) }
+                    discardUploadedPhoto(photo)
                     store.send(
                         BukaRekeningSideEffect.AdvanceTo(OnboardingStep.PERSONAL_DATA),
                     )

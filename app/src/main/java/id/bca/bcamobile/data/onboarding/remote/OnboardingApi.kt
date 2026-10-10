@@ -2,6 +2,8 @@ package id.bca.bcamobile.data.onboarding.remote
 
 import id.bca.bcamobile.core.network.ApiEnvelope
 import id.bca.bcamobile.data.onboarding.remote.dto.BiometricResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.LivenessChallengeRequest
+import id.bca.bcamobile.data.onboarding.remote.dto.LivenessChallengeResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.CardCatalogResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionResponse
@@ -15,6 +17,7 @@ import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.SavingsProductCatalogResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCardRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCardResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsRequest
@@ -49,12 +52,21 @@ import retrofit2.http.Query
  */
 interface OnboardingApi {
 
-    // -- Katalog kartu ---------------------------------------------------------
+    // -- Katalog produk, S&K, katalog kartu ------------------------------------
+    //
+    // Ketiganya dipanggil sebelum sesi ada, jadi tidak ada `session_id` dan tidak ada
+    // `Authorization` pada satu pun di antaranya.
 
     /**
-     * Katalog kartu Paspor per produk. **Tanpa `session_id`**: layar Pilih Kartu
-     * tampil sebelum sesi dibuat (`bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md` §2).
+     * Katalog jenis rekening tabungan beserta copy layarnya — layar **pertama** flow.
+     *
+     * `503 ONBOARDING_CATALOG_UNAVAILABLE` berarti katalognya dimatikan di server, bukan
+     * permintaan yang salah: layar jatuh ke daftar bawaan `strings.xml` dan flow tetap
+     * jalan, karena pembuatan sesi tidak menuntut katalog ini ada.
      */
+    @GET("products")
+    suspend fun savingsProducts(): Response<ApiEnvelope<SavingsProductCatalogResponse>>
+
     /**
      * Teks Syarat & Ketentuan beserta nomor versinya. **Tanpa `session_id` dan tanpa
      * `Authorization`**: layar S&K tampil sebelum sesi dibuat.
@@ -68,6 +80,10 @@ interface OnboardingApi {
         @Query("version") version: String? = null,
     ): Response<ApiEnvelope<TncResponse>>
 
+    /**
+     * Katalog kartu Paspor per produk. **Tanpa `session_id`**: layar Pilih Kartu
+     * tampil sebelum sesi dibuat (`bca-mobile-api/docs/08-PILIH-KARTU-API-SPEC.md` §2).
+     */
     @GET("products/{product_type}/cards")
     suspend fun cardCatalog(
         @Path("product_type") productType: String,
@@ -107,6 +123,7 @@ interface OnboardingApi {
         @Part("flash_used") flashUsed: RequestBody,
         @Part("auto_captured") autoCaptured: RequestBody,
         @Part("resolution") resolution: RequestBody,
+        @Part("client_ocr_text") clientOcrText: RequestBody,
     ): Response<ApiEnvelope<OcrResponse>>
 
     @GET("ocr/{session_id}")
@@ -133,13 +150,37 @@ interface OnboardingApi {
 
     // -- Biometrik -------------------------------------------------------------
 
+    /**
+     * Menerbitkan tantangan liveness: nonce sekali pakai, aksi yang sudah diacak
+     * server, dan batas waktunya. Terikat `device_id` di header `X-Device-ID`.
+     */
+    @POST("liveness/challenge")
+    suspend fun requestLivenessChallenge(
+        @Body request: LivenessChallengeRequest,
+    ): Response<ApiEnvelope<LivenessChallengeResponse>>
+
+    /**
+     * Mengirim bukti liveness untuk diverifikasi server.
+     *
+     * Tidak ada part yang menyatakan hasil. `step_meta` hanya mengurutkan frame dan
+     * mencatat waktunya; server mendeteksi ulang pose di setiap frame itu sendiri dan
+     * tidak memercayai klaim langkah dari client.
+     */
     @Multipart
     @POST("biometric")
     suspend fun processBiometric(
         @Part("session_id") sessionId: RequestBody,
-        @Part facePhoto: MultipartBody.Part,
-        @Part livenessFrames: List<MultipartBody.Part>,
-        @Part("liveness_meta") livenessMeta: RequestBody,
+        @Part("challenge_id") challengeId: RequestBody,
+        @Part("nonce") nonce: RequestBody,
+        @Part("device_key_id") deviceKeyId: RequestBody,
+        @Part("device_public_key") devicePublicKey: RequestBody,
+        @Part("signature") signature: RequestBody,
+        @Part("signature_algorithm") signatureAlgorithm: RequestBody,
+        @Part("step_meta") stepMeta: RequestBody,
+        @Part("risk_signals") riskSignals: RequestBody,
+        @Part("integrity_token") integrityToken: RequestBody?,
+        @Part neutralFrame: MultipartBody.Part,
+        @Part stepFrames: List<MultipartBody.Part>,
     ): Response<ApiEnvelope<BiometricResponse>>
 
     // -- Video call ------------------------------------------------------------

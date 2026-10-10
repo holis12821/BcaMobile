@@ -2,6 +2,8 @@ package id.bca.bcamobile.ui.navigation
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.core.tween
@@ -10,6 +12,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +28,9 @@ import id.bca.bcamobile.R
 import id.bca.bcamobile.core.push.NotificationPermissionEffect
 import id.bca.bcamobile.session.AppGate
 import id.bca.bcamobile.session.SessionState
+import androidx.hilt.navigation.compose.hiltViewModel
 import id.bca.bcamobile.ui.components.LocalSnackbarHostState
+import id.bca.bcamobile.ui.components.NetworkStatusLamp
 import id.bca.bcamobile.ui.theme.Spacing
 import id.bca.bcamobile.ui.screen.splash.AppBlockedScreen
 import id.bca.bcamobile.ui.screen.splash.SplashScreen
@@ -74,26 +80,59 @@ fun BcaApp(
         AppGate.Checking, AppGate.Open -> Unit
     }
 
-    Crossfade(
-        targetState = sessionState is SessionState.Loading || appGate is AppGate.Checking,
-        animationSpec = tween(durationMillis = 200),
-        label = "splash",
-    ) { isLoading ->
-        if (isLoading) {
-            SplashScreen(modifier = modifier)
-        } else {
-            AppNavHost(
-                sessionState = sessionState,
-                onAuthenticated = onAuthenticated,
-                onLogout = onLogout,
-                onSaveRouteForReturn = onSaveRouteForReturn,
-                onConsumeReturnRoute = onConsumeReturnRoute,
-                pendingPushRoute = pendingPushRoute,
-                onPushRouteConsumed = onPushRouteConsumed,
-                modifier = modifier,
-            )
+    // Lampu indikator jaringan dipasang DI SINI, dan hanya di sini.
+    //
+    // BcaApp adalah satu-satunya composable yang dilewati setiap layar tanpa
+    // kecuali — termasuk Splash dan layar gate. Alternatifnya menaruhnya di
+    // AppTopBar, yang hanya dipakai 22 dari 38 layar (Home, Mutasi, Transfer,
+    // Akun, dan e-Wallet memakai TopAppBar sendiri), atau menyisipkannya di
+    // setiap layar satu per satu — 38 kali, dan layar ke-39 pasti terlewat.
+    //
+    // Diletakkan di Box yang sama dengan isi aplikasi, bukan sebagai bilah di
+    // atasnya, supaya tidak ada layar yang layout-nya bergeser.
+    Box(modifier = Modifier.fillMaxSize()) {
+        Crossfade(
+            targetState = sessionState is SessionState.Loading || appGate is AppGate.Checking,
+            animationSpec = tween(durationMillis = 200),
+            label = "splash",
+        ) { isLoading ->
+            if (isLoading) {
+                SplashScreen(modifier = modifier)
+            } else {
+                AppNavHost(
+                    sessionState = sessionState,
+                    onAuthenticated = onAuthenticated,
+                    onLogout = onLogout,
+                    onSaveRouteForReturn = onSaveRouteForReturn,
+                    onConsumeReturnRoute = onConsumeReturnRoute,
+                    pendingPushRoute = pendingPushRoute,
+                    onPushRouteConsumed = onPushRouteConsumed,
+                    modifier = modifier,
+                )
+            }
         }
+
+        AppNetworkLamp(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(top = Spacing.s2, end = Spacing.s4),
+        )
     }
+}
+
+/**
+ * Lampu jaringan tingkat aplikasi.
+ *
+ * Composable tersendiri supaya `hiltViewModel()` dipanggil di satu tempat yang
+ * jelas, dan supaya [BcaApp] tetap bisa dipratinjau tanpa Hilt.
+ */
+@Composable
+private fun AppNetworkLamp(modifier: Modifier = Modifier) {
+    val viewModel: NetworkStatusViewModel = hiltViewModel()
+    val status by viewModel.status.collectAsState()
+
+    NetworkStatusLamp(status = status, modifier = modifier)
 }
 
 // ── Nav Host (mounted after splash) ────────────────────────────────────

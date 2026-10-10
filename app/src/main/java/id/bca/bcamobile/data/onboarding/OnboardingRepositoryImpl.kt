@@ -3,14 +3,18 @@ package id.bca.bcamobile.data.onboarding
 import id.bca.bcamobile.core.network.ApiCaller
 import id.bca.bcamobile.core.network.ApiEnvelope
 import id.bca.bcamobile.core.network.ApiFailure
+import id.bca.bcamobile.core.liveness.LivenessChallenge
+import id.bca.bcamobile.core.security.LivenessAttestor
 import id.bca.bcamobile.core.security.RsaEncryptor
 import id.bca.bcamobile.core.security.buildPinPayload
 import id.bca.bcamobile.data.onboarding.local.OnboardingSessionStore
 import id.bca.bcamobile.data.onboarding.mapper.toDomain
 import id.bca.bcamobile.data.onboarding.mapper.toDto
+import id.bca.bcamobile.data.onboarding.mapper.toMetaDto
 import id.bca.bcamobile.data.onboarding.remote.OnboardingApi
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.JoinQueueRequest
+import id.bca.bcamobile.data.onboarding.remote.dto.LivenessChallengeRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataRequest
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCardRequest
@@ -24,7 +28,7 @@ import id.bca.bcamobile.domain.onboarding.model.CardCatalog
 import id.bca.bcamobile.domain.onboarding.model.CreatedAccount
 import id.bca.bcamobile.domain.onboarding.model.CredentialResult
 import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
-import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
+import id.bca.bcamobile.domain.onboarding.model.LivenessSubmission
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
 import id.bca.bcamobile.domain.onboarding.model.OtpVerification
@@ -33,6 +37,7 @@ import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
+import id.bca.bcamobile.domain.onboarding.model.SavingsProductCatalog
 import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.TncDocument
 import java.io.File
@@ -52,12 +57,26 @@ class OnboardingRepositoryImpl @Inject constructor(
     private val caller: ApiCaller,
     private val store: OnboardingSessionStore,
     private val encryptor: RsaEncryptor,
+    private val attestor: LivenessAttestor,
     private val json: Json,
 ) : OnboardingRepository {
 
     override fun savedSessionId(): String? = store.sessionId
 
     override fun clearLocalSession() = store.clear()
+
+    /**
+     * Katalog tanpa produk yang layak dipilih jadi [ApiFailure.Unknown], bukan
+     * `Success` berisi daftar kosong: layar punya satu jalur pemulihan untuk keduanya —
+     * daftar bawaan `strings.xml` — dan membedakannya hanya menambah cabang yang
+     * perilakunya sama.
+     */
+    override suspend fun savingsProducts(): DataResult<SavingsProductCatalog> =
+        onboardingCall { api.savingsProducts() }.flatMapSuccess { response ->
+            response.toDomain()
+                ?.let { DataResult.Success(it) }
+                ?: DataResult.Failure(ApiFailure.Unknown)
+        }
 
     /**
      * Dokumen cacat (tanpa versi atau tanpa pasal) jadi [ApiFailure.Unknown], bukan
@@ -131,6 +150,7 @@ class OnboardingRepositoryImpl @Inject constructor(
         flashUsed: Boolean,
         autoCaptured: Boolean,
         resolution: String,
+        clientOcrText: String,
     ): DataResult<KtpOcrResult> = withSession { sessionId ->
         onboardingCall {
             api.processOcr(
@@ -139,6 +159,7 @@ class OnboardingRepositoryImpl @Inject constructor(
                 flashUsed = flashUsed.toString().asTextPart(),
                 autoCaptured = autoCaptured.toString().asTextPart(),
                 resolution = resolution.asTextPart(),
+                clientOcrText = clientOcrText.asTextPart(),
             )
         }.mapSuccess { it.toDomain() }
     }
@@ -184,18 +205,58 @@ class OnboardingRepositoryImpl @Inject constructor(
         }.mapSuccess { it.toDomain() }
     }
 
-    override suspend fun uploadBiometric(
-        facePhoto: File,
-        livenessFrames: List<File>,
-        meta: LivenessMeta,
+    override suspend fun requestLivenessChallenge(): DataResult<LivenessChallenge> =
+        withSession { sessionId ->
+            val publicKey = attestor.publicKey()
+                ?: return@withSession DataResult.Failure(
+                    ApiFailure.Business(CODE_DEVICE_KEY_MISSING, ""),
+                )
+
+            // allowRetry = false: setiap percobaan menerbitkan nonce baru di server,
+            // dan percobaan otomatis membakar kuota percobaan nasabah tanpa dia tahu.
+            onboardingCall(allowRetry = false) {
+                api.requestLivenessChallenge(
+                    LivenessChallengeRequest(
+                        sessionId = sessionId,
+                        deviceKeyId = publicKey.keyId,
+                        devicePublicKey = publicKey.base64,
+                        signatureAlgorithm = attestor.signatureAlgorithm,
+                    ),
+                )
+            }.mapSuccess { it.toDomain() }
+        }
+
+    override suspend fun submitLiveness(
+        submission: LivenessSubmission,
     ): DataResult<BiometricResult> = withSession { sessionId ->
-        val metaJson = json.encodeToString(meta.toDto())
-        onboardingCall {
+        val stepMetaJson = json.encodeToString(submission.stepFrames.map { it.toMetaDto() })
+        val riskJson = json.encodeToString(submission.riskSignals.toDto())
+
+        // allowRetry = false: nonce dikonsumsi server secara atomik pada percobaan
+        // pertama, jadi percobaan kedua dengan payload yang sama pasti ditolak sebagai
+        // pemakaian ulang — dan itu tercatat sebagai kegagalan di jejak audit.
+        onboardingCall(allowRetry = false) {
             api.processBiometric(
                 sessionId = sessionId.asTextPart(),
-                facePhoto = facePhoto.asImagePart(PART_FACE_PHOTO),
-                livenessFrames = livenessFrames.map { it.asImagePart(PART_LIVENESS_FRAMES) },
-                livenessMeta = metaJson.asTextPart(),
+                challengeId = submission.challengeId.asTextPart(),
+                nonce = submission.nonce.asTextPart(),
+                deviceKeyId = submission.deviceKeyId.asTextPart(),
+                devicePublicKey = submission.devicePublicKey.asTextPart(),
+                signature = submission.signature.asTextPart(),
+                signatureAlgorithm = submission.signatureAlgorithm.asTextPart(),
+                stepMeta = stepMetaJson.asTextPart(),
+                riskSignals = riskJson.asTextPart(),
+                integrityToken = submission.integrityToken?.asTextPart(),
+                neutralFrame = submission.neutralFrame.asImagePart(
+                    partName = PART_NEUTRAL_FRAME,
+                    fileName = "neutral.jpg",
+                ),
+                stepFrames = submission.stepFrames.map { frame ->
+                    frame.jpeg.asImagePart(
+                        partName = PART_LIVENESS_FRAMES,
+                        fileName = "step_${frame.index}.jpg",
+                    )
+                },
             )
         }.mapSuccess { it.toDomain() }
     }
@@ -282,6 +343,19 @@ class OnboardingRepositoryImpl @Inject constructor(
         )
 
     /**
+     * Frame liveness diunggah dari memori, tanpa pernah menjadi berkas.
+     *
+     * Sengaja tidak ada varian `File` untuk frame wajah: begitu ada, jalur yang menulis
+     * frame ke `cacheDir` akan kembali dengan sendirinya.
+     */
+    private fun ByteArray.asImagePart(partName: String, fileName: String): MultipartBody.Part =
+        MultipartBody.Part.createFormData(
+            partName,
+            fileName,
+            toRequestBody(IMAGE_JPEG.toMediaType()),
+        )
+
+    /**
      * 404 tanpa error code pada endpoint onboarding berarti sesinya yang hilang,
      * bukan sumber daya lain. Domain lain memakai default [ApiFailure.Unknown].
      */
@@ -298,10 +372,17 @@ class OnboardingRepositoryImpl @Inject constructor(
         const val TEXT_PLAIN = "text/plain"
         const val IMAGE_JPEG = "image/jpeg"
         const val PART_KTP_PHOTO = "ktp_photo"
-        const val PART_FACE_PHOTO = "face_photo"
+        const val PART_NEUTRAL_FRAME = "neutral_frame"
         const val PART_LIVENESS_FRAMES = "liveness_frames"
         const val CODE_OTP_INVALID = "OTP_INVALID"
         const val CODE_ENCRYPTION_FAILED = "CRED_ENCRYPTION_FAILED"
+
+        /**
+         * Keystore perangkat menolak membuat kunci pengikat. Dilaporkan sebagai
+         * kegagalan, bukan dilewati: tanpa kunci, server tidak bisa memastikan
+         * payload datang dari perangkat ini.
+         */
+        const val CODE_DEVICE_KEY_MISSING = "CLIENT_DEVICE_KEY_MISSING"
     }
 }
 

@@ -8,7 +8,8 @@ import id.bca.bcamobile.domain.onboarding.model.CardCatalog
 import id.bca.bcamobile.domain.onboarding.model.CreatedAccount
 import id.bca.bcamobile.domain.onboarding.model.CredentialResult
 import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
-import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
+import id.bca.bcamobile.core.liveness.LivenessChallenge
+import id.bca.bcamobile.domain.onboarding.model.LivenessSubmission
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OtpChallenge
 import id.bca.bcamobile.domain.onboarding.model.OtpVerification
@@ -17,6 +18,7 @@ import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
+import id.bca.bcamobile.domain.onboarding.model.SavingsProductCatalog
 import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.TncDocument
 import java.io.File
@@ -62,6 +64,13 @@ class FakeOnboardingRepository : OnboardingRepository {
     var resendOtpCount = 0
     var getSessionCount = 0
     var clearLocalSessionCount = 0
+    var savingsProductsCount = 0
+
+    /**
+     * Gagal secara bawaan: itu keadaan yang paling sering dilalui test lain, dan katalog
+     * yang gagal tidak boleh menghentikan apa pun.
+     */
+    var savingsProductsResult: DataResult<SavingsProductCatalog> = failure()
 
     override fun savedSessionId(): String? = savedSessionId
 
@@ -72,6 +81,11 @@ class FakeOnboardingRepository : OnboardingRepository {
 
     override suspend fun cardCatalog(productType: ProductType): DataResult<CardCatalog> =
         cardCatalogResult
+
+    override suspend fun savingsProducts(): DataResult<SavingsProductCatalog> {
+        savingsProductsCount += 1
+        return savingsProductsResult
+    }
 
     override suspend fun tnc(): DataResult<TncDocument> {
         tncCount += 1
@@ -101,12 +115,19 @@ class FakeOnboardingRepository : OnboardingRepository {
 
     override suspend fun cancelSession(): DataResult<Unit> = DataResult.Success(Unit)
 
+    /** Teks OCR yang diterima panggilan terakhir, untuk memastikan ia benar dikirim. */
+    var lastClientOcrText: String? = null
+
     override suspend fun uploadKtpPhoto(
         photo: File,
         flashUsed: Boolean,
         autoCaptured: Boolean,
         resolution: String,
-    ): DataResult<KtpOcrResult> = ocrResult
+        clientOcrText: String,
+    ): DataResult<KtpOcrResult> {
+        lastClientOcrText = clientOcrText
+        return ocrResult
+    }
 
     override suspend fun getOcrResult(): DataResult<KtpOcrResult> = ocrResult
 
@@ -125,11 +146,23 @@ class FakeOnboardingRepository : OnboardingRepository {
         return resendOtpResult
     }
 
-    override suspend fun uploadBiometric(
-        facePhoto: File,
-        livenessFrames: List<File>,
-        meta: LivenessMeta,
-    ): DataResult<BiometricResult> = error("uploadBiometric tidak dipakai di test OTP")
+    var livenessChallengeResult: DataResult<LivenessChallenge> = failure()
+    var livenessChallengeCount = 0
+
+    override suspend fun requestLivenessChallenge(): DataResult<LivenessChallenge> {
+        livenessChallengeCount += 1
+        return livenessChallengeResult
+    }
+
+    var submitLivenessResult: DataResult<BiometricResult> = failure()
+    val submittedLiveness = mutableListOf<LivenessSubmission>()
+
+    override suspend fun submitLiveness(
+        submission: LivenessSubmission,
+    ): DataResult<BiometricResult> {
+        submittedLiveness += submission
+        return submitLivenessResult
+    }
 
     var joinQueueResult: DataResult<QueueTicket> = failure()
 

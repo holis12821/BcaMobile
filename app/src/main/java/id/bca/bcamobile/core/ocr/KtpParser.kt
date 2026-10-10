@@ -67,6 +67,10 @@ object KtpParser {
             data = data,
             accuracyPercent = accuracy,
             missingFields = missing,
+            // Teks mentahnya dibawa, bukan dibuang: server memerlukannya untuk
+            // membaca kartu yang sama, dan parser di sini bisa saja melewatkan
+            // field yang parser server berhasil baca.
+            rawText = rawText,
         )
     }
 

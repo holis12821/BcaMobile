@@ -3,6 +3,8 @@ package id.bca.bcamobile.ui.screen.buka_rekening.kamera_foto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.viewModelScope
 import id.bca.bcamobile.core.camera.CameraCapture
+import id.bca.bcamobile.R
+import id.bca.bcamobile.core.network.ErrorText
 import id.bca.bcamobile.core.ocr.KtpTextRecognizer
 import id.bca.bcamobile.domain.onboarding.OnboardingRepository
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSessionStore
@@ -22,6 +24,14 @@ class BukaRekeningKameraFotoViewModel @Inject constructor(
     fun onEvent(event: KameraFotoEvent) {
         when (event) {
             is KameraFotoEvent.KtpPhotoCaptured -> processCapturedPhoto(event)
+
+            KameraFotoEvent.GalleryImportFailed ->
+                store.update {
+                    it.copy(
+                        isProcessingPhoto = false,
+                        error = ErrorText.Res(R.string.buka_rekening_error_galeri_gagal),
+                    )
+                }
 
             KameraFotoEvent.FlashModeToggled ->
                 store.update { it.copy(flashMode = it.flashMode.next()) }

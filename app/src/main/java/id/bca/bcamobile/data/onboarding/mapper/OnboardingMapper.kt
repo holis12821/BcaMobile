@@ -8,13 +8,18 @@ import id.bca.bcamobile.data.onboarding.remote.dto.CardDto
 import id.bca.bcamobile.data.onboarding.remote.dto.CreateSessionResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.GetSessionResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.JoinQueueResponse
-import id.bca.bcamobile.data.onboarding.remote.dto.LivenessMetaDto
+import id.bca.bcamobile.data.onboarding.remote.dto.DeviceRiskSignalsDto
+import id.bca.bcamobile.data.onboarding.remote.dto.LivenessChallengeResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.LivenessStepMetaDto
 import id.bca.bcamobile.data.onboarding.remote.dto.OcrResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.PersonalDataDto
 import id.bca.bcamobile.data.onboarding.remote.dto.ProductDto
+import id.bca.bcamobile.data.onboarding.remote.dto.ProductOptionDto
+import id.bca.bcamobile.data.onboarding.remote.dto.ProductPageDto
 import id.bca.bcamobile.data.onboarding.remote.dto.PublicKeyResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.ResendOtpResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SavePersonalDataResponse
+import id.bca.bcamobile.data.onboarding.remote.dto.SavingsProductCatalogResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.SessionCardDto
 import id.bca.bcamobile.data.onboarding.remote.dto.SetCredentialsResponse
 import id.bca.bcamobile.data.onboarding.remote.dto.StepsCompletedDto
@@ -39,7 +44,10 @@ import id.bca.bcamobile.domain.onboarding.model.CredentialResult
 import id.bca.bcamobile.domain.onboarding.model.IceServer
 import id.bca.bcamobile.domain.onboarding.model.KtpData
 import id.bca.bcamobile.domain.onboarding.model.KtpOcrResult
-import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
+import id.bca.bcamobile.core.liveness.LivenessAction
+import id.bca.bcamobile.core.liveness.LivenessChallenge
+import id.bca.bcamobile.core.liveness.LivenessStepFrame
+import id.bca.bcamobile.core.security.DeviceRiskSignals
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
 import id.bca.bcamobile.domain.onboarding.model.OperatingHours
@@ -50,15 +58,26 @@ import id.bca.bcamobile.domain.onboarding.model.PasporCardType
 import id.bca.bcamobile.domain.onboarding.model.PersonalData
 import id.bca.bcamobile.domain.onboarding.model.PersonalDataResult
 import id.bca.bcamobile.domain.onboarding.model.Product
+import id.bca.bcamobile.domain.onboarding.model.ProductAvailability
+import id.bca.bcamobile.domain.onboarding.model.ProductAvailabilityStatus
+import id.bca.bcamobile.domain.onboarding.model.ProductBadge
+import id.bca.bcamobile.domain.onboarding.model.ProductConsent
+import id.bca.bcamobile.domain.onboarding.model.ProductNotice
+import id.bca.bcamobile.domain.onboarding.model.ProductPage
+import id.bca.bcamobile.domain.onboarding.model.ProductStyle
 import id.bca.bcamobile.domain.onboarding.model.ProductType
+import id.bca.bcamobile.domain.onboarding.model.ProductUnavailableReason
 import id.bca.bcamobile.domain.onboarding.model.PublicKeyMaterial
 import id.bca.bcamobile.domain.onboarding.model.QueueTicket
+import id.bca.bcamobile.domain.onboarding.model.SavingsProduct
+import id.bca.bcamobile.domain.onboarding.model.SavingsProductCatalog
 import id.bca.bcamobile.domain.onboarding.model.SelectedCard
 import id.bca.bcamobile.domain.onboarding.model.StepsCompleted
 import id.bca.bcamobile.domain.onboarding.model.TncConsent
 import id.bca.bcamobile.domain.onboarding.model.TncDocument
 import id.bca.bcamobile.domain.onboarding.model.TncNotice
 import id.bca.bcamobile.domain.onboarding.model.TncSection
+import java.time.Instant
 
 // -- DTO -> domain -------------------------------------------------------------
 
@@ -184,6 +203,7 @@ fun OcrResponse.toDomain(): KtpOcrResult = KtpOcrResult(
         statusPerkawinan = extracted.statusPerkawinan,
     ),
     dukcapilMatch = dukcapilMatch,
+    dukcapilChecked = dukcapilChecked,
     sharpness = photoQuality?.sharpness,
     glareDetected = photoQuality?.glareDetected ?: false,
     allCornersVisible = photoQuality?.allCornersVisible ?: true,
@@ -279,10 +299,41 @@ fun AlamatKtp.toDto(): AlamatKtpDto = AlamatKtpDto(
     provinsi = provinsi,
 )
 
-fun LivenessMeta.toDto(): LivenessMetaDto = LivenessMetaDto(
-    challengeType = challengeType,
-    completedActions = completedActions,
-    precisionScore = precisionScore,
+/**
+ * Mengubah tantangan dari server jadi model domain.
+ *
+ * Aksi yang tidak dikenal **dibuang, bukan ditebak**: nama aksi baru dari server yang
+ * tidak bisa dideteksi client lebih baik hilang dari daftar daripada dipetakan ke
+ * gerakan terdekat — nasabah akan diminta melakukan hal yang berbeda dari yang
+ * diverifikasi server. Daftar yang jadi kosong membuat tantangan ditolak di pemanggil.
+ *
+ * `expires_at` yang tidak terbaca memberi [LivenessChallenge.expiresAtMillis] = 0,
+ * yang membuat mesin status langsung meminta tantangan baru. Itu disengaja: lebih baik
+ * meminta ulang daripada mengumpulkan frame untuk nonce yang umurnya tidak diketahui.
+ */
+fun LivenessChallengeResponse.toDomain(): LivenessChallenge = LivenessChallenge(
+    challengeId = challengeId,
+    nonce = nonce,
+    actions = actions.mapNotNull { name ->
+        LivenessAction.entries.firstOrNull { it.name == name }
+    },
+    expiresAtMillis = expiresAt.toEpochMillisOrZero(),
+)
+
+private fun String.toEpochMillisOrZero(): Long = runCatching {
+    Instant.parse(this).toEpochMilli()
+}.getOrDefault(0L)
+
+fun LivenessStepFrame.toMetaDto(): LivenessStepMetaDto = LivenessStepMetaDto(
+    index = index,
+    action = action.name,
+    capturedAtMillis = capturedAtMillis,
+)
+
+fun DeviceRiskSignals.toDto(): DeviceRiskSignalsDto = DeviceRiskSignalsDto(
+    emulatorLikely = isEmulatorLikely,
+    rootArtifacts = hasRootArtifacts,
+    debuggerAttached = isDebuggerAttached,
 )
 
 // -- Syarat & Ketentuan --------------------------------------------------------
@@ -323,4 +374,66 @@ private fun TncSectionDto.toDomain(): TncSection = TncSection(
     iconKey = iconKey,
     title = title,
     body = body,
+)
+
+// -- Katalog jenis rekening ----------------------------------------------------
+
+/**
+ * Mengubah respons katalog produk jadi model domain, atau `null` kalau tidak ada satu pun
+ * produk yang layak dipilih.
+ *
+ * `null` di sini **tidak** berarti layar gagal: pemanggilnya menjatuhkannya ke daftar
+ * bawaan `strings.xml`. Beda dari S&K, yang `version`-nya jadi bukti persetujuan dan
+ * karena itu wajib gagal keras.
+ *
+ * Produk ber-`product_type` di luar enum dibuang, bukan dipaksa masuk: nilai yang tidak
+ * dikenal tidak bisa dikirim sebagai `product_type` saat sesi dibuat, jadi menampilkannya
+ * hanya menawarkan pilihan yang pasti ditolak server.
+ *
+ * `page` boleh hilang — layar memakai teks bawaannya dan itu jauh lebih ringan daripada
+ * menolak seluruh katalog.
+ */
+fun SavingsProductCatalogResponse.toDomain(): SavingsProductCatalog? {
+    val mapped = products.mapNotNull { it.toDomain() }
+    if (mapped.isEmpty()) return null
+    return SavingsProductCatalog(
+        catalogVersion = catalogVersion,
+        page = page?.toDomain(),
+        products = mapped,
+    )
+}
+
+private fun ProductOptionDto.toDomain(): SavingsProduct? {
+    val type = ProductType.fromWire(productType) ?: return null
+    return SavingsProduct(
+        type = type,
+        name = name,
+        description = description,
+        minInitialDeposit = minInitialDeposit,
+        currency = currency,
+        iconKey = iconKey,
+        style = ProductStyle.fromWire(style),
+        features = features,
+        isPopular = isPopular,
+        badge = ProductBadge.fromWire(badgeKey),
+        isDefault = isDefault,
+        displayOrder = displayOrder,
+        availability = ProductAvailability(
+            status = ProductAvailabilityStatus.fromWire(availabilityStatus),
+            reason = ProductUnavailableReason.fromWire(availabilityReasonKey),
+        ),
+    )
+}
+
+private fun ProductPageDto.toDomain(): ProductPage = ProductPage(
+    heading = heading,
+    subtitle = subtitle,
+    depositLabel = depositLabel,
+    ctaLabel = ctaLabel,
+    notice = notice?.let {
+        ProductNotice(iconKey = it.iconKey, title = it.title, body = it.body)
+    },
+    consent = consent?.let {
+        ProductConsent(prefix = it.prefix, link = it.link, suffix = it.suffix)
+    },
 )

@@ -5,7 +5,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import id.bca.bcamobile.core.network.ApiFailure
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.onboarding.OnboardingRepository
-import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSessionStore
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSideEffect
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningStepViewModel
@@ -60,8 +59,8 @@ class BukaRekeningSyaratKetentuanViewModel @Inject constructor(
 
     private fun createSession() {
         val current = store.current
-        val index = current.selectedProductIndex ?: return
-        val productType = ProductType.fromIndex(index) ?: return
+        // Kode produk, bukan indeks baris: urutan tampil milik server.
+        val productType = current.selectedProductType ?: return
         // Versi yang tercatat sebagai disetujui harus versi dokumen yang benar-benar
         // terpampang saat tombol ditekan — bukan konstanta, bukan nilai yang di-cache dari
         // pembukaan layar sebelumnya. Itu yang diperiksa server, dan selisihnya dijawab 409.

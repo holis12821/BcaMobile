@@ -4,6 +4,7 @@ import id.bca.bcamobile.core.network.ApiFailure
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.onboarding.model.OnboardingSession
 import id.bca.bcamobile.domain.onboarding.model.OnboardingStep
+import id.bca.bcamobile.domain.onboarding.model.ProductType
 import id.bca.bcamobile.domain.onboarding.model.TncConsent
 import id.bca.bcamobile.domain.onboarding.model.TncDocument
 import id.bca.bcamobile.domain.onboarding.model.TncNotice
@@ -198,7 +199,7 @@ class BukaRekeningSyaratKetentuanViewModelTest {
 
     /** Produk sudah dipilih dua layar sebelumnya; tanpa itu createSession memang berhenti. */
     private fun store() = BukaRekeningSessionStore().apply {
-        update { it.copy(selectedProductIndex = 0) }
+        update { it.copy(selectedProductType = ProductType.TAHAPAN_BCA) }
     }
 
     private fun TestScope.collectEffects(

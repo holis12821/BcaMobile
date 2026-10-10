@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import id.bca.bcamobile.R
 import id.bca.bcamobile.ui.components.AppTopBar
+import id.bca.bcamobile.ui.components.LocalPhotoPreview
 import id.bca.bcamobile.ui.components.bottomBarSafePadding
 import id.bca.bcamobile.ui.theme.AppAlpha
 import id.bca.bcamobile.ui.theme.AppColor
@@ -45,6 +46,7 @@ import id.bca.bcamobile.ui.theme.BcaMobileTheme
 import id.bca.bcamobile.ui.theme.Spacing
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningLangkah
 import id.bca.bcamobile.ui.screen.buka_rekening.common.StepProgressIndicator
+import java.io.File
 
 // -- Data Model ---------------------------------------------------------------
 
@@ -105,6 +107,7 @@ fun BukaRekeningHasilFotoScreen(
 
             // Photo Preview Card
             PhotoPreviewCard(
+                ktpPhoto = state.ktpPhoto,
                 isFotoValid = state.isFotoValid,
                 resolusiInfo = state.resolusiInfo,
                 ocrAccuracy = state.ocrAccuracy,
@@ -126,6 +129,7 @@ fun BukaRekeningHasilFotoScreen(
 
 @Composable
 private fun PhotoPreviewCard(
+    ktpPhoto: File?,
     isFotoValid: Boolean,
     resolusiInfo: String,
     ocrAccuracy: String,
@@ -147,10 +151,27 @@ private fun PhotoPreviewCard(
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .clip(AppShape.None),
             ) {
-                // KTP Illustration placeholder
-                KtpPhotoPlaceholder(
-                    modifier = Modifier.fillMaxSize(),
-                )
+                // Foto yang baru diambil, kalau masih ada salinan lokalnya.
+                //
+                // Sebelumnya slot ini SELALU berisi ilustrasi placeholder, jadi
+                // nasabah tidak pernah melihat foto yang baru saja diambil dan
+                // tidak punya cara memeriksa apakah data yang terbaca di bawah
+                // memang berasal dari kartu itu. Placeholder tetap dipakai saat
+                // melanjutkan draf, karena di situ fotonya memang sudah di server
+                // dan salinan lokalnya sudah dihapus.
+                if (ktpPhoto != null) {
+                    LocalPhotoPreview(
+                        file = ktpPhoto,
+                        contentDescription = stringResource(
+                            R.string.buka_rekening_hasil_foto_pratinjau_desc,
+                        ),
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    KtpPhotoPlaceholder(
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
 
                 // Quality badge (top-left)
                 if (isFotoValid) {

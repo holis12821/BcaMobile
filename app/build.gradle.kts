@@ -54,6 +54,12 @@ android {
             buildConfigField("String", "ONBOARDING_BASE_URL", "\"http://10.0.2.2:8080/v1/onboarding/\"")
             buildConfigField("String", "INTERNAL_BASE_URL", "\"http://10.0.2.2:8080/internal/v1/\"")
             buildConfigField("boolean", "CERTIFICATE_PINNING_ENABLED", "false")
+            // TODO(infra): nomor project Google Cloud yang terhubung ke Play Console.
+            //  0 berarti token integritas tidak diminta — lihat daftar kunci konfigurasi
+            //  di laporan Phase 2. Di lingkungan non-produksi verdict-nya log-only
+            //  (keputusan Q3), jadi nilai kosong tidak memblokir pengujian.
+            buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT", "0L")
+            buildConfigField("boolean", "PLAY_INTEGRITY_LOG_ONLY", "true")
         }
 
         create("ngrok") {
@@ -64,6 +70,12 @@ android {
             buildConfigField("String", "ONBOARDING_BASE_URL", "\"https://fibromatous-jerald-postsurgical.ngrok-free.dev/v1/onboarding/\"")
             buildConfigField("String", "INTERNAL_BASE_URL", "\"https://fibromatous-jerald-postsurgical.ngrok-free.dev/internal/v1/\"")
             buildConfigField("boolean", "CERTIFICATE_PINNING_ENABLED", "false")
+            // TODO(infra): nomor project Google Cloud yang terhubung ke Play Console.
+            //  0 berarti token integritas tidak diminta — lihat daftar kunci konfigurasi
+            //  di laporan Phase 2. Di lingkungan non-produksi verdict-nya log-only
+            //  (keputusan Q3), jadi nilai kosong tidak memblokir pengujian.
+            buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT", "0L")
+            buildConfigField("boolean", "PLAY_INTEGRITY_LOG_ONLY", "true")
         }
 
         create("staging") {
@@ -74,6 +86,12 @@ android {
             buildConfigField("String", "ONBOARDING_BASE_URL", "\"https://api-staging.bcamobile.id/v1/onboarding/\"")
             buildConfigField("String", "INTERNAL_BASE_URL", "\"https://api-staging.bcamobile.id/internal/v1/\"")
             buildConfigField("boolean", "CERTIFICATE_PINNING_ENABLED", "false")
+            // TODO(infra): nomor project Google Cloud yang terhubung ke Play Console.
+            //  0 berarti token integritas tidak diminta — lihat daftar kunci konfigurasi
+            //  di laporan Phase 2. Di lingkungan non-produksi verdict-nya log-only
+            //  (keputusan Q3), jadi nilai kosong tidak memblokir pengujian.
+            buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT", "0L")
+            buildConfigField("boolean", "PLAY_INTEGRITY_LOG_ONLY", "true")
         }
 
         create("production") {
@@ -85,6 +103,11 @@ android {
             // Daftar pin masih kosong di NetworkModule.certificatePinner() — TODO infra
             // tersendiri yang sudah dicatat di CLAUDE.md.
             buildConfigField("boolean", "CERTIFICATE_PINNING_ENABLED", "true")
+            // TODO(infra): nomor project Google Cloud yang terhubung ke Play Console.
+            //  Wajib terisi sebelum rilis: dengan 0, token integritas tidak pernah
+            //  diminta dan server menolak setiap percobaan liveness (fail-closed).
+            buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT", "0L")
+            buildConfigField("boolean", "PLAY_INTEGRITY_LOG_ONLY", "false")
         }
     }
 
@@ -143,6 +166,7 @@ dependencies {
     implementation(libs.mlkit.text.recognition)
     implementation(libs.mlkit.face.detection)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.play.integrity)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     testImplementation(libs.junit)

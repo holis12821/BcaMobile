@@ -1,20 +1,29 @@
 package id.bca.bcamobile.ui.screen.buka_rekening.verifikasi_biometrik
 
-import id.bca.bcamobile.core.liveness.LivenessProgress
-import id.bca.bcamobile.domain.onboarding.model.LivenessMeta
-import java.io.File
+import id.bca.bcamobile.core.liveness.LivenessFrame
+import id.bca.bcamobile.core.liveness.LivenessState
 
-/** Event layar Verifikasi Biometrik Wajah. */
+/**
+ * Event layar Verifikasi Biometrik Wajah.
+ *
+ * `LivenessStarted` sudah tidak ada: tidak ada lagi tombol yang memulai perekaman.
+ * Tantangan dimulai sendiri begitu gerbang kualitas wajah bertahan — tombol Mulai
+ * hanya menunda pekerjaan yang sudah bisa diputuskan dari frame kamera.
+ */
 sealed interface VerifikasiBiometrikEvent {
 
-    /** Tombol Mulai: analyzer liveness baru dipasang setelah ini. */
-    data object LivenessStarted : VerifikasiBiometrikEvent
+    /** Kamera sudah terikat dan frame mulai mengalir. */
+    data object CameraReady : VerifikasiBiometrikEvent
 
-    data class LivenessProgressed(val progress: LivenessProgress) : VerifikasiBiometrikEvent
+    /** Mesin status melaporkan keadaan baru setelah menilai satu frame. */
+    data class LivenessStateChanged(val state: LivenessState) : VerifikasiBiometrikEvent
 
-    data class BiometricCaptured(
-        val facePhoto: File,
-        val livenessFrames: List<File>,
-        val meta: LivenessMeta,
-    ) : VerifikasiBiometrikEvent
+    /** Mesin status meminta tantangan baru; hanya server yang boleh menerbitkannya. */
+    data object ChallengeNeeded : VerifikasiBiometrikEvent
+
+    /** Frame bukti lengkap. Belum berarti lulus — server yang menilai. */
+    data class FramesReady(val frames: List<LivenessFrame>) : VerifikasiBiometrikEvent
+
+    /** Nasabah menekan Coba Lagi setelah satu percobaan gagal. */
+    data object RetryRequested : VerifikasiBiometrikEvent
 }

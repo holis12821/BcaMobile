@@ -103,7 +103,7 @@ aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak bole
 | Session, OCR, data pribadi, biometrik, kredensial, submit | Tersambung ke `OnboardingApi` |
 | Verifikasi OTP | Tersambung `verify-otp` + `resend-otp`; hitung mundur `otp_expires_at`, `OTP_BLOCKED` vs kuota kirim ulang dibedakan |
 | Antrean video call | `POST video-call/queue` + `ice_servers`/`signaling_expires_in` dimodelkan; **WebRTC belum jadi dependency**, layar video call masih UI |
-| Pilih kartu Paspor | **Tersambung** `products/{type}/cards` + `card_type` di `sessions` dan `PUT sessions/{id}/card`; step `CARD_SELECTION` |
+| Pilih jenis & kartu | **Tersambung** keduanya. Jenis rekening: `onboarding/products` — copy halaman ikut dari server, daftar `strings.xml` jadi fallback saat `ONBOARDING_CATALOG_UNAVAILABLE`/offline. Produk dikenali lewat `product_type`, **bukan indeks baris**. Kartu: `products/{type}/cards` + `card_type` di `sessions` dan `PUT sessions/{id}/card`; step `CARD_SELECTION` |
 | Auth, Account, Mutasi, Transfer, e-Wallet | **Tersambung penuh** sampai layar. Alur transaksi memakai satu ViewModel per flow, di-scope ke entri graph |
 | Riwayat | **Tersambung** `transactions/history` + filter `type` & `period` (kosakata sama dengan Mutasi); baris → struk `receipt`, tombol Simpan → `receipt/pdf` |
 | Notifikasi | **Tersambung** `notifications?type=` + `read`/`read-all`; tab menyaring di server, cursor direset per tab |
@@ -147,6 +147,7 @@ aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak bole
 | Layer data/domain, Hilt, UseCase, Repository, MVI | `android-architecture-patterns` |
 | Endpoint umum, envelope, token auth, idempotency | `bca-mobile-api` |
 | API client flow buka rekening (`/onboarding/*`) | `buka-rekening-api` |
+| Layar Pilih Jenis Rekening + katalog `onboarding/products` | `buka-rekening-pilih-jenis-rekening` |
 | CameraX, ML Kit OCR/face, permission, RSA Keystore | `buka-rekening-native-android` |
 | WebRTC, signaling, antrean video call | `buka-rekening-video-call` |
 | Performa, ANR, recomposition, memory, R8 | `performance-quality` |

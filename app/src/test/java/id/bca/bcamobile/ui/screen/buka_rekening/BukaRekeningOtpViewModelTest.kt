@@ -637,6 +637,7 @@ class BukaRekeningOtpViewModelTest {
                 statusPerkawinan = "BELUM MENIKAH",
             ),
             dukcapilMatch = true,
+            dukcapilChecked = true,
             sharpness = "HIGH",
             glareDetected = false,
             allCornersVisible = true,

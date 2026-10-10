@@ -33,6 +33,18 @@ data class OcrResponse(
     @SerialName("accuracy_percent") val accuracyPercent: Double = 0.0,
     val extracted: ExtractedKtpDto = ExtractedKtpDto(),
     @SerialName("dukcapil_match") val dukcapilMatch: Boolean = false,
+    /**
+     * Apakah registri kependudukan benar-benar dihubungi.
+     *
+     * `dukcapil_match` hanya berarti kalau ini true. Server dulu mengirim
+     * `dukcapil_match: true` untuk sesi yang tidak punya registri sama sekali,
+     * dan layar ini menggantungkan tombol Lanjutkan pada nilai itu — jadi
+     * kebohongan yang nyaman itu jadi penopang alur.
+     *
+     * Default false: client lama yang tidak mengenal field ini tetap jalan, dan
+     * yang baru tidak pernah memasang lencana "terverifikasi" tanpa bukti.
+     */
+    @SerialName("dukcapil_checked") val dukcapilChecked: Boolean = false,
     @SerialName("photo_quality") val photoQuality: PhotoQualityDto? = null,
     @SerialName("current_step") val currentStep: String? = null,
 )

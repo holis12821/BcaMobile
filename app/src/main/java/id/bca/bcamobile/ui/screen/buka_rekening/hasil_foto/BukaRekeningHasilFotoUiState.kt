@@ -9,8 +9,21 @@ import id.bca.bcamobile.ui.screen.buka_rekening.common.formatAccuracy
 import id.bca.bcamobile.ui.screen.buka_rekening.common.groupNik
 import id.bca.bcamobile.ui.screen.buka_rekening.common.joinNonBlank
 import id.bca.bcamobile.ui.screen.buka_rekening.common.toKtpDate
+import java.io.File
 
 data class BukaRekeningHasilFotoUiState(
+    /**
+     * Foto e-KTP yang baru diambil, untuk ditampilkan di layar ini.
+     *
+     * Layar ini sebelumnya menampilkan field hasil ekstraksi **tanpa fotonya
+     * sama sekali** — hanya ikon dari drawable. Dari sisi nasabah itu terbaca
+     * sebagai "fotonya tidak terlampir", dan tidak ada cara memeriksa apakah
+     * yang terbaca memang berasal dari kartu yang difoto.
+     *
+     * `null` saat melanjutkan draf: fotonya sudah di server dan salinan lokalnya
+     * sudah dihapus, jadi pratinjaunya memang tidak ada.
+     */
+    val ktpPhoto: File? = null,
     val isFotoValid: Boolean = true,
     val resolusiInfo: String = "",
     val ocrAccuracy: String = "",
@@ -24,7 +37,8 @@ data class BukaRekeningHasilFotoUiState(
 
 @Composable
 fun BukaRekeningFlowState.toHasilFotoUiState(): BukaRekeningHasilFotoUiState {
-    val data = ktpData ?: return BukaRekeningHasilFotoUiState(isFotoValid = false)
+    val data = ktpData
+        ?: return BukaRekeningHasilFotoUiState(ktpPhoto = ktpPhoto, isFotoValid = false)
     val cornersVisible = ocr?.allCornersVisible ?: true
     val sudut = stringResource(
         if (cornersVisible) {
@@ -34,7 +48,13 @@ fun BukaRekeningFlowState.toHasilFotoUiState(): BukaRekeningHasilFotoUiState {
         },
     )
     return BukaRekeningHasilFotoUiState(
-        isFotoValid = !needsRetake && (ocr == null || ocr.dukcapilMatch) &&
+        ktpPhoto = ktpPhoto,
+        // Registri yang tidak dihubungi bukan alasan memblokir: server sudah
+        // menolak kartu yang tidak lolos validasinya sendiri dengan OCR_NOT_KTP,
+        // jadi hasil yang sampai ke sini sudah lulus. Yang memblokir hanyalah
+        // pencocokan yang dijalankan DAN gagal.
+        isFotoValid = !needsRetake &&
+            !(ocr?.dukcapilChecked == true && !ocr.dukcapilMatch) &&
             ocr?.glareDetected != true && cornersVisible,
         resolusiInfo = if (captureResolution.isBlank()) {
             ""
