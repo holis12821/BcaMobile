@@ -1,11 +1,9 @@
 # CLAUDE.md
 
-Konteks project untuk AI coding agent. File ini **selalu** masuk konteks di setiap sesi.
-Isinya: fakta yang berlaku universal + peta alur, supaya agent tahu harus ke mana
-**tanpa membaca seluruh repo** lebih dulu. Detail per-domain ada di `.claude/skills/`.
-
-Batas file ini **200 baris**. Kalau penjelasan butuh lebih panjang, tempatnya di skill —
-bukan di sini. Panduan yang terlalu panjang cenderung terabaikan.
+Konteks project untuk AI coding agent; **selalu** masuk konteks tiap sesi. Isinya fakta
+universal + peta alur, supaya agent tahu harus ke mana **tanpa membaca seluruh repo**.
+Detail per-domain di `.claude/skills/`. **Batas 200 baris** — penjelasan panjang tempatnya
+di skill, bukan di sini. Panduan yang terlalu panjang cenderung terabaikan.
 
 ## Project
 
@@ -17,11 +15,11 @@ bukan di sini. Panduan yang terlalu panjang cenderung terabaikan.
 - **4 product flavor** dimensi `environment`: `local` (emulator, default), `ngrok`
   (tester), `staging`, `production`. Varian = flavor × buildType, jadi 8.
 - Jaringan: Retrofit + OkHttp + kotlinx-serialization; push: Firebase Messaging (BoM)
+- Native: ML Kit (text-recognition, face-detection, barcode-scanning), `stream-webrtc-android`,
+  `play-integrity` → `buildConfigField PLAY_INTEGRITY_CLOUD_PROJECT`/`_LOG_ONLY` per flavor
 - Theme composable: `BcaMobileTheme` — pertahankan namanya, jangan bikin theme kedua
 
-### Jebakan tema yang harus diketahui
-
-`BcaMobileTheme` menerima `darkTheme`/`dynamicColor` lalu **mengabaikan keduanya** —
+**Jebakan tema.** `BcaMobileTheme` menerima `darkTheme`/`dynamicColor` lalu **mengabaikan keduanya** —
 `Theme.kt:52` mengunci ke `LightColorScheme`, jadi `@Preview(darkTheme = true)` tetap terang.
 Bukan bug: skema gelap belum didefinisikan desain, **jangan dibuat dengan nilai tebakan**.
 
@@ -29,13 +27,13 @@ Bukan bug: skema gelap belum didefinisikan desain, **jangan dibuat dengan nilai 
 
 ```text
 id.bca.bcamobile
-├── core/        camera, device, download, format, liveness, network (ApiEnvelope, ErrorText), ocr, push, qris, security
+├── core/        camera, device, download, format, liveness, network (ApiEnvelope, ErrorText), ocr, push, qris, security, videocall
 ├── data/        {remote/dto, mapper, RepositoryImpl} per domain
-├── di/          NetworkModule, RepositoryModule
+├── di/          NetworkModule, RepositoryModule, VideoCallModule
 ├── domain/      common/DataResult + onboarding, auth, account, card, content, transaction,
 │                transfer, ewallet, notification, qris, config — {model, Repository}
 ├── session/     SessionRepository, SessionState, SessionViewModel, AppGate, AppLifecycleObserver
-└── ui/          components, navigation, screen (15 paket layar), theme
+└── ui/          components, navigation, screen (21 paket layar), theme
 ```
 
 Arsitektur: Clean Architecture + MVI. Screen stateless → state dari ViewModel →
@@ -43,8 +41,8 @@ repository → `ApiCaller` → Retrofit. Detail pola ada di `android-architectur
 
 ## Navigasi
 
-Tiga graph: `GraphAuth`, `GraphMain`, `GraphEWallet` (`ui/navigation/Graph.kt`).
-Route terdaftar di `Route.kt`; host di `BcaNavHost.kt`.
+Empat graph: `GraphAuth`, `GraphMain`, `GraphEWallet`, `GraphQris` (`ui/navigation/Graph.kt`).
+Route terdaftar di `Route.kt`; host di `BcaNavHost.kt`. `GraphQris` dibuka dari FAB scan.
 
 **Struktur navigasi di `compose-architecture/references/navigation.md` bersifat mengikat.**
 Menambah route atau graph berarti memperbarui file itu di commit yang sama.
@@ -93,8 +91,11 @@ aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak bole
 - Kartu: `block`/`replacement` butuh `verification_token` (`BLOCK_CARD`/`REPLACE_CARD`, 120d
   sekali pakai, jangan di-cache); `replacement` berbiaya → `X-Idempotency-Key` di `SavedStateHandle`
 - `content/*` dan `auth/pin/public-key` **tanpa Authorization** — `AuthInterceptor.PUBLIC_PATHS`
-- **`assets/pin_public.pem` belum ada** — tanpa itu `PinEncryptor.encrypt` balas null dan
-  operasi berbasis PIN gagal lebih awal. Jangan mengirim PIN apa adanya sebagai jalan pintas.
+- Kunci PIN dari `PinKeyProvider`: memory → cache disk → `auth/pin/public-key` → cache basi →
+  `assets/pin_public.pem` (**sudah ada**). `encrypt` balas null = operasi gagal; jangan kirim PIN polos
+- **`ONBOARDING_NOT_FOUND` berarti dua hal.** Di `GET ocr/{session_id}` artinya "sesi hidup, OCR
+  belum ada" → dipetakan ke `ApiFailure.OcrResultMissing` yang **non-fatal**. Menyamakannya dengan
+  `SessionNotFound` membuang sesi sah dan memaksa sesi baru — `POST sessions` hanya 3/jam per device
 
 ### Status integrasi per fitur
 
@@ -102,20 +103,19 @@ aplikasi nasabah** — `/internal/v1` butuh `X-Internal-API-Key` yang tidak bole
 |---|---|
 | Session, OCR, data pribadi, biometrik, kredensial, submit | Tersambung ke `OnboardingApi` |
 | Verifikasi OTP | Tersambung `verify-otp` + `resend-otp`; hitung mundur `otp_expires_at`, `OTP_BLOCKED` vs kuota kirim ulang dibedakan |
-| Antrean video call | `POST video-call/queue` + `ice_servers`/`signaling_expires_in` dimodelkan; **WebRTC belum jadi dependency**, layar video call masih UI |
+| Video call | **Tersambung** `POST video-call/queue` + `ice_servers`/`signaling_expires_in`; WebRTC nyata lewat `stream-webrtc-android` — `core/videocall/` (`WebRtcClient`, `OkHttpSignalingClient`, `VideoCallMedia`) dipakai `BukaRekeningVideoCallViewModel` |
 | Pilih jenis & kartu | **Tersambung** keduanya. Jenis rekening: `onboarding/products` — copy halaman ikut dari server, daftar `strings.xml` jadi fallback saat `ONBOARDING_CATALOG_UNAVAILABLE`/offline. Produk dikenali lewat `product_type`, **bukan indeks baris**. Kartu: `products/{type}/cards` + `card_type` di `sessions` dan `PUT sessions/{id}/card`; step `CARD_SELECTION` |
 | Auth, Account, Mutasi, Transfer, e-Wallet | **Tersambung penuh** sampai layar. Alur transaksi memakai satu ViewModel per flow, di-scope ke entri graph |
 | Riwayat | **Tersambung** `transactions/history` + filter `type` & `period` (kosakata sama dengan Mutasi); baris → struk `receipt`, tombol Simpan → `receipt/pdf` |
 | Notifikasi | **Tersambung** `notifications?type=` + `read`/`read-all`; tab menyaring di server, cursor direset per tab |
 | Splash | **Tersambung** `health`: `maintenance_mode`/`force_update` memblokir sebelum NavHost, `feature_flags` menyaring menu |
-| QRIS | Client `qris/decode` + `qris/pay` ada; layar pemindai belum |
+| QRIS | **Tersambung penuh** `qris/decode` → PIN → `qris/pay` di `GraphQris`; pemindai `core/qris/QrisScanner` (ML Kit barcode) |
 | Rentang Waktu | **Tersambung** — dipakai Mutasi **dan** Riwayat lewat `SavedStateHandle` entri masing-masing |
 | Kartu & Profil | **Tersambung** `account/cards` + `settings`/`block`/`replacement`, dan field `tier` di `account/profile` |
 | Pusat Bantuan & Kontak CS | **Tersambung** `content/help-center` + `content/contact-cs` (publik, tanpa Authorization) |
 
 ## Agent Rules
 
-### File Modification
 - Never modify, create, or delete files without asking for user confirmation first.
 - Before applying any code change, show the proposed changes.
 - Wait for explicit user approval before editing files.
@@ -175,10 +175,9 @@ Aturan di dalam skill **jangan disalin ke sini** — cukup rujukan.
 ./scripts/check-hardcoded-ui.sh      # cek literal visual di luar file token
 ```
 
-`check-hardcoded-ui.sh` berbasis baseline (`scripts/ui-baseline.txt`, saat ini **0
-pelanggaran**) dan hanya menolak penambahan baru. Jalankan sebelum melaporkan pekerjaan UI
-selesai. **Jangan** memakai `--update-baseline` untuk melewati kegagalan — itu hanya untuk
-mengunci perbaikan saat angkanya turun.
+`check-hardcoded-ui.sh` berbasis baseline (`scripts/ui-baseline.txt`, saat ini **0 pelanggaran**)
+dan hanya menolak penambahan baru. Jalankan sebelum melaporkan pekerjaan UI selesai. **Jangan**
+`--update-baseline` untuk melewati kegagalan — itu hanya untuk mengunci perbaikan saat angkanya turun.
 
 ## Memperbarui file ini
 

@@ -31,6 +31,21 @@ sealed interface ApiFailure {
     /** `ONBOARDING_NOT_FOUND` — session_id tersimpan sudah tidak dikenal server. */
     data object SessionNotFound : ApiFailure
 
+    /**
+     * `GET /onboarding/ocr/{session_id}` menjawab 404 padahal sesinya masih hidup:
+     * belum ada hasil OCR tersimpan untuk sesi itu.
+     *
+     * Terpisah dari [SessionNotFound] karena backend memakai **satu** kode
+     * (`ONBOARDING_NOT_FOUND`) untuk dua arti yang berbeda — lihat
+     * `ocr_service.go:GetOCRResult`, yang mengembalikannya saat baris OCR-nya nil.
+     * Menyamakan keduanya membuang `session_id` yang sah dan memulangkan nasabah ke
+     * awal flow, dan sesi penggantinya memotong kuota `POST /onboarding/sessions`
+     * yang hanya **3/jam per device**: tiga kali ambil ulang foto = terblokir sejam.
+     *
+     * Sengaja **bukan** [isFatalForSession]: pemulihannya adalah tetap di layar.
+     */
+    data object OcrResultMissing : ApiFailure
+
     /** `ONBOARDING_INVALID_STEP` — client mencoba melompati step. */
     data object InvalidStep : ApiFailure
 

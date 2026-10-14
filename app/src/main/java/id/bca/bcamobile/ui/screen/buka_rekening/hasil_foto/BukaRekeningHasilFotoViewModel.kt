@@ -3,6 +3,7 @@ package id.bca.bcamobile.ui.screen.buka_rekening.hasil_foto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import id.bca.bcamobile.R
 import id.bca.bcamobile.core.camera.CameraCapture
+import id.bca.bcamobile.core.network.ApiFailure
 import id.bca.bcamobile.core.network.ErrorText
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.onboarding.OnboardingRepository
@@ -22,12 +23,35 @@ class BukaRekeningHasilFotoViewModel @Inject constructor(
     store: BukaRekeningSessionStore,
 ) : BukaRekeningStepViewModel(repository, store) {
 
+    /**
+     * Penjaga agar probe resume hanya jalan sekali selama ViewModel hidup.
+     *
+     * Umurnya sama dengan entri navigasi layar ini, jadi masuk lagi dari kamera
+     * memberi ViewModel baru dan probe-nya boleh jalan lagi — sementara perubahan
+     * state di dalam layar yang sama tidak bisa memicunya berulang.
+     */
+    private var hasProbedStoredOcr = false
+
     fun onEvent(event: HasilFotoEvent) {
         when (event) {
             HasilFotoEvent.PhotoDiscarded -> discardPhoto()
-            HasilFotoEvent.OcrResultRequested -> loadOcrResult()
+            HasilFotoEvent.ScreenShown -> probeStoredOcrOnce()
             HasilFotoEvent.OcrConfirmed -> confirmOcr()
         }
+    }
+
+    /**
+     * Hanya untuk melanjutkan draf: tidak ada foto lokal, tapi server mungkin sudah
+     * menyimpan hasil OCR dari sesi sebelumnya. Kalau fotonya masih ada, yang berlaku
+     * adalah foto itu dan tidak ada yang perlu ditanyakan ke server.
+     */
+    private fun probeStoredOcrOnce() {
+        if (hasProbedStoredOcr) return
+        val current = store.current
+        if (current.sessionId == null || current.ocr != null || current.ktpPhoto != null) return
+
+        hasProbedStoredOcr = true
+        loadOcrResult()
     }
 
     private fun discardPhoto() {
@@ -41,7 +65,14 @@ class BukaRekeningHasilFotoViewModel @Inject constructor(
         launchWithLoading {
             when (val result = repository.getOcrResult()) {
                 is DataResult.Success -> applyOcr(result.value)
-                is DataResult.Failure -> handleFailure(result.error)
+                // "Server belum punya hasil OCR" adalah jawaban yang sah untuk
+                // pertanyaan ini, bukan kegagalan: nasabah tinggal memfoto. Tanpa
+                // cabang ini ia jatuh ke handleFailure dan — sebelum
+                // OcrResultMissing dipisahkan — memusnahkan sesi yang masih hidup.
+                is DataResult.Failure ->
+                    if (result.error != ApiFailure.OcrResultMissing) {
+                        handleFailure(result.error)
+                    }
             }
         }
     }
