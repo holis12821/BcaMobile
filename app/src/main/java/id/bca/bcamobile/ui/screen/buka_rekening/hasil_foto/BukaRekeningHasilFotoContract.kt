@@ -6,8 +6,16 @@ sealed interface HasilFotoEvent {
     /** Foto ditolak pengguna atau akurasi terlalu rendah; berkas cache ikut dibuang. */
     data object PhotoDiscarded : HasilFotoEvent
 
-    /** Dipakai saat resume: hasil OCR sudah ada di server, tinggal diambil. */
-    data object OcrResultRequested : HasilFotoEvent
+    /**
+     * Layar ditampilkan. ViewModel yang memutuskan apakah hasil OCR perlu diambil
+     * dari server, dan menjaga agar itu terjadi **sekali** per masuk layar.
+     *
+     * Dulu bernama `OcrResultRequested` dan dipicu `LaunchedEffect` yang
+     * dikunci ke `ocr`/`ktpPhoto`. Keduanya justru dikosongkan oleh "Ambil Ulang",
+     * jadi menekan tombol itu menyalakan probe resume tepat saat nasabah keluar —
+     * dan jawaban 404-nya dulu membuang seluruh sesi.
+     */
+    data object ScreenShown : HasilFotoEvent
 
     /** Tombol "Gunakan Foto". */
     data object OcrConfirmed : HasilFotoEvent

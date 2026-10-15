@@ -455,21 +455,23 @@ fun NavGraphBuilder.authGraph(
             val state by viewModel.state.collectAsState()
             BukaRekeningSideEffects(flowScope, navController)
 
-            // Saat melanjutkan draf, hasil OCR sudah ada di server — ambil dari sana.
-            LaunchedEffect(state.sessionId, state.ocr, state.ktpPhoto) {
-                // Hanya saat melanjutkan draf: tidak ada foto lokal, tapi server
-                // mungkin sudah menyimpan hasil OCR dari sesi sebelumnya.
-                if (state.sessionId != null && state.ocr == null && state.ktpPhoto == null) {
-                    viewModel.onEvent(HasilFotoEvent.OcrResultRequested)
-                }
+            // Kunci `viewModel`, bukan isi state: ViewModel-lah yang memutuskan
+            // apakah hasil OCR tersimpan perlu ditanyakan, dan menjaga agar sekali
+            // saja. Dikunci ke `ocr`/`ktpPhoto`, efek ini menyala ulang justru saat
+            // "Ambil Ulang" mengosongkan keduanya.
+            LaunchedEffect(viewModel) {
+                viewModel.onEvent(HasilFotoEvent.ScreenShown)
             }
 
             BukaRekeningHasilFotoScreen(
                 state = state.toHasilFotoUiState(),
                 onGunakanFoto = { viewModel.onEvent(HasilFotoEvent.OcrConfirmed) },
+                // Tujuannya kamera, dinyatakan eksplisit. `popBackStack()` tanpa
+                // target kebetulan benar selama KameraFoto ada tepat di bawah, tapi
+                // itu bergantung pada susunan stack alih-alih pada niatnya.
                 onAmbilUlang = {
                     viewModel.onEvent(HasilFotoEvent.PhotoDiscarded)
-                    navController.popBackStack()
+                    navController.popBackStack(BukaRekeningKameraFoto, inclusive = false)
                 },
                 onBackClick = { navController.popBackStack() },
             )
@@ -890,8 +892,12 @@ private fun BukaRekeningSideEffects(
     LaunchedEffect(viewModel) {
         viewModel.sideEffect.collect { effect ->
             when (effect) {
+                // `launchSingleTop` supaya step yang diulang tidak menumpuk entri
+                // kedua untuk layar yang sama. `refreshStep()` mengirim
+                // `AdvanceTo(current_step)` ke layar yang sering sudah ada di stack,
+                // dan tanpa ini Back harus ditekan dua kali untuk satu layar.
                 is BukaRekeningSideEffect.AdvanceTo ->
-                    navController.navigate(effect.step.toRoute())
+                    navController.navigate(effect.step.toRoute()) { launchSingleTop = true }
 
                 BukaRekeningSideEffect.RestartFlow ->
                     navController.navigate(BukaRekening) {
@@ -901,8 +907,10 @@ private fun BukaRekeningSideEffects(
                 BukaRekeningSideEffect.ExitFlow ->
                     navController.popBackStack(BukaRekening, true)
 
+                // Idem: jepretan kedua setelah "Ambil Ulang" menempati entri Hasil
+                // Foto yang sama, bukan menumpuk di atasnya.
                 BukaRekeningSideEffect.ShowCaptureResult ->
-                    navController.navigate(BukaRekeningHasilFoto)
+                    navController.navigate(BukaRekeningHasilFoto) { launchSingleTop = true }
 
                 is BukaRekeningSideEffect.ShowMessage ->
                     snackbarHostState.showSnackbar(effect.text.resolve(resources))

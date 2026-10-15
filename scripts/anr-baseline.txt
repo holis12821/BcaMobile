@@ -1,0 +1,10 @@
+# baseline pola ANR/bug — jangan diedit tangan
+logcat app/src/main/java/id/bca/bcamobile/core/liveness/LivenessDebugLog.kt 2
+not-null-assert app/src/main/java/id/bca/bcamobile/ui/screen/buka_rekening/syarat_ketentuan/BukaRekeningSyaratKetentuanScreen.kt 1
+runblocking app/src/main/java/id/bca/bcamobile/core/network/TokenAuthenticator.kt 4
+shared-prefs app/src/main/java/id/bca/bcamobile/core/security/PinKeyProvider.kt 1
+url-literal app/src/main/java/id/bca/bcamobile/MainActivity.kt 1
+url-literal app/src/main/java/id/bca/bcamobile/ui/screen/bantuan/HubungiCsScreen.kt 1
+url-literal app/src/main/java/id/bca/bcamobile/ui/screen/bantuan/KontakIntent.kt 1
+while-true app/src/main/java/id/bca/bcamobile/core/network/NetworkStatusMonitor.kt 1
+while-true app/src/main/java/id/bca/bcamobile/ui/screen/buka_rekening/video_call/BukaRekeningVideoCallViewModel.kt 1

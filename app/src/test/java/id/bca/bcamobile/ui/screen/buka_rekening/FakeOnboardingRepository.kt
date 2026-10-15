@@ -129,7 +129,20 @@ class FakeOnboardingRepository : OnboardingRepository {
         return ocrResult
     }
 
-    override suspend fun getOcrResult(): DataResult<KtpOcrResult> = ocrResult
+    /**
+     * Jawaban `GET ocr/{session_id}`, terpisah dari jawaban unggahan.
+     *
+     * Dulu keduanya memakai [ocrResult] yang sama, jadi test tidak bisa membedakan
+     * "unggahan gagal" dari "server belum punya hasil OCR" — padahal itulah dua
+     * keadaan yang perilakunya harus berbeda. `null` berarti ikut [ocrResult].
+     */
+    var storedOcrResult: DataResult<KtpOcrResult>? = null
+    var getOcrResultCount = 0
+
+    override suspend fun getOcrResult(): DataResult<KtpOcrResult> {
+        getOcrResultCount += 1
+        return storedOcrResult ?: ocrResult
+    }
 
     override suspend fun savePersonalData(
         ocrId: String,

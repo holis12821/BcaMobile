@@ -156,6 +156,104 @@ class BukaRekeningHasilFotoViewModelTest {
     }
 
     /**
+     * `404` dari `GET ocr/{session_id}` **tidak** boleh memusnahkan sesi.
+     *
+     * Backend memakai satu kode (`ONBOARDING_NOT_FOUND`) untuk "sesi tidak dikenal"
+     * dan "sesi ini belum punya hasil OCR". Client dulu menganggap keduanya fatal,
+     * jadi probe resume yang menjawab 404 membuang `session_id` yang sah dan
+     * memulangkan nasabah ke Pilih Jenis Rekening. Sesi penggantinya memotong kuota
+     * `POST /onboarding/sessions` yang hanya 3/jam per device: tiga kali ambil ulang
+     * foto dan perangkatnya terblokir sejam.
+     */
+    @Test
+    fun `hasil ocr yang belum ada tidak memusnahkan sesi`() = runTest(dispatcher) {
+        val repo = FakeOnboardingRepository()
+        repo.storedOcrResult = DataResult.Failure(ApiFailure.OcrResultMissing)
+        val store = BukaRekeningSessionStore()
+        store.update { it.copy(sessionId = SESSION_ID) }
+
+        BukaRekeningHasilFotoViewModel(repo, store)
+            .onEvent(HasilFotoEvent.ScreenShown)
+        runCurrent()
+
+        val after = store.current
+        assertEquals("sesi harus tetap dipegang", SESSION_ID, after.sessionId)
+        assertEquals("sesi lokal tidak boleh dibersihkan", 0, repo.clearLocalSessionCount)
+        // Tidak ada kabar buruk untuk nasabah yang baru masuk layar: ia tinggal memfoto.
+        assertNull("tidak ada error yang ditampilkan", after.error)
+    }
+
+    /** Kegagalan yang benar-benar fatal tetap harus membersihkan sesi. */
+    @Test
+    fun `sesi yang hilang sungguhan tetap membersihkan state`() = runTest(dispatcher) {
+        val repo = FakeOnboardingRepository()
+        repo.storedOcrResult = DataResult.Failure(ApiFailure.SessionNotFound)
+        val store = BukaRekeningSessionStore()
+        store.update { it.copy(sessionId = SESSION_ID) }
+
+        BukaRekeningHasilFotoViewModel(repo, store)
+            .onEvent(HasilFotoEvent.ScreenShown)
+        runCurrent()
+
+        assertEquals("sesi lokal harus dibersihkan", 1, repo.clearLocalSessionCount)
+        assertNull(store.current.sessionId)
+    }
+
+    /**
+     * "Ambil Ulang" tidak boleh memicu panggilan jaringan apa pun.
+     *
+     * Probe resume dulu dikunci ke `ocr`/`ktpPhoto` lewat `LaunchedEffect`, dan
+     * `discardPhoto()` mengosongkan keduanya — jadi menekan tombol itu justru
+     * menyalakan probe-nya tepat saat nasabah keluar dari layar.
+     */
+    @Test
+    fun `ambil ulang tidak memanggil hasil ocr tersimpan`() = runTest(dispatcher) {
+        val repo = FakeOnboardingRepository()
+        val store = BukaRekeningSessionStore()
+        store.update {
+            it.copy(sessionId = SESSION_ID, ktpPhoto = tempPhoto(), ocr = ocrResult())
+        }
+        val viewModel = BukaRekeningHasilFotoViewModel(repo, store)
+
+        viewModel.onEvent(HasilFotoEvent.PhotoDiscarded)
+        runCurrent()
+
+        assertEquals("tidak ada panggilan GET ocr", 0, repo.getOcrResultCount)
+        assertEquals("sesi harus tetap dipegang", SESSION_ID, store.current.sessionId)
+    }
+
+    /** Probe hanya sekali: state yang berubah di layar yang sama tidak mengulangnya. */
+    @Test
+    fun `probe hasil ocr tersimpan hanya jalan sekali`() = runTest(dispatcher) {
+        val repo = FakeOnboardingRepository()
+        repo.storedOcrResult = DataResult.Failure(ApiFailure.OcrResultMissing)
+        val store = BukaRekeningSessionStore()
+        store.update { it.copy(sessionId = SESSION_ID) }
+        val viewModel = BukaRekeningHasilFotoViewModel(repo, store)
+
+        viewModel.onEvent(HasilFotoEvent.ScreenShown)
+        runCurrent()
+        viewModel.onEvent(HasilFotoEvent.ScreenShown)
+        runCurrent()
+
+        assertEquals(1, repo.getOcrResultCount)
+    }
+
+    /** Foto lokal yang masih ada adalah yang berlaku — server tidak perlu ditanya. */
+    @Test
+    fun `foto lokal yang masih ada membuat probe dilewati`() = runTest(dispatcher) {
+        val repo = FakeOnboardingRepository()
+        val store = BukaRekeningSessionStore()
+        store.update { it.copy(sessionId = SESSION_ID, ktpPhoto = tempPhoto()) }
+
+        BukaRekeningHasilFotoViewModel(repo, store)
+            .onEvent(HasilFotoEvent.ScreenShown)
+        runCurrent()
+
+        assertEquals(0, repo.getOcrResultCount)
+    }
+
+    /**
      * Lencana "terverifikasi" hanya sah bila registri benar-benar dihubungi.
      *
      * Server dulu mengirim `dukcapil_match: true` untuk sesi yang tidak punya
@@ -238,5 +336,6 @@ class BukaRekeningHasilFotoViewModelTest {
 
     private companion object {
         const val RAW_TEXT = "PROVINSI DKI JAKARTA\nNIK : 3174082104950001\nNama : MUHAMMAD ARDAN PRAYOGI"
+        const val SESSION_ID = "onb_test_session"
     }
 }

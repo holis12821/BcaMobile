@@ -20,6 +20,10 @@ fun ApiFailure.toErrorText(): ErrorText = when (this) {
     ApiFailure.SessionExpired -> ErrorText.Res(R.string.buka_rekening_error_session_expired)
     ApiFailure.SessionNotFound ->
         ErrorText.Res(R.string.buka_rekening_error_session_not_found)
+    // Jarang sampai ke layar: probe resume di Hasil Foto menelannya, karena "server
+    // belum punya hasil OCR" bukan kabar yang berguna bagi nasabah yang baru masuk.
+    // Tetap dipetakan ke teks yang benar untuk pemanggil lain yang menampilkannya.
+    ApiFailure.OcrResultMissing -> ErrorText.Res(R.string.buka_rekening_error_no_ocr)
     ApiFailure.InvalidStep -> ErrorText.Res(R.string.buka_rekening_error_invalid_step)
     // Tidak terjadi di onboarding: endpoint /onboarding/* tanpa access token.
     ApiFailure.Unauthorized -> ErrorText.Res(R.string.error_unauthorized)

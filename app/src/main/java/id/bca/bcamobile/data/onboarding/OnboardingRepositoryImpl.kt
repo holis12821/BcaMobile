@@ -164,8 +164,22 @@ class OnboardingRepositoryImpl @Inject constructor(
         }.mapSuccess { it.toDomain() }
     }
 
+    /**
+     * 404 di endpoint ini berarti "sesi ini belum punya hasil OCR", bukan "sesinya
+     * hilang" — jadi dipetakan ke [ApiFailure.OcrResultMissing] yang non-fatal.
+     *
+     * Pemetaannya harus di sini, bukan lewat `notFoundAs`: parameter itu hanya
+     * dipakai untuk 404 **tanpa** error code di body, sementara `classifyCode`
+     * berjalan lebih dulu dan sudah memutuskan `ONBOARDING_NOT_FOUND` →
+     * `SessionNotFound` (lihat `ApiCaller.classifyHttp`).
+     */
     override suspend fun getOcrResult(): DataResult<KtpOcrResult> = withSession { sessionId ->
-        onboardingCall { api.getOcrResult(sessionId) }.mapSuccess { it.toDomain() }
+        val result = onboardingCall { api.getOcrResult(sessionId) }.mapSuccess { it.toDomain() }
+        if (result is DataResult.Failure && result.error == ApiFailure.SessionNotFound) {
+            DataResult.Failure(ApiFailure.OcrResultMissing)
+        } else {
+            result
+        }
     }
 
     override suspend fun savePersonalData(

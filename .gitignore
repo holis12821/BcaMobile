@@ -14,3 +14,6 @@
 .cxx
 local.properties
 .claude/settings.local.json
+
+# Hasil review AI (ditulis di CI, tidak pernah di-commit)
+.ai-review/

@@ -2,6 +2,7 @@ package id.bca.bcamobile.ui.screen.buka_rekening.pilih_jenis
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.viewModelScope
+import id.bca.bcamobile.core.network.ApiFailure
 import id.bca.bcamobile.domain.common.DataResult
 import id.bca.bcamobile.domain.onboarding.OnboardingRepository
 import id.bca.bcamobile.domain.onboarding.model.SavingsProductCatalog
@@ -9,6 +10,7 @@ import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSessionStore
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningSideEffect
 import id.bca.bcamobile.ui.screen.buka_rekening.common.BukaRekeningStepViewModel
 import id.bca.bcamobile.ui.screen.buka_rekening.common.isProductCatalogFresh
+import id.bca.bcamobile.ui.screen.buka_rekening.common.toErrorText
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -68,9 +70,25 @@ class BukaRekeningPilihJenisViewModel @Inject constructor(
         launchWithLoading {
             when (val result = repository.savingsProducts()) {
                 is DataResult.Success -> applyCatalog(result.value)
-                is DataResult.Failure -> Unit
+                is DataResult.Failure -> reportIfThrottled(result.error)
             }
         }
+    }
+
+    /**
+     * Terblokir kuota adalah satu-satunya kegagalan katalog yang perlu disuarakan.
+     *
+     * Sisanya memang pantas sunyi — daftar bawaan menutupinya. Tapi `429` berarti
+     * permintaan berikutnya pasti gagal juga, dan tanpa kabar apa pun nasabah
+     * menekan "muat ulang" berkali-kali sambil menduga aplikasinya rusak.
+     *
+     * Disampaikan sebagai pesan sekali lewat, **bukan** `error`: daftar bawaan tetap
+     * bisa dipakai dan `POST /sessions` punya kuota sendiri, jadi pendaftarannya
+     * belum tentu ikut terhenti. Menjadikannya `error` akan menutup layar pertama
+     * untuk masalah yang belum tentu menghalangi.
+     */
+    private fun reportIfThrottled(error: ApiFailure) {
+        if (error is ApiFailure.RateLimited) emitMessage(error.toErrorText())
     }
 
     /**
@@ -83,8 +101,9 @@ class BukaRekeningPilihJenisViewModel @Inject constructor(
      * Tidak memeriksa kesegaran katalog — kalau nasabah meminta, itu permintaan, bukan
      * saran. Yang dijaga hanya satu permintaan pada satu waktu.
      *
-     * Kegagalannya tetap sunyi, sama seperti [loadCatalog]: penandanya tinggal di tempat
-     * dan tombolnya bisa ditekan lagi. ATURAN #3 skill tidak berubah di sini.
+     * Kegagalannya diperlakukan sama seperti [loadCatalog]: penandanya tinggal di tempat
+     * dan tombolnya bisa ditekan lagi, tanpa layar error — kecuali kuota yang habis,
+     * yang disuarakan [reportIfThrottled]. ATURAN #3 skill tidak berubah di sini.
      */
     private fun reloadCatalog() {
         if (store.current.isRefreshingProductCatalog) return
@@ -98,7 +117,7 @@ class BukaRekeningPilihJenisViewModel @Inject constructor(
             try {
                 when (val result = repository.savingsProducts()) {
                     is DataResult.Success -> applyCatalog(result.value)
-                    is DataResult.Failure -> Unit
+                    is DataResult.Failure -> reportIfThrottled(result.error)
                 }
             } finally {
                 // Tanpa finally, satu exception mengunci tombolnya mati selamanya.
