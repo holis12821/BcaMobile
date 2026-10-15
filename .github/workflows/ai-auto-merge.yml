@@ -1,0 +1,59 @@
+# Auto-merge oleh AI — berjalan HANYA kalau "AI PR Review" selesai `success`.
+#
+# Satu temuan blocker/major, satu test gagal, satu literal visual baru, atau arah
+# branch yang salah membuat workflow review berakhir `failure`, dan workflow ini
+# tidak pernah dipanggil. Jadi "tidak ada auto-merge saat ada bug" bukan
+# pemeriksaan tambahan di sini — itu konsekuensi dari cara ia dipicu.
+#
+# Pagar lengkapnya ada di .github/scripts/ai-auto-merge.sh. Yang perlu diingat:
+# PR menuju `main` TIDAK PERNAH di-merge otomatis. Ia hanya diberi label
+# `ai-review/siap-rilis`; rilis ke nasabah tetap keputusan manusia.
+#
+# CATATAN PENTING: workflow dengan trigger `workflow_run` selalu dijalankan dari
+# versi yang ada di branch default (`main`). Selama berkas ini belum sampai ke
+# `main`, auto-merge tidak akan jalan — review-nya tetap jalan.
+#
+# Metode merge bisa diganti lewat repository variable AI_AUTO_MERGE_METHOD
+# (merge | squash | rebase). Default: merge, supaya riwayat per fase utuh.
+
+name: AI Auto Merge
+
+on:
+  workflow_run:
+    workflows: ["AI PR Review"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: read
+  actions: read
+
+concurrency:
+  group: ai-auto-merge-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    name: Auto-merge oleh AI
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.event == 'pull_request' ||
+       github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts/*
+          sparse-checkout-cone-mode: false
+
+      - name: Periksa pagar lalu merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          METODE: ${{ vars.AI_AUTO_MERGE_METHOD || 'merge' }}
+        run: |
+          chmod +x .github/scripts/ai-auto-merge.sh
+          ./.github/scripts/ai-auto-merge.sh

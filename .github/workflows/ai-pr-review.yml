@@ -1,0 +1,371 @@
+# AI PR Review — satu-satunya gerbang yang menentukan boleh atau tidaknya auto-merge.
+#
+# Empat job, semuanya harus hijau:
+#   1. arah-branch  — PR menuju branch yang benar (tidak pernah langsung ke main)
+#   2. gerbang      — unit test, lint, literal visual, pola ANR
+#   3. review-ai    — Claude membaca logika diff dengan rubrik .github/ai-review-rubric.md
+#   4. putusan      — memberi label ai-review/pass atau ai-review/blocked
+#
+# Workflow `ai-auto-merge.yml` hanya berjalan kalau workflow ini selesai `success`.
+# Satu temuan blocker/major → job review-ai gagal → tidak ada auto-merge.
+#
+# Jadikan job "putusan" sebagai required status check di branch protection
+# `main`, `development`, dan `feature/*` supaya tidak bisa dilewati lewat tombol
+# merge manual.
+
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "Nomor PR yang mau direview ulang"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ai-pr-review-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  konteks:
+    name: Konteks PR
+    runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.pr.outputs.pr }}
+      base: ${{ steps.pr.outputs.base }}
+      head: ${{ steps.pr.outputs.head }}
+      head_sha: ${{ steps.pr.outputs.head_sha }}
+      dari_fork: ${{ steps.pr.outputs.dari_fork }}
+    steps:
+      - id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+          INPUT_PR: ${{ inputs.pr }}
+        run: |
+          set -euo pipefail
+          PR="${EVENT_PR:-$INPUT_PR}"
+          [ -n "$PR" ] || { echo "Nomor PR tidak diketahui."; exit 1; }
+          data=$(gh api "repos/$REPO/pulls/$PR")
+          {
+            echo "pr=$PR"
+            echo "base=$(echo "$data" | jq -r '.base.ref')"
+            echo "head=$(echo "$data" | jq -r '.head.ref')"
+            echo "head_sha=$(echo "$data" | jq -r '.head.sha')"
+            echo "dari_fork=$(echo "$data" | jq -r 'if .head.repo.full_name == .base.repo.full_name then "false" else "true" end')"
+          } >> "$GITHUB_OUTPUT"
+          echo "PR #$PR: $(echo "$data" | jq -r '.head.ref') -> $(echo "$data" | jq -r '.base.ref')"
+
+  arah-branch:
+    name: Arah branch
+    needs: konteks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Periksa arah PR
+        run: |
+          chmod +x scripts/check-pr-branch-policy.sh
+          ./scripts/check-pr-branch-policy.sh \
+            "${{ needs.konteks.outputs.head }}" \
+            "${{ needs.konteks.outputs.base }}" \
+            "${{ needs.konteks.outputs.head_sha }}"
+
+  gerbang:
+    name: Gerbang deterministik
+    needs: konteks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ needs.konteks.outputs.pr }}/merge
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Siapkan Android SDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-37" > /dev/null 2>&1 \
+            || echo "::warning::platform android-37 belum ada di runner; Gradle akan mengunduhnya sendiri"
+
+      - name: Jalankan gerbang
+        run: |
+          chmod +x gradlew scripts/*.sh
+          ./scripts/pr-gates.sh
+
+      - name: Simpan laporan test & lint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laporan-gerbang
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            app/build/reports/tests/**
+            app/build/reports/lint-results-*.html
+            app/build/reports/lint-results-*.xml
+
+  review-ai:
+    name: Review logika oleh AI
+    needs: konteks
+    if: needs.konteks.outputs.dari_fork == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      putusan: ${{ steps.putusan.outputs.putusan }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ needs.konteks.outputs.pr }}/merge
+          fetch-depth: 0
+
+      - name: Kumpulkan bahan review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.konteks.outputs.pr }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ai-review
+          gh api "repos/$REPO/pulls/$PR" \
+            --jq '"# PR #\(.number): \(.title)\n\nAsal: \(.head.ref) -> Tujuan: \(.base.ref)\nPenulis: \(.user.login)\n\n## Deskripsi\n\n\(.body // "(kosong)")"' \
+            > .ai-review/pr.md
+          gh pr diff "$PR" --repo "$REPO" --patch > .ai-review/pr.diff
+          gh pr diff "$PR" --repo "$REPO" --name-only > .ai-review/files.txt
+          baris=$(wc -l < .ai-review/pr.diff | tr -d ' ')
+          berkas=$(wc -l < .ai-review/files.txt | tr -d ' ')
+          echo "Diff: $berkas berkas, $baris baris." | tee .ai-review/ukuran.txt
+          if [ "$baris" -gt 20000 ]; then
+            echo "::warning::diff sangat besar ($baris baris) — reviewer akan menandai bagian yang tidak terbaca"
+          fi
+
+      - name: Claude membaca logika diff
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            Anda adalah code reviewer untuk `bca_mobile`, aplikasi mobile banking
+            Android (Kotlin, Jetpack Compose, Clean Architecture + MVI). Yang Anda
+            tahan atau loloskan menentukan apakah PR ini di-merge otomatis tanpa
+            mata manusia, jadi putusannya harus bisa dipertanggungjawabkan.
+
+            Urutan kerja:
+
+            1. Baca `.github/ai-review-rubric.md` — itu rubrik yang mengikat:
+               apa yang memblokir, severity, dan kontrak keluaran.
+            2. Baca `CLAUDE.md` untuk aturan repo dan status integrasi per fitur.
+            3. Baca `.ai-review/pr.md` (judul, deskripsi, arah branch),
+               `.ai-review/files.txt`, lalu `.ai-review/pr.diff`.
+            4. Untuk setiap potongan diff yang logikanya tidak jelas dari konteks
+               diff saja, baca berkas sumbernya UTUH dengan Read.
+            5. Untuk setiap fungsi, enum, sealed class, atau tanda tangan yang
+               berubah, cari semua pemakaiannya dengan Grep — termasuk berkas yang
+               TIDAK ada di diff. Bug termahal di repo ini ada di berkas yang lupa
+               diikutkan.
+            6. Kalau PR menambah route, endpoint, paket, dependency, atau skill,
+               periksa CLAUDE.md dan
+               `.claude/skills/compose-architecture/references/navigation.md`
+               ikut diperbarui di PR yang sama.
+
+            Fokus pada yang hanya bisa ditemukan dengan membaca logika: ANR dan
+            kerja di main thread, kebocoran sumber daya dan siklus hidup
+            (CameraX, ML Kit, WebRTC, WebSocket), PII yang keluar dari memory,
+            nominal rupiah dan waktu, kontrak API dan pemetaan error code,
+            idempotency, batas ViewModel/navigasi, serta logika yang kelihatan
+            benar tapi salah. Gerbang grep (literal visual, pola ANR statis, lint,
+            unit test) sudah dijalankan job lain — jangan diulang.
+
+            JANGAN mengubah, memformat, atau memperbaiki berkas sumber apa pun.
+            JANGAN commit, push, atau menyentuh git. JANGAN menekan approve/merge.
+            Satu-satunya berkas yang Anda tulis adalah `.ai-review/review.json`
+            dan `.ai-review/report.md`, tepat seperti kontrak di rubrik.
+
+            Selesaikan dengan menulis kedua berkas itu. Kalau karena alasan apa pun
+            Anda tidak bisa menyelesaikan review dengan yakin, tulis
+            `verdict: "block"` dengan kategori `perlu-mata-manusia` dan jelaskan
+            kenapa — menahan PR yang sebenarnya sehat jauh lebih murah daripada
+            meloloskan bug ke tangan nasabah.
+          claude_args: |
+            --model ${{ vars.AI_REVIEW_MODEL || 'claude-opus-5' }}
+            --max-turns 80
+            --allowedTools "Read,Grep,Glob,Write,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(wc:*),Bash(ls:*)"
+            --disallowedTools "Edit,MultiEdit,NotebookEdit,WebSearch,WebFetch,Bash(git commit:*),Bash(git push:*),Bash(gh:*),Bash(./gradlew:*)"
+
+      - name: Pastikan reviewer tidak menyentuh kode
+        run: |
+          set -euo pipefail
+          kotor=$(git status --porcelain | grep -v '^?? \.ai-review/' || true)
+          if [ -n "$kotor" ]; then
+            echo "FAIL: reviewer mengubah berkas di luar .ai-review/:"
+            echo "$kotor"
+            echo "Review dianggap tidak sah. Tidak ada auto-merge."
+            exit 1
+          fi
+          echo "OK: tidak ada berkas repo yang tersentuh."
+
+      - name: Baca putusan
+        id: putusan
+        run: |
+          set -uo pipefail
+          blok() {
+            echo "putusan=block" >> "$GITHUB_OUTPUT"
+            echo "## Putusan AI: DITAHAN" >> "$GITHUB_STEP_SUMMARY"
+            echo "$1" >> "$GITHUB_STEP_SUMMARY"
+            echo "$1"
+          }
+          if [ ! -s .ai-review/review.json ]; then
+            blok "Reviewer tidak menghasilkan \`.ai-review/review.json\` — putusan tidak ada, jadi PR ditahan."
+            exit 1
+          fi
+          if ! jq -e . .ai-review/review.json > /dev/null 2>&1; then
+            blok "\`.ai-review/review.json\` bukan JSON yang valid — putusan tidak bisa dibaca, jadi PR ditahan."
+            exit 1
+          fi
+
+          verdict=$(jq -r '.verdict // "block"' .ai-review/review.json)
+          berat=$(jq '[.findings[]? | select(.severity == "blocker" or .severity == "major")] | length' .ai-review/review.json)
+          ringan=$(jq '[.findings[]? | select(.severity == "minor" or .severity == "nit")] | length' .ai-review/review.json)
+          yakin=$(jq -r '.confidence // "low"' .ai-review/review.json)
+
+          {
+            echo "## Putusan AI"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Putusan | \`$verdict\` |"
+            echo "| Keyakinan | \`$yakin\` |"
+            echo "| Temuan blocker/major | $berat |"
+            echo "| Temuan minor/nit | $ringan |"
+            echo ""
+            jq -r '.summary // ""' .ai-review/review.json
+            echo ""
+            if [ "$berat" -gt 0 ]; then
+              echo "### Temuan yang menahan PR"
+              echo ""
+              jq -r '.findings[]? | select(.severity == "blocker" or .severity == "major")
+                     | "- **\(.severity)** [`\(.category)`] `\(.file):\(.line)` — \(.title)\n  \(.why)"' \
+                     .ai-review/review.json
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$verdict" != "pass" ] || [ "$berat" -gt 0 ]; then
+            echo "putusan=block" >> "$GITHUB_OUTPUT"
+            echo "DITAHAN: verdict=$verdict, temuan berat=$berat."
+            exit 1
+          fi
+          echo "putusan=pass" >> "$GITHUB_OUTPUT"
+          echo "LULUS: tidak ada temuan blocker/major."
+
+      - name: Kirim laporan ke PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.konteks.outputs.pr }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          MARKER="<!-- ai-review:bca-mobile -->"
+          {
+            echo "$MARKER"
+            echo "## Review AI"
+            echo ""
+            if [ -s .ai-review/report.md ]; then
+              cat .ai-review/report.md
+            else
+              echo "Reviewer tidak menghasilkan laporan. Putusan: **ditahan** —"
+              echo "tanpa laporan tidak ada dasar untuk meloloskan PR ini."
+            fi
+            echo ""
+            echo "---"
+            echo ""
+            echo "Rubrik: \`.github/ai-review-rubric.md\` · [log run]($RUN_URL)"
+            echo ""
+            echo "Review ini tidak menggantikan review manusia untuk perubahan"
+            echo "yang menyentuh uang, PII, atau kriptografi."
+          } > .ai-review/komentar.md
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+                 --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@.ai-review/komentar.md > /dev/null
+            echo "Komentar #$id diperbarui."
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@.ai-review/komentar.md > /dev/null
+            echo "Komentar baru dikirim."
+          fi
+
+      - name: Simpan hasil review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hasil-review-ai
+          if-no-files-found: ignore
+          retention-days: 30
+          path: .ai-review/
+
+  putusan:
+    name: Putusan akhir
+    needs: [konteks, arah-branch, gerbang, review-ai]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Beri label dan tentukan hasil
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.konteks.outputs.pr }}
+          ARAH: ${{ needs.arah-branch.result }}
+          GATES: ${{ needs.gerbang.result }}
+          AI: ${{ needs.review-ai.result }}
+          FORK: ${{ needs.konteks.outputs.dari_fork }}
+        run: |
+          set -uo pipefail
+          gh label create "ai-review/pass"    --repo "$REPO" --color 0E8A16 --description "Review AI bersih; auto-merge boleh jalan" 2>/dev/null || true
+          gh label create "ai-review/blocked" --repo "$REPO" --color B60205 --description "Review AI menemukan masalah; jangan merge" 2>/dev/null || true
+
+          echo "arah-branch=$ARAH, gerbang=$GATES, review-ai=$AI, dari_fork=$FORK"
+          lulus=true
+          [ "$ARAH"  = "success" ] || lulus=false
+          [ "$GATES" = "success" ] || lulus=false
+          [ "$AI"    = "success" ] || lulus=false
+
+          if [ "$FORK" = "true" ]; then
+            lulus=false
+            echo "::warning::PR dari fork tidak direview AI (secret tidak tersedia). Merge harus manual."
+          fi
+
+          if [ "$lulus" = "true" ]; then
+            gh pr edit "$PR" --repo "$REPO" --add-label "ai-review/pass" --remove-label "ai-review/blocked" > /dev/null || true
+            echo "## Semua gerbang hijau — auto-merge boleh jalan" >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh pr edit "$PR" --repo "$REPO" --add-label "ai-review/blocked" --remove-label "ai-review/pass" > /dev/null || true
+            {
+              echo "## PR ditahan"
+              echo ""
+              echo "| Gerbang | Hasil |"
+              echo "|---|---|"
+              echo "| Arah branch | \`$ARAH\` |"
+              echo "| Gerbang deterministik | \`$GATES\` |"
+              echo "| Review AI | \`$AI\` |"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
